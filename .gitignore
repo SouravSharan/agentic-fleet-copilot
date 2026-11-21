@@ -1,0 +1,27 @@
+# Python / uv
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dataset is not redistributed: download it via the link in the brief into ../data/ or ./data/
+data/
+*.ndjson
+
+# Runtime artifacts
+audit/
+*.log
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Notebook checkpoints
+.ipynb_checkpoints/
