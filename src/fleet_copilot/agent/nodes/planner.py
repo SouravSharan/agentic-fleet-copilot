@@ -7,9 +7,11 @@ import logging
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 from langgraph.runtime import Runtime
 from pydantic import ValidationError
 
+from fleet_copilot.agent.deadline import check_turn_deadline
 from fleet_copilot.agent.prompts import load_prompt
 from fleet_copilot.agent.schemas import Plan
 from fleet_copilot.agent.state import CopilotState
@@ -78,7 +80,12 @@ def _invoke_plan_with_retry(
 def make_planner_node(deps: Any) -> Any:
     """Build the `planner` node closed over `AgentDeps`."""
 
-    def planner(state: CopilotState, runtime: Runtime[TenantContext]) -> dict[str, Any]:
+    def planner(
+        state: CopilotState,
+        config: RunnableConfig,
+        runtime: Runtime[TenantContext],
+    ) -> dict[str, Any]:
+        check_turn_deadline(config)
         ctx = runtime.context
         template, _ = load_prompt("planner")
         digest = list(state.get("conversation_digest") or [])[-3:]

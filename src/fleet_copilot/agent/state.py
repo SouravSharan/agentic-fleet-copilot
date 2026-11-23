@@ -71,4 +71,5 @@ class CopilotState(TypedDict, total=False):
     verifier_retries: int
     warnings: Annotated[list[str], turn_list_reducer]
     step_count: int
+    budget_exhausted: bool
     usage: Annotated[list[dict[str, Any]], turn_list_reducer]

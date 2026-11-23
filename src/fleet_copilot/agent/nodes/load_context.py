@@ -120,6 +120,7 @@ def make_load_context_node(deps: Any) -> Any:
             "verifier_retries": 0,
             "warnings": reset_list(),
             "step_count": 0,
+            "budget_exhausted": False,
             "usage": reset_list(),
         }
 

@@ -7,8 +7,10 @@ import logging
 from typing import Any
 
 from langchain_core.messages import SystemMessage
+from langchain_core.runnables import RunnableConfig
 from langgraph.runtime import Runtime
 
+from fleet_copilot.agent.deadline import check_turn_deadline
 from fleet_copilot.agent.prompts import load_prompt
 from fleet_copilot.agent.state import CopilotState
 from fleet_copilot.domain.models import TenantContext
@@ -27,7 +29,12 @@ def make_investigator_node(deps: Any) -> Any:
     so `__gemini_function_call_thought_signatures__` survive intact across tool loops and resumes.
     """
 
-    def investigator(state: CopilotState, runtime: Runtime[TenantContext]) -> dict[str, Any]:
+    def investigator(
+        state: CopilotState,
+        config: RunnableConfig,
+        runtime: Runtime[TenantContext],
+    ) -> dict[str, Any]:
+        check_turn_deadline(config)
         ctx = runtime.context
         allowed_names = set(state.get("allowed_tool_names", []))
         bound_tools = [spec.tool for spec in deps.all_tool_specs if spec.name in allowed_names]

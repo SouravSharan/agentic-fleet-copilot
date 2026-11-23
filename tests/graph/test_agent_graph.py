@@ -1154,7 +1154,7 @@ def test_llm_exception_and_double_parse_failure_mark_turn_failed_and_audit() -> 
 
 
 def test_turn_timeout_returns_failed_response_and_audits() -> None:
-    """M2: Exceeding turn_timeout_s produces TurnResponse(status='failed') + TimeoutError audit."""
+    """N1: Cooperative turn_deadline stops before downstream nodes and stages/executes nothing."""
     import time
 
     base_rt = get_runtime_config()
@@ -1171,23 +1171,225 @@ def test_turn_timeout_returns_failed_response_and_audits() -> None:
     )
 
     def _slow_planner(_msgs: Any) -> Plan:
-        time.sleep(1.0)
-        return Plan(intent="qa", steps=[])
+        time.sleep(0.15)
+        return Plan(intent="action", steps=[PlanStep(goal="Open ticket", tool_hint="find_devices")])
 
+    investigator = ScriptedChatModel(
+        script=[
+            make_tool_call_ai(
+                [{"name": "find_devices", "args": {"low_disk_only": True}, "id": "t_late"}]
+            ),
+            "Should never run.",
+        ]
+    )
     svc, audit = _offline_copilot(
         planner_model=ScriptedChatModel(script=[_slow_planner]),
-        investigator_model=ScriptedChatModel(script=["unused"]),
+        investigator_model=investigator,
         synthesizer_model=ScriptedChatModel(script=[Answer(summary="unused")]),
         runtime_cfg=fast_timeout_rt,
     )
-    # Override timeout attribute directly to 0.1s so the test executes quickly
-    svc._turn_timeout_override_s = 0.1  # type: ignore[attr-defined]
+    svc._turn_timeout_override_s = 0.05  # type: ignore[attr-defined]
     resp = svc.run_turn(_ctx(), None, "Slow turn")
     assert resp.status == "failed"
+    # Cooperative check fires on investigator entry: no background thread continues!
+    assert investigator.recorded_inputs == []
+    assert resp.proposals == []
     completed = [p for ev, p in audit.events if ev == "turn_completed"]
     assert len(completed) == 1
     assert completed[0].status == "failed"
-    assert completed[0].error_code == "TimeoutError"
+    assert completed[0].error_code == "TurnTimeoutError"
+
+
+def test_per_tool_cap_rejections_count_toward_budget_and_route_via_flag() -> None:
+    """N3: Capped tool calls count toward step_count and exit via `budget_exhausted` flag."""
+    base_rt = get_runtime_config()
+    capped_rt = base_rt.model_copy(
+        update={
+            "budgets": BudgetConfig(
+                max_tool_calls=3,
+                max_verifier_retries=1,
+                recursion_limit=15,
+                turn_timeout_s=30,
+                per_tool_caps={"default": 4, "get_fleet_overview": 1},
+            )
+        }
+    )
+    planner = ScriptedChatModel(
+        script=[
+            Plan(intent="qa", steps=[PlanStep(goal="Overview", tool_hint="get_fleet_overview")])
+        ]
+    )
+    investigator = ScriptedChatModel(
+        script=[
+            make_tool_call_ai([{"name": "get_fleet_overview", "args": {}, "id": "c1"}]),
+            make_tool_call_ai([{"name": "get_fleet_overview", "args": {}, "id": "c2"}]),
+            make_tool_call_ai([{"name": "get_fleet_overview", "args": {}, "id": "c3"}]),
+            make_tool_call_ai([{"name": "get_fleet_overview", "args": {}, "id": "c4"}]),
+        ]
+    )
+    synthesizer = ScriptedChatModel(
+        script=[
+            Answer(
+                summary="Fleet overview returned with partial evidence.",
+                result_device_ids=[],
+                claims=[],
+                caveats=["Per-tool cap reached."],
+            )
+        ]
+    )
+    svc, _ = _offline_copilot(
+        planner_model=planner,
+        investigator_model=investigator,
+        synthesizer_model=synthesizer,
+        runtime_cfg=capped_rt,
+    )
+    resp = svc.run_turn(_ctx(), None, "Keep calling overview")
+    assert resp.status == "completed"
+    # Must stop cleanly without hitting recursion_limit
+    assert len(investigator.recorded_inputs) <= 3
+    snap = svc._graph.get_state({"configurable": {"thread_id": resp.thread_id}})
+    assert snap.values.get("budget_exhausted") is True
+
+
+def test_tools_node_validates_args_and_sanitizes_errors() -> None:
+    """11 §1 #8: Invalid args return field names only; runtime errors return class name only."""
+    import json
+
+    from langchain_core.messages import ToolMessage
+
+    planner = ScriptedChatModel(
+        script=[Plan(intent="qa", steps=[PlanStep(goal="Search", tool_hint="find_devices")])]
+    )
+    investigator = ScriptedChatModel(
+        script=[
+            make_tool_call_ai(
+                [
+                    {
+                        "name": "find_devices",
+                        "args": {"os_family": "SECRET_RAW_VAL", "limit": "not_an_int"},
+                        "id": "tc_bad_args",
+                    },
+                    {
+                        "name": "get_device_details",
+                        "args": {"identifier": "BOOM_TRIGGER"},
+                        "id": "tc_boom",
+                    },
+                ]
+            ),
+            "Done.",
+        ]
+    )
+    synthesizer = ScriptedChatModel(
+        script=[
+            Answer(
+                summary="Tool errors handled cleanly.",
+                result_device_ids=[],
+                claims=[],
+                caveats=["Errors sanitized."],
+            )
+        ]
+    )
+
+    repo = InMemoryTelemetryRepo()
+    orig_resolve = repo.resolve_device
+
+    def _exploding_resolve(company_id: str, identifier: str) -> Any:
+        if identifier == "BOOM_TRIGGER":
+            raise RuntimeError("postgresql://secret_user:supersecret@db/prod")
+        return orig_resolve(company_id, identifier)
+
+    repo.resolve_device = _exploding_resolve  # type: ignore[method-assign]
+    store = InMemoryCopilotStore()
+    audit = InMemoryAuditService()
+    policy_svc = PolicyService(store)
+    action_svc = ActionService(
+        None,  # type: ignore[arg-type]
+        repo,
+        store,  # type: ignore[arg-type]
+        policy_svc,
+        audit,  # type: ignore[arg-type]
+        MockAdapter(),
+    )
+
+    def _factory(node: NodeName) -> Any:
+        return {
+            "planner": planner,
+            "investigator": investigator,
+            "synthesizer": synthesizer,
+        }[node]
+
+    svc = CopilotService(
+        telemetry_repo=repo,
+        copilot_store=store,
+        policy_svc=policy_svc,
+        audit_svc=audit,
+        action_svc=action_svc,
+        checkpointer=InMemorySaver(),
+        clock=FixedClock(FIXED_NOW),
+        settings=Settings(actions_enabled=True),
+        model_factory=_factory,
+        model_id="google_genai:gemini-3.8-flash",
+    )
+
+    resp = svc.run_turn(_ctx(), None, "Trigger invalid args and runtime error")
+    assert resp.status == "completed"
+    snap = svc._graph.get_state({"configurable": {"thread_id": resp.thread_id}})
+    tool_msgs = {
+        m.tool_call_id: json.loads(str(m.content))
+        for m in snap.values["messages"]
+        if isinstance(m, ToolMessage)
+    }
+
+    bad_args_payload = tool_msgs["tc_bad_args"]
+    assert bad_args_payload["ok"] is False
+    assert bad_args_payload["error"] == "invalid_arguments"
+    assert sorted(bad_args_payload["fields"]) == ["limit", "os_family"]
+    assert "SECRET_RAW_VAL" not in json.dumps(bad_args_payload)
+
+    boom_payload = tool_msgs["tc_boom"]
+    assert boom_payload == {"ok": False, "error": "tool_error", "code": "RuntimeError"}
+    assert "supersecret" not in json.dumps(boom_payload)
+
+
+@pytest.mark.integration
+def test_resume_failure_uses_real_turn_id_and_truthful_proposal_status(
+    db_manager: DatabaseManager,
+    reset_copilot_state: None,
+) -> None:
+    """N1 + N2: Resume failure updates real paused turn_id and reports truthful proposal status."""
+    svc, _, audit = _stage_screen_lock_copilot(db_manager)
+    ctx = _ctx()
+    paused = svc.run_turn(ctx, None, "Open a screen_lock remediation ticket for 1LYSSFD074BB")
+    assert paused.status == "waiting_approval"
+    assert paused.approval_packet is not None
+    pid = paused.approval_packet["proposals"][0]["proposal_id"]
+
+    # Force an unexpected exception during resume
+    def _boom_decide(*_a: Any, **_kw: Any) -> Any:
+        raise RuntimeError("Simulated DB hiccup during resume")
+
+    svc._action_svc.decide = _boom_decide  # type: ignore[method-assign]
+    failed_resp = svc.resume(ctx, paused.thread_id, {pid: "approve"})
+    assert failed_resp.status == "failed"
+    assert failed_resp.turn_id == paused.turn_id
+    # Truthful failure message reports actual proposal status from DB (not blind "No actions")
+    assert "pending_approval" in failed_resp.answer_markdown
+
+    # Verify DB turn row updated and audit turn_completed points to the real paused turn_id
+    thread_data = svc.get_thread(ctx, paused.thread_id)
+    assert thread_data is not None
+    turn_row = next(t for t in thread_data["turns"] if t["turn_id"] == paused.turn_id)
+    assert turn_row["status"] == "failed"
+
+    tc_events = [
+        e
+        for e in audit.list(ctx)
+        if e["event_type"] == "turn_completed"
+        and e["payload_json"].get("turn_id") == paused.turn_id
+    ]
+    assert len(tc_events) == 1
+    assert tc_events[0]["payload_json"]["status"] == "failed"
+    assert tc_events[0]["payload_json"]["error_code"] == "RuntimeError"
 
 
 @pytest.mark.integration

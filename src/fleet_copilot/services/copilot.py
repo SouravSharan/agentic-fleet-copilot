@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import concurrent.futures
 import hashlib
 import logging
 import time
 import uuid
+from collections import Counter
 from collections.abc import Callable
 from typing import Any
 
@@ -163,26 +163,38 @@ class CopilotService:
         self._graph = build_agent_graph(self._deps, checkpointer=self._checkpointer)
         self._turn_timeout_override_s: float | None = None
 
-    def _invoke_with_timeout(self, fn: Callable[[], Any]) -> Any:
+    def _turn_deadline(self, t0: float) -> float:
         timeout_s = (
             self._turn_timeout_override_s
             if self._turn_timeout_override_s is not None
             else float(self._runtime_cfg.budgets.turn_timeout_s)
         )
-        # In replay mode, avoid thread-pool overhead unless a small override is explicitly set
-        if self._settings.llm_replay_mode.strip().lower() == "replay" and (
-            self._turn_timeout_override_s is None
-        ):
-            return fn()
-        pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        fut = pool.submit(fn)
+        return t0 + timeout_s
+
+    def _paused_turn_id(self, config: dict[str, Any]) -> str | None:
+        if self._checkpointer is None:
+            return None
         try:
-            return fut.result(timeout=timeout_s)
-        except concurrent.futures.TimeoutError as exc:
-            fut.cancel()
-            raise TimeoutError(f"Turn exceeded turn_timeout_s={timeout_s}s") from exc
-        finally:
-            pool.shutdown(wait=False, cancel_futures=True)
+            snap = self._graph.get_state(config)
+        except Exception:  # noqa: BLE001
+            return None
+        if snap is None or not isinstance(getattr(snap, "values", None), dict):
+            return None
+        tid = snap.values.get("turn_id")
+        return str(tid) if tid else None
+
+    def _truthful_proposal_status_note(self, ctx: TenantContext, turn_id: str) -> str:
+        """Query persisted proposals for `turn_id` and summarize their actual DB statuses."""
+        try:
+            all_props = self._store.list_proposals(ctx.company_id)
+            turn_props = [p for p in all_props if str(p.get("turn_id", "")) == turn_id]
+        except Exception:  # noqa: BLE001
+            return "Unable to verify proposal state for this turn; check the Approvals queue."
+        if not turn_props:
+            return "No proposals were staged or executed for this turn."
+        counts = Counter(str(p.get("status", "unknown")) for p in turn_props)
+        summary = ", ".join(f"{n} {st}" for st, n in sorted(counts.items()))
+        return f"Current proposal statuses for this turn: {summary}."
 
     def _handle_turn_failure(
         self,
@@ -195,9 +207,9 @@ class CopilotService:
     ) -> TurnResponse:
         latency_ms = max(0, int((time.monotonic() - t0) * 1000))
         error_code = type(exc).__name__[:64]
+        status_note = self._truthful_proposal_status_note(ctx, turn_id)
         friendly = (
-            "I could not complete this request due to an internal processing error "
-            f"(`{error_code}`). No actions were executed; please retry."
+            f"This request could not be completed (`{error_code}`). {status_note} Please retry."
         )
         answer_hash = hashlib.sha256(friendly.encode("utf-8")).hexdigest()
         try:
@@ -379,7 +391,11 @@ class CopilotService:
             self._assert_thread_owned(ctx, tid)
 
             config: dict[str, Any] = {
-                "configurable": {"thread_id": tid, "_turn_t0": t0},
+                "configurable": {
+                    "thread_id": tid,
+                    "_turn_t0": t0,
+                    "_turn_deadline": self._turn_deadline(t0),
+                },
                 "recursion_limit": self._runtime_cfg.budgets.recursion_limit,
             }
 
@@ -392,30 +408,26 @@ class CopilotService:
                         str(p["proposal_id"]) for p in pending_packet.get("proposals", [])
                     ]
                     if pending_ids:
-                        self._invoke_with_timeout(
-                            lambda: self._graph.invoke(
-                                Command(
-                                    resume={
-                                        "decisions": {pid: "defer" for pid in pending_ids},
-                                        "note": "Auto-deferred by new user message",
-                                    }
-                                ),
-                                config=config,
-                                context=ctx,
-                            )
+                        self._graph.invoke(
+                            Command(
+                                resume={
+                                    "decisions": {pid: "defer" for pid in pending_ids},
+                                    "note": "Auto-deferred by new user message",
+                                }
+                            ),
+                            config=config,
+                            context=ctx,
                         )
 
-                result_state = self._invoke_with_timeout(
-                    lambda: self._graph.invoke(
-                        {
-                            "thread_id": tid,
-                            "turn_id": resolved_turn_id,
-                            "user_message": message,
-                            "messages": [HumanMessage(content=message)],
-                        },
-                        config=config,
-                        context=ctx,
-                    )
+                result_state = self._graph.invoke(
+                    {
+                        "thread_id": tid,
+                        "turn_id": resolved_turn_id,
+                        "user_message": message,
+                        "messages": [HumanMessage(content=message)],
+                    },
+                    config=config,
+                    context=ctx,
                 )
             except (ThreadNotOwnedError, CassetteMiss):
                 raise
@@ -465,13 +477,12 @@ class CopilotService:
                 "configurable": {"thread_id": thread_id, "_turn_t0": t0},
                 "recursion_limit": self._runtime_cfg.budgets.recursion_limit,
             }
+            paused_turn_id = self._paused_turn_id(config) or f"resume_{uuid.uuid4().hex[:8]}"
             try:
-                result_state = self._invoke_with_timeout(
-                    lambda: self._graph.invoke(
-                        Command(resume={"decisions": decisions, "note": note}),
-                        config=config,
-                        context=ctx,
-                    )
+                result_state = self._graph.invoke(
+                    Command(resume={"decisions": decisions, "note": note}),
+                    config=config,
+                    context=ctx,
                 )
             except (ThreadNotOwnedError, CassetteMiss):
                 raise
@@ -479,7 +490,7 @@ class CopilotService:
                 return self._handle_turn_failure(
                     ctx=ctx,
                     thread_id=thread_id,
-                    turn_id=f"resume_{uuid.uuid4().hex[:8]}",
+                    turn_id=paused_turn_id,
                     exc=exc,
                     t0=t0,
                 )

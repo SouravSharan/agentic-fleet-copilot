@@ -7,9 +7,11 @@ import logging
 from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 from langgraph.runtime import Runtime
 from pydantic import ValidationError
 
+from fleet_copilot.agent.deadline import check_turn_deadline
 from fleet_copilot.agent.nodes.planner import StructuredOutputParseError
 from fleet_copilot.agent.prompts import load_prompt
 from fleet_copilot.agent.schemas import Answer
@@ -78,7 +80,12 @@ def make_synthesizer_node(deps: Any) -> Any:
     conversation digest, and compact tool summaries — NEVER tool-call AIMessage history.
     """
 
-    def synthesizer(state: CopilotState, runtime: Runtime[TenantContext]) -> dict[str, Any]:
+    def synthesizer(
+        state: CopilotState,
+        config: RunnableConfig,
+        runtime: Runtime[TenantContext],
+    ) -> dict[str, Any]:
+        check_turn_deadline(config)
         ctx = runtime.context
         template, _ = load_prompt("synthesizer")
 

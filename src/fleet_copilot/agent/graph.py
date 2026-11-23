@@ -67,11 +67,10 @@ def _route_after_investigator(state: CopilotState) -> str:
 
 
 def _make_route_after_tools() -> Callable[[CopilotState], str]:
-    """After responding to all tool calls, exit to `synthesizer` once budget exhaustion triggers."""
+    """After responding to all tool calls, exit to `synthesizer` on `budget_exhausted` flag (N3)."""
 
     def _route(state: CopilotState) -> str:
-        warnings = state.get("warnings") or []
-        if any("budget exhausted" in w.lower() for w in warnings):
+        if bool(state.get("budget_exhausted", False)):
             return "synthesizer"
         return "investigator"
 
