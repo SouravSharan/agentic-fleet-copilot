@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 import psycopg
@@ -19,6 +20,9 @@ if str(_REPO_ROOT) not in sys.path:
 _BASE_SETTINGS = Settings()
 for _env_key, _env_val in test_database_overrides(_BASE_SETTINGS).items():
     os.environ[_env_key] = _env_val
+# Provide a deterministic fallback PSEUDONYM_KEY for test environments without a local .env.
+if not os.environ.get("PSEUDONYM_KEY"):
+    os.environ["PSEUDONYM_KEY"] = "0123456789abcdef" * 4
 get_settings.cache_clear()
 
 _DIR_MARKERS = {
@@ -75,3 +79,32 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     skip_marker = pytest.mark.skip(reason="Postgres unreachable; run `make up test-db`")
     for item in db_items:
         item.add_marker(skip_marker)
+
+
+@pytest.fixture()
+def reset_copilot_state() -> Iterator[None]:
+    """Truncate copilot operational tables and audit chain heads on the test DB before each test."""
+    settings = get_settings()
+    with psycopg.connect(settings.admin_database_url, prepare_threshold=None) as conn:
+        with conn.transaction():
+            conn.execute(
+                """
+                TRUNCATE TABLE
+                    copilot.action_proposals,
+                    copilot.turns,
+                    copilot.threads,
+                    copilot.audit_logs,
+                    copilot.audit_chain_heads
+                RESTART IDENTITY CASCADE
+                """
+            )
+    yield
+
+
+@pytest.fixture()
+def restore_telemetry_baseline() -> Iterator[None]:
+    """Restore the 750-row telemetry baseline on the test DB after mutating tests."""
+    from scripts.telemetry_sim import reset_dataset
+
+    yield
+    reset_dataset(writer_url=get_settings().telemetry_writer_database_url)

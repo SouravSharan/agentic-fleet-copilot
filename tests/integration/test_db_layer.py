@@ -700,62 +700,58 @@ def test_copilot_threads_turns_proposals_composite_fk_and_no_delete(
 
 def test_copilot_audit_logs_are_append_only_and_tenant_isolated(
     db_manager: DatabaseManager,
+    reset_copilot_state: None,
 ) -> None:
     trace_id = f"trace-{uuid.uuid4().hex[:8]}"
-    try:
-        with db_manager.copilot_cursor("acme-001") as cur:
+    with db_manager.copilot_cursor("acme-001") as cur:
+        cur.execute(
+            """
+            INSERT INTO copilot.audit_logs (
+                trace_id, company_id, actor_id, actor_role, event_type, payload_json
+            )
+            VALUES (%s, 'acme-001', 'admin-acme-1', 'it_admin', 'refusal', %s::jsonb)
+            RETURNING audit_id
+            """,
+            (trace_id, json.dumps({"reason_code": "test"})),
+        )
+        audit_id = cur.fetchone()["audit_id"]
+
+    with db_manager.copilot_cursor("acme-001") as cur:
+        cur.execute("SELECT trace_id FROM copilot.audit_logs WHERE audit_id = %s", (audit_id,))
+        assert cur.fetchone()["trace_id"] == trace_id
+
+    with db_manager.copilot_cursor("globex-002") as cur:
+        cur.execute("SELECT * FROM copilot.audit_logs WHERE audit_id = %s", (audit_id,))
+        assert cur.fetchall() == []
+
+    # Cross-tenant INSERT blocked by RLS WITH CHECK
+    with pytest.raises(errors.InsufficientPrivilege):
+        with db_manager.copilot_cursor("globex-002") as cur:
             cur.execute(
                 """
                 INSERT INTO copilot.audit_logs (
-                    trace_id, company_id, actor_id, actor_role, event_type, payload_json
+                    trace_id, company_id, actor_id, actor_role, event_type
                 )
-                VALUES (%s, 'acme-001', 'admin-acme-1', 'it_admin', 'request_received', %s::jsonb)
-                RETURNING audit_id
+                VALUES (%s, 'acme-001', 'admin-globex-1', 'it_admin', 'forged')
                 """,
-                (trace_id, json.dumps({"msg": "test"})),
+                (trace_id,),
             )
-            audit_id = cur.fetchone()["audit_id"]
 
-        with db_manager.copilot_cursor("acme-001") as cur:
-            cur.execute("SELECT trace_id FROM copilot.audit_logs WHERE audit_id = %s", (audit_id,))
-            assert cur.fetchone()["trace_id"] == trace_id
-
-        with db_manager.copilot_cursor("globex-002") as cur:
-            cur.execute("SELECT * FROM copilot.audit_logs WHERE audit_id = %s", (audit_id,))
-            assert cur.fetchall() == []
-
-        # Cross-tenant INSERT blocked by RLS WITH CHECK
+    # UPDATE, DELETE, and TRUNCATE are all blocked at DB privilege level
+    for stmt in (
+        f"UPDATE copilot.audit_logs SET event_type = 'tampered' WHERE audit_id = {audit_id}",
+        f"DELETE FROM copilot.audit_logs WHERE audit_id = {audit_id}",
+        "TRUNCATE TABLE copilot.audit_logs",
+    ):
         with pytest.raises(errors.InsufficientPrivilege):
-            with db_manager.copilot_cursor("globex-002") as cur:
-                cur.execute(
-                    """
-                    INSERT INTO copilot.audit_logs (
-                        trace_id, company_id, actor_id, actor_role, event_type
-                    )
-                    VALUES (%s, 'acme-001', 'admin-globex-1', 'it_admin', 'forged')
-                    """,
-                    (trace_id,),
-                )
-
-        # UPDATE, DELETE, and TRUNCATE are all blocked at DB privilege level
-        for stmt in (
-            f"UPDATE copilot.audit_logs SET event_type = 'tampered' WHERE audit_id = {audit_id}",
-            f"DELETE FROM copilot.audit_logs WHERE audit_id = {audit_id}",
-            "TRUNCATE TABLE copilot.audit_logs",
-        ):
-            with pytest.raises(errors.InsufficientPrivilege):
-                with db_manager.copilot_cursor("acme-001") as cur:
-                    cur.execute(stmt)
-    finally:
-        with psycopg.connect(get_settings().admin_database_url, prepare_threshold=None) as conn:
-            with conn.transaction():
-                conn.execute("DELETE FROM copilot.audit_logs WHERE trace_id = %s", (trace_id,))
+            with db_manager.copilot_cursor("acme-001") as cur:
+                cur.execute(stmt)
 
 
 def test_copilot_policies_and_tool_configs_global_protection(
     db_manager: DatabaseManager,
 ) -> None:
-    # 1) Global '*' policies & all 13 default tool configs are readable
+    # 1) Global '*' policies & exact 12 default tool configs from 05 §3.3 are readable
     with db_manager.copilot_cursor("acme-001") as cur:
         cur.execute(
             "SELECT metric_key, value_json FROM copilot.tenant_policies WHERE company_id = '*'"
@@ -764,16 +760,39 @@ def test_copilot_policies_and_tool_configs_global_protection(
         assert global_policies["low_disk_free_pct"] == 15.0
         assert global_policies["high_ram_used_pct"] == 80.0
         assert "uTorrent" in global_policies["flagged_software_list"]
+        assert global_policies["max_telemetry_lag_days"] is None
 
-        cur.execute("SELECT tool_name FROM copilot.tenant_tool_configs WHERE company_id = '*'")
-        tools = {r["tool_name"] for r in cur.fetchall()}
-        assert len(tools) == 13
-        assert {
+        cur.execute(
+            """
+            SELECT tool_name, enabled, requires_approval
+            FROM copilot.tenant_tool_configs
+            WHERE company_id = '*'
+            """
+        )
+        tool_rows = {r["tool_name"]: r for r in cur.fetchall()}
+        expected_tools = {
+            "get_fleet_overview",
+            "find_devices",
+            "query_compliance",
+            "get_device_details",
+            "get_employee_devices",
+            "analyze_fleet_trends",
+            "list_action_proposals",
             "create_upgrade_order",
             "open_remediation_ticket",
             "flag_device_for_replacement",
             "notify_employee",
-        }.issubset(tools)
+            "run_readonly_sql",
+        }
+        assert set(tool_rows.keys()) == expected_tools
+        assert tool_rows["run_readonly_sql"]["enabled"] is False
+        for action_tool in (
+            "create_upgrade_order",
+            "open_remediation_ticket",
+            "flag_device_for_replacement",
+            "notify_employee",
+        ):
+            assert tool_rows[action_tool]["requires_approval"] is True
 
     # 2) Tenant can insert own policy & tool override; Globex cannot see either
     with db_manager.copilot_cursor("acme-001") as cur:

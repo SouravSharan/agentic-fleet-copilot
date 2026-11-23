@@ -273,6 +273,32 @@ BEGIN
         ADD CONSTRAINT tenant_tool_configs_min_role_check
         CHECK (min_role IN ('employee', 'viewer', 'it_admin'));
 
+    -- Enforce that the 4 action tools always require human approval
+    ALTER TABLE copilot.tenant_tool_configs
+        DROP CONSTRAINT IF EXISTS tenant_tool_configs_action_approval_chk;
+    ALTER TABLE copilot.tenant_tool_configs
+        ADD CONSTRAINT tenant_tool_configs_action_approval_chk
+        CHECK (
+            tool_name NOT IN (
+                'create_upgrade_order',
+                'open_remediation_ticket',
+                'flag_device_for_replacement',
+                'notify_employee'
+            )
+            OR requires_approval = true
+        );
+
+    -- Enforce tenant-prefixed thread IDs ('<company_id>:<suffix>')
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'copilot.threads'::regclass
+          AND conname = 'threads_tenant_prefix_chk'
+    ) THEN
+        ALTER TABLE copilot.threads
+            ADD CONSTRAINT threads_tenant_prefix_chk
+            CHECK (thread_id LIKE company_id || ':%');
+    END IF;
+
     ALTER TABLE copilot.audit_logs DROP CONSTRAINT IF EXISTS audit_logs_actor_role_check;
     ALTER TABLE copilot.audit_logs
         ADD CONSTRAINT audit_logs_actor_role_check
@@ -500,28 +526,57 @@ GRANT USAGE, SELECT ON SEQUENCE copilot.audit_logs_audit_id_seq TO copilot_app;
 
 INSERT INTO copilot.tenant_policies (company_id, scope_type, scope_value, metric_key, value_json, updated_by)
 VALUES
-    ('*', 'global', '', 'low_disk_free_pct',          '15.0'::jsonb, 'system'),
-    ('*', 'global', '', 'high_ram_used_pct',          '80.0'::jsonb, 'system'),
-    ('*', 'global', '', 'ram_sustained_ratio',        '0.7'::jsonb,  'system'),
-    ('*', 'global', '', 'battery_eol_cycles',         '800'::jsonb,  'system'),
-    ('*', 'global', '', 'battery_capacity_drop_pct',  '3.0'::jsonb,  'system'),
-    ('*', 'global', '', 'stale_device_days',          '7'::jsonb,    'system'),
-    ('*', 'global', '', 'flagged_software_list',      '["uTorrent", "TeamViewer", "CleanMyMac X"]'::jsonb, 'system')
+    ('*', 'global', '', 'low_disk_free_pct',                '15.0'::jsonb, 'system'),
+    ('*', 'global', '', 'disk_burn_min_slope_pct_per_day',  '0.1'::jsonb,  'system'),
+    ('*', 'global', '', 'disk_trend_min_r2',                '0.8'::jsonb,  'system'),
+    ('*', 'global', '', 'high_ram_used_pct',                '80.0'::jsonb, 'system'),
+    ('*', 'global', '', 'ram_sustained_ratio',              '0.7'::jsonb,  'system'),
+    ('*', 'global', '', 'battery_eol_cycles',               '800'::jsonb,  'system'),
+    ('*', 'global', '', 'battery_capacity_drop_pct',        '3.0'::jsonb,  'system'),
+    ('*', 'global', '', 'software_baseline_min_share',      '0.8'::jsonb,  'system'),
+    ('*', 'global', '', 'flagged_software_list',            '["uTorrent", "TeamViewer", "CleanMyMac X"]'::jsonb, 'system'),
+    ('*', 'global', '', 'replacement_min_signals',          '2'::jsonb,    'system'),
+    ('*', 'global', '', 'stale_device_days',                '7'::jsonb,    'system'),
+    ('*', 'global', '', 'max_telemetry_lag_days',           'null'::jsonb, 'system'),
+    ('*', 'global', '', 'proposal_ttl_hours',               '72'::jsonb,   'system'),
+    ('*', 'global', '', 'notify_message_max_chars',         '800'::jsonb,  'system'),
+    ('*', 'global', '', 'cooldown_days_upgrade',            '30'::jsonb,   'system'),
+    ('*', 'global', '', 'cooldown_days_replacement',        '90'::jsonb,   'system'),
+    ('*', 'global', '', 'cooldown_days_ticket',             '7'::jsonb,    'system'),
+    ('*', 'global', '', 'cooldown_hours_notify',            '72'::jsonb,   'system'),
+    ('*', 'global', '', 'require_distinct_approver',        'false'::jsonb,'system')
 ON CONFLICT (company_id, scope_type, scope_value, metric_key) DO NOTHING;
+
+-- Sync global tool-config seeds to the exact 05 §3.3 catalog and remove obsolete '*' rows.
+DELETE FROM copilot.tenant_tool_configs
+WHERE company_id = '*'
+  AND tool_name NOT IN (
+      'get_fleet_overview',
+      'find_devices',
+      'query_compliance',
+      'get_device_details',
+      'get_employee_devices',
+      'analyze_fleet_trends',
+      'list_action_proposals',
+      'create_upgrade_order',
+      'open_remediation_ticket',
+      'flag_device_for_replacement',
+      'notify_employee',
+      'run_readonly_sql'
+  );
 
 INSERT INTO copilot.tenant_tool_configs (company_id, tool_name, enabled, requires_approval, min_role, adapter_config_json, updated_by)
 VALUES
-    ('*', 'get_fleet_overview',          true, false, 'viewer',   '{}'::jsonb, 'system'),
-    ('*', 'query_devices',               true, false, 'viewer',   '{}'::jsonb, 'system'),
-    ('*', 'query_compliance',            true, false, 'viewer',   '{}'::jsonb, 'system'),
-    ('*', 'get_device_details',          true, false, 'viewer',   '{}'::jsonb, 'system'),
-    ('*', 'get_operational_context',     true, false, 'viewer',   '{}'::jsonb, 'system'),
-    ('*', 'analyze_battery_trends',      true, false, 'viewer',   '{}'::jsonb, 'system'),
-    ('*', 'analyze_resource_trends',     true, false, 'viewer',   '{}'::jsonb, 'system'),
-    ('*', 'analyze_compliance_drift',    true, false, 'viewer',   '{}'::jsonb, 'system'),
-    ('*', 'analyze_software_changes',    true, false, 'viewer',   '{}'::jsonb, 'system'),
-    ('*', 'create_upgrade_order',        true, true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system'),
-    ('*', 'open_remediation_ticket',     true, true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system'),
-    ('*', 'flag_device_for_replacement', true, true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system'),
-    ('*', 'notify_employee',             true, true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system')
+    ('*', 'get_fleet_overview',          true,  false, 'viewer',   '{}'::jsonb,             'system'),
+    ('*', 'find_devices',                true,  false, 'viewer',   '{}'::jsonb,             'system'),
+    ('*', 'query_compliance',            true,  false, 'viewer',   '{}'::jsonb,             'system'),
+    ('*', 'get_device_details',          true,  false, 'viewer',   '{}'::jsonb,             'system'),
+    ('*', 'get_employee_devices',        true,  false, 'viewer',   '{}'::jsonb,             'system'),
+    ('*', 'analyze_fleet_trends',        true,  false, 'viewer',   '{}'::jsonb,             'system'),
+    ('*', 'list_action_proposals',       true,  false, 'viewer',   '{}'::jsonb,             'system'),
+    ('*', 'create_upgrade_order',        true,  true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system'),
+    ('*', 'open_remediation_ticket',     true,  true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system'),
+    ('*', 'flag_device_for_replacement', true,  true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system'),
+    ('*', 'notify_employee',             true,  true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system'),
+    ('*', 'run_readonly_sql',            false, false, 'it_admin', '{}'::jsonb,             'system')
 ON CONFLICT (company_id, tool_name) DO NOTHING;

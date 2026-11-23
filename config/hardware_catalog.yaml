@@ -1,0 +1,77 @@
+# Platform hardware upgradability catalog (seeded into copilot.hardware_catalog by scripts/db_setup.py).
+# Sources verified in audit/03 §4. Unknown models fall back to allow_with_warnings at the policy gate.
+models:
+  - model_identifier: "21CB"
+    model_name: "ThinkPad X1 Carbon Gen 11"
+    form_factor: "laptop"
+    ram_upgradable: false
+    ram_max_gb: null
+    storage_upgradable: true
+    battery_serviceable: true
+    confidence: "high"
+    verified_at: "2026-11-23"
+    source_urls:
+      - "https://www.kingston.com/en/memory/search/model/107400/lenovo-thinkpad-x1-carbon-gen-11"
+      - "https://www.xda-developers.com/upgrade-ram-storage-thinkpad-x1-carbon/"
+      - "https://laptopmedia.com/?p=1529014"
+
+  - model_identifier: "XPS-9530"
+    model_name: "Dell XPS 15 9530"
+    form_factor: "laptop"
+    ram_upgradable: true
+    ram_max_gb: 64
+    storage_upgradable: true
+    battery_serviceable: true
+    confidence: "medium"
+    verified_at: "2026-11-23"
+    source_urls:
+      - "https://www.ifixit.com/Guide/Dell+XPS+15+9530+Memory+Module+Replacement/104826"
+      - "https://www.dell.com/community/en/conversations/xps/xps-15-9530-upgrades/647fa3f9f4ccf8a8dea02772"
+
+  - model_identifier: "Mac14,2"
+    model_name: "MacBook Air (M2)"
+    form_factor: "laptop"
+    ram_upgradable: false
+    ram_max_gb: null
+    storage_upgradable: false
+    battery_serviceable: true
+    confidence: "high"
+    verified_at: "2026-11-23"
+    source_urls:
+      - "https://support.apple.com/en-us/111867"
+
+  - model_identifier: "Mac14,5"
+    model_name: "MacBook Pro (M2 Pro)"
+    form_factor: "laptop"
+    ram_upgradable: false
+    ram_max_gb: null
+    storage_upgradable: false
+    battery_serviceable: true
+    confidence: "high"
+    verified_at: "2026-11-23"
+    source_urls:
+      - "https://support.apple.com/en-us/111340"
+
+  - model_identifier: "Mac15,7"
+    model_name: "MacBook Pro (M3 Pro)"
+    form_factor: "laptop"
+    ram_upgradable: false
+    ram_max_gb: null
+    storage_upgradable: false
+    battery_serviceable: true
+    confidence: "high"
+    verified_at: "2026-11-23"
+    source_urls:
+      - "https://support.apple.com/en-us/117737"
+
+  - model_identifier: "Mac14,3"
+    model_name: "Mac mini (M2)"
+    form_factor: "desktop"
+    ram_upgradable: false
+    ram_max_gb: null
+    storage_upgradable: false
+    battery_serviceable: false
+    confidence: "high"
+    verified_at: "2026-11-23"
+    source_urls:
+      - "https://support.apple.com/en-us/111837"

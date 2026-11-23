@@ -5,11 +5,13 @@ Uses `ADMIN_DATABASE_URL` from `.env` (no `psql` binary required).
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Annotated, LiteralString, cast
 
 import psycopg
 import typer
+import yaml
 from psycopg import sql
 
 from fleet_copilot.config import get_settings, with_database
@@ -18,6 +20,50 @@ app = typer.Typer(add_completion=False, help="Bootstrap PostgreSQL roles and sch
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DB_DIR = REPO_ROOT / "db"
+HARDWARE_CATALOG_PATH = REPO_ROOT / "config" / "hardware_catalog.yaml"
+
+
+def _seed_hardware_catalog(conn: psycopg.Connection) -> int:
+    """Upsert platform hardware catalog rows from `config/hardware_catalog.yaml`."""
+    if not HARDWARE_CATALOG_PATH.exists():
+        return 0
+    raw = yaml.safe_load(HARDWARE_CATALOG_PATH.read_text(encoding="utf-8")) or {}
+    models = raw.get("models") or []
+    with conn.cursor() as cur:
+        for row in models:
+            cur.execute(
+                """
+                INSERT INTO copilot.hardware_catalog (
+                    model_identifier, model_name, form_factor,
+                    ram_upgradable, ram_max_gb, storage_upgradable,
+                    battery_serviceable, source_urls, confidence, verified_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
+                ON CONFLICT (model_identifier) DO UPDATE SET
+                    model_name = EXCLUDED.model_name,
+                    form_factor = EXCLUDED.form_factor,
+                    ram_upgradable = EXCLUDED.ram_upgradable,
+                    ram_max_gb = EXCLUDED.ram_max_gb,
+                    storage_upgradable = EXCLUDED.storage_upgradable,
+                    battery_serviceable = EXCLUDED.battery_serviceable,
+                    source_urls = EXCLUDED.source_urls,
+                    confidence = EXCLUDED.confidence,
+                    verified_at = EXCLUDED.verified_at
+                """,
+                (
+                    row["model_identifier"],
+                    row["model_name"],
+                    row["form_factor"],
+                    bool(row["ram_upgradable"]),
+                    row.get("ram_max_gb"),
+                    bool(row["storage_upgradable"]),
+                    bool(row["battery_serviceable"]),
+                    json.dumps(row.get("source_urls") or []),
+                    row["confidence"],
+                    row["verified_at"],
+                ),
+            )
+    return len(models)
 
 
 def _sync_role_passwords(conn: psycopg.Connection, passwords: dict[str, str]) -> None:
@@ -66,6 +112,7 @@ def run_setup(admin_url: str | None = None) -> None:
             )
             for path in migration_files[1:]:
                 conn.execute(cast(LiteralString, path.read_text(encoding="utf-8")))
+            catalog_count = _seed_hardware_catalog(conn)
 
         with conn.transaction():
             with conn.cursor() as cur:
@@ -93,7 +140,10 @@ def run_setup(admin_url: str | None = None) -> None:
         typer.echo(
             f"  - {rolname}: login={rolcanlogin}, superuser={rolsuper}, bypassrls={rolbypassrls}"
         )
-    typer.echo(f"Schema objects ready ({len(objects)} tables/views across telemetry & copilot).")
+    typer.echo(
+        f"Schema objects ready ({len(objects)} tables/views across telemetry & copilot; "
+        f"{catalog_count} hardware catalog rows)."
+    )
 
 
 @app.command()

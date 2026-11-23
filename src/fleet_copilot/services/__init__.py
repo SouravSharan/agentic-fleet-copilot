@@ -1,5 +1,7 @@
 """Application services orchestrating domain rules and repositories."""
 
+from fleet_copilot.services.actions import ActionService, DraftInput
+from fleet_copilot.services.audit import AuditService
 from fleet_copilot.services.fleet import (
     find_devices,
     get_device_details,
@@ -11,6 +13,9 @@ from fleet_copilot.services.policy import PolicyService
 from fleet_copilot.services.trends import analyze_fleet_trends
 
 __all__ = [
+    "ActionService",
+    "AuditService",
+    "DraftInput",
     "PolicyService",
     "analyze_fleet_trends",
     "find_devices",
