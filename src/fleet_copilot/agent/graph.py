@@ -58,13 +58,22 @@ def _route_after_planner(state: CopilotState) -> str:
     return "investigator"
 
 
-def _make_route_after_investigator(max_tool_calls: int) -> Callable[[CopilotState], str]:
+def _route_after_investigator(state: CopilotState) -> str:
+    """Always route pending tool calls through `tools` so no dangling tool_calls remain."""
+    msgs = state.get("messages") or []
+    if msgs and isinstance(msgs[-1], AIMessage) and msgs[-1].tool_calls:
+        return "tools"
+    return "synthesizer"
+
+
+def _make_route_after_tools() -> Callable[[CopilotState], str]:
+    """After responding to all tool calls, exit to `synthesizer` once budget exhaustion triggers."""
+
     def _route(state: CopilotState) -> str:
-        msgs = state.get("messages") or []
-        if msgs and isinstance(msgs[-1], AIMessage) and msgs[-1].tool_calls:
-            if int(state.get("step_count", 0)) < max_tool_calls:
-                return "tools"
-        return "synthesizer"
+        warnings = state.get("warnings") or []
+        if any("budget exhausted" in w.lower() for w in warnings):
+            return "synthesizer"
+        return "investigator"
 
     return _route
 
@@ -115,10 +124,14 @@ def build_agent_graph(
         )
     graph.add_conditional_edges(
         "investigator",
-        _make_route_after_investigator(deps.runtime_cfg.budgets.max_tool_calls),
+        _route_after_investigator,
         {"tools": "tools", "synthesizer": "synthesizer"},
     )
-    graph.add_edge("tools", "investigator")
+    graph.add_conditional_edges(
+        "tools",
+        _make_route_after_tools(),
+        {"investigator": "investigator", "synthesizer": "synthesizer"},
+    )
     if deps.skip_verifier:
         graph.add_conditional_edges(
             "synthesizer",

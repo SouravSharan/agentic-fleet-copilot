@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import concurrent.futures
+import hashlib
 import logging
 import time
 import uuid
@@ -16,7 +18,7 @@ from langgraph.types import Command
 from fleet_copilot.agent.graph import AgentDeps, build_agent_graph
 from fleet_copilot.agent.llm import NodeName, cassette_path_for, make_chat_model
 from fleet_copilot.agent.nodes.finalize import render_answer_markdown
-from fleet_copilot.agent.replay import CassetteStore
+from fleet_copilot.agent.replay import CassetteMiss, CassetteStore
 from fleet_copilot.agent.schemas import Answer, Plan, TurnResponse, TurnUsage
 from fleet_copilot.clock import Clock, SystemClock
 from fleet_copilot.config import Settings, get_settings
@@ -29,7 +31,11 @@ from fleet_copilot.runtime_config import RuntimeConfig, get_runtime_config
 from fleet_copilot.services.actions import ActionService
 from fleet_copilot.services.adapters.base import ActionAdapter
 from fleet_copilot.services.adapters.mock import MockAdapter
-from fleet_copilot.services.audit import AccessDeniedPayload, AuditService
+from fleet_copilot.services.audit import (
+    AccessDeniedPayload,
+    AuditService,
+    TurnCompletedPayload,
+)
 from fleet_copilot.services.policy import PolicyService
 from fleet_copilot.tools.registry import ToolDeps, build_all_tool_specs
 
@@ -155,6 +161,95 @@ class CopilotService:
             else (make_checkpointer(db, settings=self._settings) if db is not None else None)
         )
         self._graph = build_agent_graph(self._deps, checkpointer=self._checkpointer)
+        self._turn_timeout_override_s: float | None = None
+
+    def _invoke_with_timeout(self, fn: Callable[[], Any]) -> Any:
+        timeout_s = (
+            self._turn_timeout_override_s
+            if self._turn_timeout_override_s is not None
+            else float(self._runtime_cfg.budgets.turn_timeout_s)
+        )
+        # In replay mode, avoid thread-pool overhead unless a small override is explicitly set
+        if self._settings.llm_replay_mode.strip().lower() == "replay" and (
+            self._turn_timeout_override_s is None
+        ):
+            return fn()
+        pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        fut = pool.submit(fn)
+        try:
+            return fut.result(timeout=timeout_s)
+        except concurrent.futures.TimeoutError as exc:
+            fut.cancel()
+            raise TimeoutError(f"Turn exceeded turn_timeout_s={timeout_s}s") from exc
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
+
+    def _handle_turn_failure(
+        self,
+        *,
+        ctx: TenantContext,
+        thread_id: str,
+        turn_id: str,
+        exc: Exception,
+        t0: float,
+    ) -> TurnResponse:
+        latency_ms = max(0, int((time.monotonic() - t0) * 1000))
+        error_code = type(exc).__name__[:64]
+        friendly = (
+            "I could not complete this request due to an internal processing error "
+            f"(`{error_code}`). No actions were executed; please retry."
+        )
+        answer_hash = hashlib.sha256(friendly.encode("utf-8")).hexdigest()
+        try:
+            self._store.update_turn(
+                ctx.company_id,
+                turn_id,
+                status="failed",
+                assistant_response=friendly,
+                answer_hash=answer_hash,
+                latency_ms=latency_ms,
+                completed_at=self._clock.now(),
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("failed_to_update_turn_status_on_error")
+        try:
+            self._audit.record_standalone(
+                ctx,
+                "turn_completed",
+                TurnCompletedPayload(
+                    turn_id=turn_id,
+                    status="failed",
+                    answer_hash=answer_hash,
+                    citations=0,
+                    tokens_in=0,
+                    tokens_out=0,
+                    cost_usd_est=0.0,
+                    latency_ms=latency_ms,
+                    error_code=error_code,
+                ),
+                thread_id=thread_id,
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("failed_to_audit_turn_failure")
+        logger.error(
+            "turn_failed",
+            extra={
+                "company_id": ctx.company_id,
+                "turn_id": turn_id,
+                "error_class": error_code,
+                "latency_ms": latency_ms,
+            },
+        )
+        return TurnResponse(
+            thread_id=thread_id,
+            turn_id=turn_id,
+            trace_id=ctx.trace_id,
+            status="failed",
+            answer_markdown=friendly,
+            answer=Answer(summary=friendly),
+            usage=TurnUsage(latency_ms=latency_ms),
+            warnings=[f"Turn failed ({error_code})."],
+        )
 
     @property
     def action_service(self) -> ActionService:
@@ -284,37 +379,54 @@ class CopilotService:
             self._assert_thread_owned(ctx, tid)
 
             config: dict[str, Any] = {
-                "configurable": {"thread_id": tid},
+                "configurable": {"thread_id": tid, "_turn_t0": t0},
                 "recursion_limit": self._runtime_cfg.budgets.recursion_limit,
             }
 
-            # Pending-interrupt rule (05 §3.2): auto-defer undecided proposals before new message
-            pending_packet = self._pending_interrupt_packet(config)
-            if pending_packet is not None:
-                pending_ids = [str(p["proposal_id"]) for p in pending_packet.get("proposals", [])]
-                if pending_ids:
-                    self._graph.invoke(
-                        Command(
-                            resume={
-                                "decisions": {pid: "defer" for pid in pending_ids},
-                                "note": "Auto-deferred by new user message",
-                            }
-                        ),
+            resolved_turn_id = turn_id or f"turn_{uuid.uuid4().hex[:12]}"
+            try:
+                # Pending-interrupt rule (05 §3.2): auto-defer undecided proposals before new msg
+                pending_packet = self._pending_interrupt_packet(config)
+                if pending_packet is not None:
+                    pending_ids = [
+                        str(p["proposal_id"]) for p in pending_packet.get("proposals", [])
+                    ]
+                    if pending_ids:
+                        self._invoke_with_timeout(
+                            lambda: self._graph.invoke(
+                                Command(
+                                    resume={
+                                        "decisions": {pid: "defer" for pid in pending_ids},
+                                        "note": "Auto-deferred by new user message",
+                                    }
+                                ),
+                                config=config,
+                                context=ctx,
+                            )
+                        )
+
+                result_state = self._invoke_with_timeout(
+                    lambda: self._graph.invoke(
+                        {
+                            "thread_id": tid,
+                            "turn_id": resolved_turn_id,
+                            "user_message": message,
+                            "messages": [HumanMessage(content=message)],
+                        },
                         config=config,
                         context=ctx,
                     )
-
-            resolved_turn_id = turn_id or f"turn_{uuid.uuid4().hex[:12]}"
-            result_state = self._graph.invoke(
-                {
-                    "thread_id": tid,
-                    "turn_id": resolved_turn_id,
-                    "user_message": message,
-                    "messages": [HumanMessage(content=message)],
-                },
-                config=config,
-                context=ctx,
-            )
+                )
+            except (ThreadNotOwnedError, CassetteMiss):
+                raise
+            except Exception as exc:  # noqa: BLE001
+                return self._handle_turn_failure(
+                    ctx=ctx,
+                    thread_id=tid,
+                    turn_id=resolved_turn_id,
+                    exc=exc,
+                    t0=t0,
+                )
 
             packet = self._pending_interrupt_packet(config)
             if (
@@ -328,7 +440,7 @@ class CopilotService:
                     if isinstance(val, dict):
                         packet = val
 
-            latency_ms = int((time.monotonic() - t0) * 1000)
+            latency_ms = max(0, int((time.monotonic() - t0) * 1000))
             return self._build_turn_response(
                 ctx=ctx,
                 thread_id=tid,
@@ -350,16 +462,29 @@ class CopilotService:
             t0 = time.monotonic()
             self._assert_thread_owned(ctx, thread_id)
             config: dict[str, Any] = {
-                "configurable": {"thread_id": thread_id},
+                "configurable": {"thread_id": thread_id, "_turn_t0": t0},
                 "recursion_limit": self._runtime_cfg.budgets.recursion_limit,
             }
-            result_state = self._graph.invoke(
-                Command(resume={"decisions": decisions, "note": note}),
-                config=config,
-                context=ctx,
-            )
+            try:
+                result_state = self._invoke_with_timeout(
+                    lambda: self._graph.invoke(
+                        Command(resume={"decisions": decisions, "note": note}),
+                        config=config,
+                        context=ctx,
+                    )
+                )
+            except (ThreadNotOwnedError, CassetteMiss):
+                raise
+            except Exception as exc:  # noqa: BLE001
+                return self._handle_turn_failure(
+                    ctx=ctx,
+                    thread_id=thread_id,
+                    turn_id=f"resume_{uuid.uuid4().hex[:8]}",
+                    exc=exc,
+                    t0=t0,
+                )
             packet = self._pending_interrupt_packet(config)
-            latency_ms = int((time.monotonic() - t0) * 1000)
+            latency_ms = max(0, int((time.monotonic() - t0) * 1000))
             return self._build_turn_response(
                 ctx=ctx,
                 thread_id=thread_id,

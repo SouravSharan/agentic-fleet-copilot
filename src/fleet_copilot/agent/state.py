@@ -49,6 +49,8 @@ class CopilotState(TypedDict, total=False):
     telemetry_as_of: str
     resolved_policies: dict[str, dict[str, Any]]
     allowed_tool_names: list[str]
+    tenant_hostnames: dict[str, str]
+    conversation_digest: list[dict[str, Any]]
     plan: dict[str, Any] | None
     evidence: Annotated[dict[str, dict[str, Any]], merge_evidence_dicts]
     tool_trace: Annotated[list[dict[str, Any]], turn_list_reducer]
@@ -69,5 +71,4 @@ class CopilotState(TypedDict, total=False):
     verifier_retries: int
     warnings: Annotated[list[str], turn_list_reducer]
     step_count: int
-    replans: int
     usage: Annotated[list[dict[str, Any]], turn_list_reducer]

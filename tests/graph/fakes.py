@@ -60,6 +60,8 @@ class ScriptedChatModel(BaseChatModel):
         item = self._next_item(messages)
         if callable(item):
             item = item(messages)
+        if isinstance(item, BaseException):
+            raise item
         if isinstance(item, AIMessage):
             msg = item
         elif isinstance(item, str):
@@ -99,6 +101,10 @@ class ScriptedChatModel(BaseChatModel):
             item = self._next_item(msg_list)
             if callable(item):
                 item = item(msg_list)
+            if isinstance(item, BaseException):
+                raise item
+            if isinstance(item, dict) and "parsed" in item and "raw" in item:
+                return item if include_raw else item["parsed"]
             if isinstance(schema, type) and issubclass(schema, BaseModel):
                 parsed = item if isinstance(item, schema) else schema.model_validate(item)
             else:

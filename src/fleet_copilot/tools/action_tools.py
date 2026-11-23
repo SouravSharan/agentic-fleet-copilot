@@ -38,10 +38,8 @@ def _run_precheck(
     verdict_dict = res.verdict.model_dump(mode="json")
     allowed = verdict_dict["decision"] in ("allow", "allow_with_warnings")
     tc_id = runtime.tool_call_id or f"{draft_in.tool_name}:{draft_in.target_id}"
-    dk = str(verdict_dict["dedupe_key"])
-    draft_id = (
-        f"draft_{uuid.uuid5(uuid.NAMESPACE_URL, f'{tc_id}:{dk}').hex[:12]}" if allowed else None
-    )
+    thread_id = str(runtime.state.get("thread_id") or "") if isinstance(runtime.state, dict) else ""
+    proposal_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{thread_id}:{tc_id}")) if allowed else None
 
     if sink is not None:
         sink.verdicts.append(
@@ -50,14 +48,14 @@ def _run_precheck(
                 "tool_name": draft_in.tool_name,
                 "target_type": draft_in.target_type,
                 "target_id": draft_in.target_id,
-                "draft_id": draft_id,
+                "proposal_id": proposal_id,
                 **verdict_dict,
             }
         )
         if allowed:
             sink.drafts.append(
                 {
-                    "draft_id": draft_id,
+                    "proposal_id": proposal_id,
                     "tool_call_id": tc_id,
                     "tool_name": draft_in.tool_name,
                     "target_type": draft_in.target_type,
@@ -79,7 +77,7 @@ def _run_precheck(
     payload: dict[str, Any] = {
         "ok": allowed,
         "decision": verdict_dict["decision"],
-        "draft_id": draft_id,
+        "proposal_id": proposal_id,
         "tool_name": draft_in.tool_name,
         "target_type": draft_in.target_type,
         "target_id": draft_in.target_id,

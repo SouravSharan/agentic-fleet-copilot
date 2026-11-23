@@ -29,7 +29,6 @@ class BudgetConfig(_CfgModel):
     """Loop, tool-call, retry, and timeout budgets."""
 
     max_tool_calls: int = Field(default=8, ge=1, le=30)
-    max_replans: int = Field(default=1, ge=0, le=3)
     max_verifier_retries: int = Field(default=1, ge=0, le=3)
     recursion_limit: int = Field(default=30, ge=5, le=100)
     turn_timeout_s: int = Field(default=60, ge=5, le=300)

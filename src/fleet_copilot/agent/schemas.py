@@ -38,9 +38,10 @@ class Claim(_AgentModel):
 
 
 class Answer(_AgentModel):
-    """Structured answer produced by the `synthesizer` node (04 §4.1, 05 §3.2)."""
+    """Structured answer produced by the `synthesizer` node (04 §4.1, 05 §3.2, 09 H2)."""
 
     summary: str
+    result_device_ids: list[str] = Field(default_factory=list)
     claims: list[Claim] = Field(default_factory=list)
     insight_refs: list[str] = Field(default_factory=list)
     proposal_refs: list[str] = Field(default_factory=list)

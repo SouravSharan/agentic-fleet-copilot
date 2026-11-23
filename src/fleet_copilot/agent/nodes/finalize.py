@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import time
 from typing import Any
 
 from langchain_core.messages import AIMessage
+from langchain_core.runnables import RunnableConfig
 from langgraph.runtime import Runtime
 
 from fleet_copilot.agent.prompts import prompt_bundle_version
@@ -100,7 +102,11 @@ def render_answer_markdown(
 def make_finalize_node(deps: Any) -> Any:
     """Build the `finalize` node closed over `AgentDeps`."""
 
-    def finalize(state: CopilotState, runtime: Runtime[TenantContext]) -> dict[str, Any]:
+    def finalize(
+        state: CopilotState,
+        config: RunnableConfig,
+        runtime: Runtime[TenantContext],
+    ) -> dict[str, Any]:
         ctx = runtime.context
         turn_id = state.get("turn_id", "")
         thread_id = state.get("thread_id", "")
@@ -134,6 +140,15 @@ def make_finalize_node(deps: Any) -> Any:
         tokens_out = sum(int(u.get("output_tokens", 0) or 0) for u in usage_list)
         cost_est = deps.runtime_cfg.estimate_cost_usd(deps.model_id, tokens_in, tokens_out)
 
+        cfg_dict = config if isinstance(config, dict) else {}
+        configurable = cfg_dict.get("configurable") if isinstance(cfg_dict, dict) else None
+        turn_t0 = configurable.get("_turn_t0") if isinstance(configurable, dict) else None
+        latency_ms = (
+            max(0, int((time.monotonic() - float(turn_t0)) * 1000))
+            if isinstance(turn_t0, (int, float))
+            else 0
+        )
+
         input_hash = hashlib.sha256(user_message.encode("utf-8")).hexdigest()
         answer_hash = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
         p_ver = prompt_bundle_version()
@@ -153,7 +168,7 @@ def make_finalize_node(deps: Any) -> Any:
             input_tokens=tokens_in,
             output_tokens=tokens_out,
             cost_usd_est=cost_est,
-            latency_ms=0,
+            latency_ms=latency_ms,
             completed_at=deps.clock.now(),
         )
         deps.audit_svc.record_standalone(
@@ -167,7 +182,7 @@ def make_finalize_node(deps: Any) -> Any:
                 tokens_in=tokens_in,
                 tokens_out=tokens_out,
                 cost_usd_est=cost_est,
-                latency_ms=0,
+                latency_ms=latency_ms,
             ),
             thread_id=thread_id,
         )
@@ -181,12 +196,39 @@ def make_finalize_node(deps: Any) -> Any:
                 "citations": len(citations_out),
                 "tokens_in": tokens_in,
                 "tokens_out": tokens_out,
+                "latency_ms": latency_ms,
             },
         )
+
+        # Update compact conversation digest (last 3 turns) for referential follow-ups (09 H3)
+        refused_alts = [
+            {
+                "refused_tool": v.get("tool_name"),
+                "target_id": v.get("target_id"),
+                "alternatives": v.get("alternatives") or [],
+            }
+            for v in (state.get("verdicts") or [])
+            if v.get("decision") == "refuse"
+        ]
+        prior_digest = list(state.get("conversation_digest") or [])
+        new_digest = (
+            prior_digest
+            + [
+                {
+                    "user": user_message,
+                    "summary": answer_obj.summary if answer_obj is not None else markdown[:240],
+                    "result_device_ids": (
+                        list(answer_obj.result_device_ids) if answer_obj is not None else []
+                    ),
+                    "refused_alternatives": refused_alts,
+                }
+            ]
+        )[-3:]
 
         return {
             "answer_markdown": markdown,
             "status": final_status,
+            "conversation_digest": new_digest,
             "messages": [AIMessage(content=markdown)],
         }
 

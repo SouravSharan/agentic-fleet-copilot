@@ -64,13 +64,15 @@ def sanitize_telemetry_str(value: str, *, max_len: int = _MAX_TELEMETRY_STR_LEN)
     return cleaned
 
 
-def _sanitize_value(obj: Any) -> Any:
+def _sanitize_value(obj: Any, _truncated_flag: list[bool] | None = None) -> Any:
     if isinstance(obj, str):
         return sanitize_telemetry_str(obj)
     if isinstance(obj, list):
-        return [_sanitize_value(item) for item in obj[:50]]
+        if len(obj) > 50 and _truncated_flag is not None:
+            _truncated_flag[0] = True
+        return [_sanitize_value(item, _truncated_flag) for item in obj[:50]]
     if isinstance(obj, dict):
-        return {str(k): _sanitize_value(v) for k, v in obj.items()}
+        return {str(k): _sanitize_value(v, _truncated_flag) for k, v in obj.items()}
     return obj
 
 
@@ -81,6 +83,7 @@ def format_tool_output(
     max_rows: int = _MAX_TOOL_ROWS,
 ) -> tuple[str, list[dict[str, Any]]]:
     """Register evidence in `ledger` and return compact JSON + evidence entries for the LLM."""
+    list_truncated = [False]
     ev_entries: list[dict[str, Any]] = []
     for ev in result.evidence:
         handle = ledger.add(ev)
@@ -89,14 +92,14 @@ def format_tool_output(
                 "h": handle,
                 "device": ev.device_id,
                 "metric": ev.metric,
-                "value": _sanitize_value(ev.value),
+                "value": _sanitize_value(ev.value, list_truncated),
                 "at": ev.collected_at.isoformat(),
             }
         )
 
     rows = result.data[:max_rows]
-    truncated = result.truncated or (len(result.data) > max_rows)
-    sanitized_rows = [_sanitize_value(r) for r in rows]
+    sanitized_rows = [_sanitize_value(r, list_truncated) for r in rows]
+    truncated = result.truncated or (len(result.data) > max_rows) or list_truncated[0]
 
     payload: dict[str, Any] = {
         "ok": result.ok,

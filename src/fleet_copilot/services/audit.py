@@ -174,6 +174,7 @@ class TurnCompletedPayload(AuditPayload):
     tokens_out: int
     cost_usd_est: float
     latency_ms: int
+    error_code: str | None = None
 
 
 class DemoResetPayload(AuditPayload):

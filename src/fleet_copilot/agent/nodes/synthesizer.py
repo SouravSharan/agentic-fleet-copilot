@@ -1,4 +1,4 @@
-"""`synthesizer` node: fresh-prompt structured `Answer` generation (no tool-call history)."""
+"""`synthesizer` node: fresh-prompt structured `Answer` generation with parse-retry (05 §3.11)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,9 @@ from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.runtime import Runtime
+from pydantic import ValidationError
 
+from fleet_copilot.agent.nodes.planner import StructuredOutputParseError
 from fleet_copilot.agent.prompts import load_prompt
 from fleet_copilot.agent.schemas import Answer
 from fleet_copilot.agent.state import CopilotState
@@ -31,11 +33,49 @@ def _extract_usage(raw_msg: Any, model_id: str) -> dict[str, Any]:
     }
 
 
+def _invoke_answer_with_retry(
+    structured: Any,
+    messages: list[Any],
+    *,
+    max_retries: int = 1,
+) -> tuple[Answer, Any]:
+    last_err: Exception | None = None
+    prompt_msgs = list(messages)
+    for attempt in range(max_retries + 1):
+        out = structured.invoke(prompt_msgs)
+        raw_msg = out.get("raw") if isinstance(out, dict) else None
+        parsed = out.get("parsed") if isinstance(out, dict) and "parsed" in out else out
+        parsing_err = out.get("parsing_error") if isinstance(out, dict) else None
+        if parsed is not None and parsing_err is None:
+            try:
+                ans = parsed if isinstance(parsed, Answer) else Answer.model_validate(parsed)
+                return ans, raw_msg
+            except ValidationError as exc:
+                last_err = exc
+        else:
+            last_err = (
+                parsing_err
+                if isinstance(parsing_err, Exception)
+                else ValueError("Structured output returned parsed=None")
+            )
+        if attempt < max_retries:
+            prompt_msgs = [
+                *messages,
+                HumanMessage(
+                    content=(
+                        "Your previous output could not be parsed as valid Answer JSON. "
+                        "Return ONLY valid JSON matching the Answer schema."
+                    )
+                ),
+            ]
+    raise StructuredOutputParseError(f"Synthesizer failed to produce valid Answer JSON: {last_err}")
+
+
 def make_synthesizer_node(deps: Any) -> Any:
     """Build the `synthesizer` node closed over `AgentDeps`.
 
     Gemini 3 rule #3 (05 §3.11): receives a fresh prompt containing question, plan, ledger digest,
-    and compact tool summaries — NEVER tool-call AIMessage history.
+    conversation digest, and compact tool summaries — NEVER tool-call AIMessage history.
     """
 
     def synthesizer(state: CopilotState, runtime: Runtime[TenantContext]) -> dict[str, Any]:
@@ -64,7 +104,7 @@ def make_synthesizer_node(deps: Any) -> Any:
             )
         ]
 
-        # Read investigator's final wrap-up via `.text` (Gemini 3 rule #1: list-shaped content)
+        # Read investigator's concise wrap-up via `.text` (Gemini 3 rule #1: list-shaped content)
         investigator_note = ""
         msgs = state.get("messages") or []
         if msgs and isinstance(msgs[-1], AIMessage) and not msgs[-1].tool_calls:
@@ -88,11 +128,13 @@ def make_synthesizer_node(deps: Any) -> Any:
         else:
             violations_section = ""
 
+        digest = list(state.get("conversation_digest") or [])[-3:]
         prompt_text = template.format(
             company_id=ctx.company_id,
             company_name=_company_display_name(ctx.company_id),
             telemetry_as_of=state.get("telemetry_as_of", ""),
             violations_section=violations_section,
+            conversation_history_json=json.dumps(digest, sort_keys=True),
             user_message=state.get("user_message", ""),
             plan_json=json.dumps(state.get("plan") or {}, sort_keys=True),
             tool_summaries_json=json.dumps(tool_summaries, sort_keys=True),
@@ -101,23 +143,16 @@ def make_synthesizer_node(deps: Any) -> Any:
 
         llm = deps.model_factory("synthesizer")
         structured = llm.with_structured_output(Answer, include_raw=True)
-        out = structured.invoke(
+        answer, raw_msg = _invoke_answer_with_retry(
+            structured,
             [
                 SystemMessage(
                     content="Return strictly valid JSON conforming to the Answer schema."
                 ),
                 HumanMessage(content=prompt_text),
-            ]
+            ],
+            max_retries=1,
         )
-
-        if isinstance(out, dict) and "parsed" in out:
-            ans_obj = out["parsed"]
-            raw_msg = out.get("raw")
-        else:
-            ans_obj = out
-            raw_msg = None
-
-        answer = ans_obj if isinstance(ans_obj, Answer) else Answer.model_validate(ans_obj)
         return {
             "answer": answer.model_dump(mode="json"),
             "usage": [_extract_usage(raw_msg, deps.model_id)],

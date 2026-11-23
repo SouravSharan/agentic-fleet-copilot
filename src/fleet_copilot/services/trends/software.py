@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from collections import Counter, defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
@@ -161,9 +162,10 @@ class SoftwareAnalyzer:
                     f"First observed on {first_seen_date}; {presence_text}."
                 )
 
+                app_hash = hashlib.sha256(app_name.encode("utf-8")).hexdigest()[:10]
                 insights.append(
                     Insight(
-                        insight_id=f"software:{dev.device_id}:{app_name}",
+                        insight_id=f"software:{dev.device_id}:{app_hash}",
                         category=self.category,
                         severity=severity,
                         device_id=dev.device_id,

@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any
 
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import SystemMessage
 from langgraph.runtime import Runtime
 
 from fleet_copilot.agent.prompts import load_prompt
@@ -57,19 +57,10 @@ def make_investigator_node(deps: Any) -> Any:
             "output_tokens": int(meta.get("output_tokens", 0) or 0),
         }
 
-        warnings: list[str] = []
-        if isinstance(response, AIMessage) and response.tool_calls:
-            step_count = int(state.get("step_count", 0))
-            if step_count >= deps.runtime_cfg.budgets.max_tool_calls:
-                warnings.append(
-                    f"Tool call budget exhausted ({deps.runtime_cfg.budgets.max_tool_calls}); "
-                    "answering with partial evidence gathered so far."
-                )
-
         return {
             "messages": [response],
             "usage": [usage_entry],
-            "warnings": warnings,
+            "warnings": [],
         }
 
     return investigator

@@ -29,8 +29,10 @@ def make_stage_proposals_node(deps: Any) -> Any:
 
         draft_inputs: list[DraftInput] = []
         for idx, d in enumerate(raw_drafts):
-            tc_id = str(d.get("tool_call_id") or f"draft_{idx}")
-            prop_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{thread_id}:{tc_id}"))
+            tc_id = str(d.get("tool_call_id") or f"prop_{idx}")
+            prop_id = str(
+                d.get("proposal_id") or uuid.uuid5(uuid.NAMESPACE_URL, f"{thread_id}:{tc_id}")
+            )
             draft_inputs.append(
                 DraftInput(
                     tool_name=d["tool_name"],

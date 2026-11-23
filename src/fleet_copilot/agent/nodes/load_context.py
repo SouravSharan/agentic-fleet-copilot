@@ -34,6 +34,13 @@ def make_load_context_node(deps: Any) -> Any:
         as_of = deps.telemetry_repo.tenant_as_of(ctx.company_id)
         policies = deps.policy_svc.resolve(ctx)
         tool_cfgs = deps.copilot_store.tool_configs(ctx.company_id)
+        tenant_hostnames: dict[str, str] = {}
+        try:
+            for dev in deps.telemetry_repo.latest_states(ctx.company_id):
+                if getattr(dev, "os_hostname", None):
+                    tenant_hostnames[str(dev.os_hostname).lower()] = str(dev.device_id)
+        except Exception:  # noqa: BLE001
+            tenant_hostnames = {}
         allowed_specs = tools_for(
             ctx,
             tool_cfgs,
@@ -93,6 +100,7 @@ def make_load_context_node(deps: Any) -> Any:
                 k: {"value": v.value, "source": v.source} for k, v in policies.items()
             },
             "allowed_tool_names": allowed_names,
+            "tenant_hostnames": tenant_hostnames,
             "plan": None,
             "tool_trace": reset_list(),
             "tool_outputs": reset_list(),
@@ -112,7 +120,6 @@ def make_load_context_node(deps: Any) -> Any:
             "verifier_retries": 0,
             "warnings": reset_list(),
             "step_count": 0,
-            "replans": 0,
             "usage": reset_list(),
         }
 
