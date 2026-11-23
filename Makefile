@@ -1,4 +1,4 @@
-.PHONY: setup up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck chat eval-verify-cases eval eval-live
+.PHONY: setup bootstrap up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck chat eval-verify-cases eval eval-live
 
 COMPANY ?= acme-001
 ROLE ?= it_admin
@@ -6,6 +6,8 @@ MODEL ?= google_genai:gemini-3.8-flash
 
 setup:
 	uv sync --all-groups
+
+bootstrap: up migrate seed test-db eval
 
 up:
 	docker compose up -d --wait

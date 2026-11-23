@@ -74,6 +74,8 @@ class Settings(BaseSettings):
     session_signing_key: SecretStr | None = Field(default=None)
     demo_access_codes: str = Field(default="demo-code:rev_01")
     demo_admin_token: SecretStr | None = Field(default=None)
+    demo_spend_cap_usd: float = Field(default=3.0)
+    demo_turns_per_access_code: int = Field(default=25)
     rate_limit_turns_per_hour: int = Field(default=20)
     daily_token_budget: int = Field(default=2_000_000)
     turn_retention_days: int = Field(default=7)
