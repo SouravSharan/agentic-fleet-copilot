@@ -18,6 +18,62 @@ from fleet_copilot.tools.registry import tools_for
 logger = logging.getLogger(__name__)
 
 
+def _thread_title_from_message(message: str, *, max_len: int = 60) -> str:
+    collapsed = " ".join(message.split())
+    if not collapsed:
+        return "New conversation"
+    if len(collapsed) <= max_len:
+        return collapsed
+    return collapsed[: max_len - 1].rstrip() + "…"
+
+
+def _rebuild_digest_from_turns(
+    turns: list[dict[str, Any]],
+    *,
+    exclude_turn_id: str,
+) -> list[dict[str, Any]]:
+    """Reconstruct last 3 conversation digest entries from persisted `copilot.turns` rows."""
+    rebuilt: list[dict[str, Any]] = []
+    for row in turns:
+        if str(row.get("turn_id", "")) == exclude_turn_id:
+            continue
+        user_msg = row.get("user_message")
+        if not user_msg:
+            continue
+        rj = row.get("response_json") if isinstance(row.get("response_json"), dict) else None
+        ans = (
+            rj.get("answer")
+            if isinstance(rj, dict) and isinstance(rj.get("answer"), dict)
+            else None
+        )
+        summary = (
+            str(ans.get("summary"))
+            if ans and ans.get("summary")
+            else str(row.get("assistant_response") or "")[:240]
+        )
+        result_devs = list(ans.get("result_device_ids") or []) if ans else []
+        refused_alts = []
+        if isinstance(rj, dict):
+            for v in rj.get("verdicts") or []:
+                if isinstance(v, dict) and v.get("decision") == "refuse":
+                    refused_alts.append(
+                        {
+                            "refused_tool": v.get("tool_name"),
+                            "target_id": v.get("target_id"),
+                            "alternatives": v.get("alternatives") or [],
+                        }
+                    )
+        rebuilt.append(
+            {
+                "user": str(user_msg),
+                "summary": summary,
+                "result_device_ids": result_devs,
+                "refused_alternatives": refused_alts,
+            }
+        )
+    return rebuilt[-3:]
+
+
 def make_load_context_node(deps: Any) -> Any:
     """Build the `load_context` node function closed over `AgentDeps`."""
 
@@ -56,8 +112,16 @@ def make_load_context_node(deps: Any) -> Any:
             ctx.company_id,
             thread_id,
             ctx.actor_id,
-            title=f"Session {thread_id.split(':')[-1]}",
+            title=_thread_title_from_message(user_message),
         )
+        existing_digest = list(state.get("conversation_digest") or [])
+        if not existing_digest:
+            try:
+                prior_turns = deps.copilot_store.list_turns(ctx.company_id, thread_id)
+                existing_digest = _rebuild_digest_from_turns(prior_turns, exclude_turn_id=turn_id)
+            except Exception:  # noqa: BLE001
+                existing_digest = []
+
         deps.copilot_store.ensure_turn(
             ctx.company_id,
             thread_id,
@@ -102,6 +166,7 @@ def make_load_context_node(deps: Any) -> Any:
             },
             "allowed_tool_names": allowed_names,
             "tenant_hostnames": tenant_hostnames,
+            "conversation_digest": existing_digest,
             "plan": None,
             "tool_trace": reset_list(),
             "tool_outputs": reset_list(),

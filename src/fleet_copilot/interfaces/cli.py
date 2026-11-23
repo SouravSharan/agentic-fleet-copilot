@@ -75,17 +75,27 @@ def ask(
 def chat(
     company: Annotated[str, typer.Option(help="Tenant company_id.")] = "acme-001",
     role: Annotated[str, typer.Option(help="Actor role: viewer | it_admin.")] = "it_admin",
+    thread_id: Annotated[
+        str | None,
+        typer.Option("--thread-id", help="Resume an existing conversation thread_id."),
+    ] = None,
     cassette: Annotated[str | None, typer.Option(help="Optional replay cassette name.")] = None,
 ) -> None:
     """Interactive REPL with dimmed plan/tool trace, footnotes, and a/r/d approval prompts."""
     if role not in ("viewer", "it_admin"):
         raise typer.BadParameter("role must be 'viewer' or 'it_admin'")
     svc = _build_copilot(cassette=cassette)
-    thread_id = f"{company}:{uuid.uuid4().hex[:12]}"
+    active_tid = thread_id or f"{company}:{uuid.uuid4().hex[:12]}"
+    if thread_id:
+        prior = svc.get_thread(_ctx(company, role), active_tid)  # type: ignore[arg-type]
+        if prior and prior.get("turns"):
+            console.print(
+                f"[dim]Resuming thread {active_tid} ({len(prior['turns'])} prior turn(s))[/dim]"
+            )
     console.print(
         Panel.fit(
             f"Fleet Copilot · tenant=[bold]{company}[/bold] · role=[bold]{role}[/bold]\n"
-            f"thread=[dim]{thread_id}[/dim] · type 'exit' to quit"
+            f"thread=[dim]{active_tid}[/dim] · type 'exit' to quit"
         )
     )
 
@@ -98,7 +108,7 @@ def chat(
             break
 
         ctx = _ctx(company, role)  # type: ignore[arg-type]
-        resp = svc.run_turn(ctx, thread_id, user_input)
+        resp = svc.run_turn(ctx, active_tid, user_input)
         _render_trace(resp)
         console.print(Markdown(resp.answer_markdown))
         console.print(
@@ -128,8 +138,33 @@ def chat(
                     if choice.startswith("a")
                     else ("reject" if choice.startswith("r") else "defer")
                 )
-            resumed = svc.resume(_ctx(company, role), thread_id, decisions)  # type: ignore[arg-type]
+            resumed = svc.resume(_ctx(company, role), active_tid, decisions)  # type: ignore[arg-type]
             console.print(Markdown(resumed.answer_markdown))
+
+
+@app.command()
+def threads(
+    company: Annotated[str, typer.Option(help="Tenant company_id.")] = "acme-001",
+    role: Annotated[str, typer.Option(help="Actor role: viewer | it_admin.")] = "it_admin",
+    search: Annotated[str | None, typer.Option(help="Filter threads by title substring.")] = None,
+    limit: Annotated[int, typer.Option(help="Max threads to list.")] = 20,
+) -> None:
+    """List saved conversation threads owned by the current actor."""
+    if role not in ("viewer", "it_admin"):
+        raise typer.BadParameter("role must be 'viewer' or 'it_admin'")
+    svc = _build_copilot()
+    rows = svc.list_threads(_ctx(company, role), search=search, limit=limit)  # type: ignore[arg-type]
+    table = Table(title=f"Saved Threads ({company}, {role})")
+    for col in ("thread_id", "title", "status", "updated_at"):
+        table.add_column(col)
+    for r in rows:
+        table.add_row(
+            str(r["thread_id"]),
+            str(r.get("title") or "-"),
+            str(r.get("status") or "active"),
+            str(r.get("updated_at") or "-"),
+        )
+    console.print(table)
 
 
 @app.command()

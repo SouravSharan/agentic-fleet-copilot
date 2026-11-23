@@ -455,13 +455,13 @@ def test_redact_turns_automatically_covers_future_json_columns(
         with psycopg.connect(admin_url, prepare_threshold=None) as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "ALTER TABLE copilot.turns ADD COLUMN IF NOT EXISTS response_json JSONB"
+                    "ALTER TABLE copilot.turns ADD COLUMN IF NOT EXISTS future_payload_json JSONB"
                 )
                 cur.execute(
                     """
                     UPDATE copilot.turns
                     SET created_at = %s,
-                        response_json = %s::jsonb
+                        future_payload_json = %s::jsonb
                     WHERE turn_id = %s
                     """,
                     (
@@ -487,7 +487,7 @@ def test_redact_turns_automatically_covers_future_json_columns(
 
         with db_manager.copilot_cursor("acme-001") as cur:
             cur.execute(
-                "SELECT user_message, assistant_response, response_json, redacted_at "
+                "SELECT user_message, assistant_response, future_payload_json, redacted_at "
                 "FROM copilot.turns WHERE turn_id = %s",
                 (resp.turn_id,),
             )
@@ -496,10 +496,10 @@ def test_redact_turns_automatically_covers_future_json_columns(
         assert row["redacted_at"] == FIXED_NOW
         assert row["user_message"] is None
         assert row["assistant_response"] is None
-        assert row["response_json"] is None
+        assert row["future_payload_json"] is None
         assert scan_redacted_turns(db_manager, company_id="acme-001") == []
     finally:
         with psycopg.connect(admin_url, prepare_threshold=None) as conn:
             with conn.cursor() as cur:
-                cur.execute("ALTER TABLE copilot.turns DROP COLUMN IF EXISTS response_json")
+                cur.execute("ALTER TABLE copilot.turns DROP COLUMN IF EXISTS future_payload_json")
             conn.commit()

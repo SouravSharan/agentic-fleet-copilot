@@ -152,7 +152,7 @@ class PgCopilotStore:
             cur.execute(
                 """
                 SELECT thread_id, company_id, actor_id, title, status,
-                       run_lease_until, created_at, updated_at
+                       hidden, run_lease_until, created_at, updated_at
                 FROM copilot.threads
                 WHERE thread_id = %s
                 """,
@@ -166,22 +166,83 @@ class PgCopilotStore:
         company_id: str,
         *,
         actor_id: str,
+        include_hidden: bool = False,
+        search: str | None = None,
         limit: int = 50,
     ) -> list[dict[str, Any]]:
         """List conversation threads owned by `(company_id, actor_id)`."""
+        clauses: list[sql.SQL] = [sql.SQL("actor_id = %s")]
+        params: list[Any] = [actor_id]
+        if not include_hidden:
+            clauses.append(sql.SQL("hidden = false"))
+        if search and search.strip():
+            clauses.append(sql.SQL("COALESCE(title, '') ILIKE %s"))
+            params.append(f"%{search.strip()}%")
+        params.append(limit)
+        query = sql.SQL(
+            """
+            SELECT thread_id, company_id, actor_id, title, status,
+                   hidden, run_lease_until, created_at, updated_at
+            FROM copilot.threads
+            WHERE {where}
+            ORDER BY updated_at DESC, thread_id ASC
+            LIMIT %s
+            """
+        ).format(where=sql.SQL(" AND ").join(clauses))
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(query, params)
+            return [dict(r) for r in cur.fetchall()]
+
+    def rename_thread(
+        self,
+        company_id: str,
+        thread_id: str,
+        actor_id: str,
+        title: str,
+    ) -> None:
+        """Update the title of an actor-owned thread."""
         with self._db.copilot_cursor(company_id) as cur:
             cur.execute(
                 """
-                SELECT thread_id, company_id, actor_id, title, status,
-                       run_lease_until, created_at, updated_at
-                FROM copilot.threads
-                WHERE actor_id = %s
-                ORDER BY updated_at DESC, thread_id ASC
-                LIMIT %s
+                UPDATE copilot.threads
+                SET title = %s,
+                    updated_at = now()
+                WHERE thread_id = %s
+                  AND actor_id = %s
                 """,
-                (actor_id, limit),
+                (title, thread_id, actor_id),
             )
-            return [dict(r) for r in cur.fetchall()]
+
+    def hide_thread(
+        self,
+        company_id: str,
+        thread_id: str,
+        actor_id: str,
+        *,
+        hidden: bool = True,
+    ) -> None:
+        """Soft-hide (or unhide) an actor-owned thread while retaining turns for audit."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                """
+                UPDATE copilot.threads
+                SET hidden = %s,
+                    updated_at = now()
+                WHERE thread_id = %s
+                  AND actor_id = %s
+                """,
+                (hidden, thread_id, actor_id),
+            )
+
+    def count_turns(self, company_id: str, thread_id: str) -> int:
+        """Return total persisted turn count for `thread_id` within `company_id`."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                "SELECT COUNT(*) AS n FROM copilot.turns WHERE thread_id = %s",
+                (thread_id,),
+            )
+            row = cur.fetchone()
+            return int(row["n"]) if row is not None else 0
 
     def list_turns(self, company_id: str, thread_id: str) -> list[dict[str, Any]]:
         """Return ordered turn trace rows for `thread_id` within `company_id`."""
@@ -189,9 +250,9 @@ class PgCopilotStore:
             cur.execute(
                 """
                 SELECT turn_id, trace_id, actor_id, user_message, plan_json, tool_calls_json,
-                       evidence_json, assistant_response, status, model_id, prompt_version,
-                       input_hash, answer_hash, input_tokens, output_tokens, cost_usd_est,
-                       latency_ms, created_at, completed_at, redacted_at
+                       evidence_json, assistant_response, response_json, status, model_id,
+                       prompt_version, input_hash, answer_hash, input_tokens, output_tokens,
+                       cost_usd_est, latency_ms, created_at, completed_at, redacted_at
                 FROM copilot.turns
                 WHERE thread_id = %s
                 ORDER BY created_at ASC
@@ -291,6 +352,7 @@ class PgCopilotStore:
         tool_calls_json: list[dict[str, Any]] | None = None,
         evidence_json: dict[str, Any] | list[dict[str, Any]] | None = None,
         assistant_response: str | None = None,
+        response_json: dict[str, Any] | None = None,
         model_id: str | None = None,
         prompt_version: str | None = None,
         input_hash: str | None = None,
@@ -310,6 +372,7 @@ class PgCopilotStore:
             ("tool_calls_json", tool_calls_json, True),
             ("evidence_json", evidence_json, True),
             ("assistant_response", assistant_response, False),
+            ("response_json", response_json, True),
             ("model_id", model_id, False),
             ("prompt_version", prompt_version, False),
             ("input_hash", input_hash, False),

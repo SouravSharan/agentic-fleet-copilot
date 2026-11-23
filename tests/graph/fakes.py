@@ -372,6 +372,7 @@ class InMemoryCopilotStore:
                 "actor_id": actor_id,
                 "title": title,
                 "status": "active",
+                "hidden": False,
                 "run_lease_until": None,
             },
         )
@@ -383,14 +384,50 @@ class InMemoryCopilotStore:
         return dict(row)
 
     def list_threads(
-        self, company_id: str, *, actor_id: str, limit: int = 50
+        self,
+        company_id: str,
+        *,
+        actor_id: str,
+        include_hidden: bool = False,
+        search: str | None = None,
+        limit: int = 50,
     ) -> list[dict[str, Any]]:
         rows = [
             dict(r)
             for r in self.threads.values()
-            if r.get("company_id") == company_id and r.get("actor_id") == actor_id
+            if r.get("company_id") == company_id
+            and r.get("actor_id") == actor_id
+            and (include_hidden or not r.get("hidden", False))
+            and (not search or search.strip().lower() in str(r.get("title") or "").lower())
         ]
         return rows[:limit]
+
+    def rename_thread(self, company_id: str, thread_id: str, actor_id: str, title: str) -> None:
+        row = self.threads.get(thread_id)
+        if (
+            row is not None
+            and row.get("company_id") == company_id
+            and row.get("actor_id") == actor_id
+        ):
+            row["title"] = title
+
+    def hide_thread(
+        self, company_id: str, thread_id: str, actor_id: str, *, hidden: bool = True
+    ) -> None:
+        row = self.threads.get(thread_id)
+        if (
+            row is not None
+            and row.get("company_id") == company_id
+            and row.get("actor_id") == actor_id
+        ):
+            row["hidden"] = hidden
+
+    def count_turns(self, company_id: str, thread_id: str) -> int:
+        return sum(
+            1
+            for r in self.turns.values()
+            if r.get("company_id") == company_id and r.get("thread_id") == thread_id
+        )
 
     def list_turns(self, company_id: str, thread_id: str) -> list[dict[str, Any]]:
         return [

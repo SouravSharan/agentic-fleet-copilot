@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Sequence
 from typing import Any
 
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.runtime import Runtime
 
@@ -16,6 +17,28 @@ from fleet_copilot.agent.state import CopilotState
 from fleet_copilot.domain.models import TenantContext
 
 logger = logging.getLogger(__name__)
+
+MAX_INVESTIGATOR_TURNS = 4
+
+
+def trim_messages_to_last_turns(
+    messages: Sequence[BaseMessage],
+    *,
+    max_turns: int = MAX_INVESTIGATOR_TURNS,
+) -> list[BaseMessage]:
+    """Keep only the last `max_turns` complete turns, cutting strictly at `HumanMessage` boundaries.
+
+    Never mutates or splits an `AIMessage(tool_calls=...)` / `ToolMessage` sequence, preserving
+    Gemini 3 thought signatures across multi-turn conversations (10 §5, 11 §2 B1).
+    """
+    msg_list = list(messages)
+    if max_turns <= 0 or not msg_list:
+        return msg_list
+    human_indices = [i for i, m in enumerate(msg_list) if isinstance(m, HumanMessage)]
+    if len(human_indices) <= max_turns:
+        return msg_list
+    start_idx = human_indices[-max_turns]
+    return msg_list[start_idx:]
 
 
 def _company_display_name(company_id: str) -> str:
@@ -47,9 +70,16 @@ def make_investigator_node(deps: Any) -> Any:
             telemetry_as_of=state.get("telemetry_as_of", ""),
             plan_json=json.dumps(state.get("plan") or {}, sort_keys=True),
         )
+        digest = list(state.get("conversation_digest") or [])[-3:]
+        if digest:
+            sys_text = (
+                f"{sys_text}\n\nRecent conversation summary:\n{json.dumps(digest, sort_keys=True)}"
+            )
 
-        # Prepend SystemMessage to unmodified message history (never mutate existing messages).
-        history = list(state.get("messages") or [])
+        # Keep last 4 complete turns at HumanMessage boundaries without mutating any message.
+        history = trim_messages_to_last_turns(
+            list(state.get("messages") or []), max_turns=MAX_INVESTIGATOR_TURNS
+        )
         prompt_messages = [SystemMessage(content=sys_text), *history]
 
         llm = deps.model_factory("investigator")

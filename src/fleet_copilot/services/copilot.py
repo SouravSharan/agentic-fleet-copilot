@@ -43,6 +43,17 @@ from fleet_copilot.tools.registry import ToolDeps, build_all_tool_specs
 logger = logging.getLogger(__name__)
 
 _RUN_LEASE_SECONDS = 90
+_MAX_TURNS_PER_THREAD = 30
+_MAX_THREAD_TITLE_LEN = 60
+
+
+def _title_from_message(message: str, *, max_len: int = _MAX_THREAD_TITLE_LEN) -> str:
+    collapsed = " ".join(message.split())
+    if not collapsed:
+        return "New conversation"
+    if len(collapsed) <= max_len:
+        return collapsed
+    return collapsed[: max_len - 1].rstrip() + "…"
 
 
 class ThreadNotOwnedError(PermissionError):
@@ -363,6 +374,18 @@ class CopilotService:
         except Exception:  # noqa: BLE001
             logger.exception("failed_to_release_thread_run_lease")
 
+    def _persist_response_json(self, ctx: TenantContext, resp: TurnResponse) -> None:
+        if not resp.turn_id:
+            return
+        try:
+            self._store.update_turn(
+                ctx.company_id,
+                resp.turn_id,
+                response_json=resp.model_dump(mode="json"),
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("failed_to_persist_response_json")
+
     def _pending_interrupt_packet(self, config: dict[str, Any]) -> dict[str, Any] | None:
         if self._checkpointer is None:
             return None
@@ -474,11 +497,28 @@ class CopilotService:
             resolved_turn_id = turn_id or f"turn_{uuid.uuid4().hex[:12]}"
             self._assert_thread_owned(ctx, tid)
 
+            if self._store.count_turns(ctx.company_id, tid) >= _MAX_TURNS_PER_THREAD:
+                latency_ms = max(0, int((time.monotonic() - t0) * 1000))
+                msg = (
+                    f"This conversation has reached the {_MAX_TURNS_PER_THREAD}-turn limit "
+                    "(`thread_turn_limit`). Please start a new chat."
+                )
+                return TurnResponse(
+                    thread_id=tid,
+                    turn_id=resolved_turn_id,
+                    trace_id=ctx.trace_id,
+                    status="failed",
+                    answer_markdown=msg,
+                    answer=Answer(summary=msg),
+                    usage=TurnUsage(latency_ms=latency_ms),
+                    warnings=[f"Turn limit reached ({_MAX_TURNS_PER_THREAD} turns max)."],
+                )
+
             self._store.ensure_thread(
                 ctx.company_id,
                 tid,
                 ctx.actor_id,
-                title=f"Session {tid.split(':')[-1]}",
+                title=_title_from_message(message),
             )
             now = self._clock.now()
             lease_until = now + timedelta(seconds=_RUN_LEASE_SECONDS)
@@ -559,13 +599,15 @@ class CopilotService:
                         packet = val
 
             latency_ms = max(0, int((time.monotonic() - t0) * 1000))
-            return self._build_turn_response(
+            resp = self._build_turn_response(
                 ctx=ctx,
                 thread_id=tid,
                 state=dict(result_state),
                 approval_packet=packet,
                 latency_ms=latency_ms,
             )
+            self._persist_response_json(ctx, resp)
+            return resp
 
     def resume(
         self,
@@ -619,17 +661,46 @@ class CopilotService:
 
             packet = self._pending_interrupt_packet(config)
             latency_ms = max(0, int((time.monotonic() - t0) * 1000))
-            return self._build_turn_response(
+            resp = self._build_turn_response(
                 ctx=ctx,
                 thread_id=thread_id,
                 state=dict(result_state),
                 approval_packet=packet,
                 latency_ms=latency_ms,
             )
+            self._persist_response_json(ctx, resp)
+            return resp
 
-    def list_threads(self, ctx: TenantContext, *, limit: int = 50) -> list[dict[str, Any]]:
+    def list_threads(
+        self,
+        ctx: TenantContext,
+        *,
+        include_hidden: bool = False,
+        search: str | None = None,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
         """List conversation threads owned by `(ctx.company_id, ctx.actor_id)`."""
-        return list(self._store.list_threads(ctx.company_id, actor_id=ctx.actor_id, limit=limit))
+        return list(
+            self._store.list_threads(
+                ctx.company_id,
+                actor_id=ctx.actor_id,
+                include_hidden=include_hidden,
+                search=search,
+                limit=limit,
+            )
+        )
+
+    def rename_thread(self, ctx: TenantContext, thread_id: str, title: str) -> str:
+        """Rename an actor-owned thread (trimmed to <= 60 chars)."""
+        self._assert_thread_owned(ctx, thread_id, require_existing=True)
+        clean = _title_from_message(title)
+        self._store.rename_thread(ctx.company_id, thread_id, ctx.actor_id, clean)
+        return clean
+
+    def hide_thread(self, ctx: TenantContext, thread_id: str, *, hidden: bool = True) -> None:
+        """Soft-hide (or unhide) an actor-owned thread while keeping turns for audit."""
+        self._assert_thread_owned(ctx, thread_id, require_existing=True)
+        self._store.hide_thread(ctx.company_id, thread_id, ctx.actor_id, hidden=hidden)
 
     def get_thread(self, ctx: TenantContext, thread_id: str) -> dict[str, Any] | None:
         """Return one thread and its turns owned by `(ctx.company_id, ctx.actor_id)`."""
