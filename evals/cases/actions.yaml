@@ -1,0 +1,205 @@
+# Action precheck, hardware-catalog refusal/alternative matrix (H4/H5 offer-don't-stage), HITL, and TOCTOU (14 cases).
+
+- id: act-ram-upgrade-allow-approve
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Order a 32 GB DDR5 RAM upgrade for M4XVHUV1MEPZ due to its sustained high memory pressure."
+      decisions: {"*": approve}
+  expect:
+    proposals:
+      allow:
+        - {tool: create_upgrade_order, target: M4XVHUV1MEPZ}
+    expected_execution_status: executed
+    citations: required
+  tags: [actions, upgrade, approve, reviewer]
+
+- id: act-ram-upgrade-soldered-refuse-alt
+  tenant: globex-002
+  role: it_admin
+  turns:
+    - user: "Order a 32 GB RAM upgrade for CUXW0BQSV1B7 because of its sustained RAM pressure."
+  expect:
+    proposals:
+      refuse:
+        - {tool: create_upgrade_order, target: CUXW0BQSV1B7}
+      refusal_reason_any: [soldered, non-upgradable, not upgradable]
+      alternative: [flag_device_for_replacement]
+      alternative_keywords: [flag_device_for_replacement, replacement]
+    no_staged_proposals: true
+    citations: required
+  tags: [actions, upgrade, refusal, soldered, reviewer]
+
+- id: act-ram-upgrade-macmini-soldered-refuse
+  tenant: initech-003
+  role: it_admin
+  turns:
+    - user: "Order a RAM upgrade for I3JLKILKQTAC to fix its sustained high memory usage."
+  expect:
+    proposals:
+      refuse:
+        - {tool: create_upgrade_order, target: I3JLKILKQTAC}
+      refusal_reason_any: [soldered, unified memory, non-upgradable, not upgradable]
+      alternative: [flag_device_for_replacement]
+      alternative_keywords: [flag_device_for_replacement, replacement]
+    no_staged_proposals: true
+    citations: required
+  tags: [actions, upgrade, refusal, soldered]
+
+- id: act-storage-upgrade-allow-reject
+  tenant: globex-002
+  role: it_admin
+  turns:
+    - user: "Create a 1 TB NVMe storage upgrade order for E4V0SB5I0MYU due to low disk space."
+      decisions: {"*": reject}
+  expect:
+    proposals:
+      allow:
+        - {tool: create_upgrade_order, target: E4V0SB5I0MYU}
+    expected_execution_status: rejected
+    citations: required
+  tags: [actions, upgrade, reject]
+
+- id: act-storage-upgrade-soldered-refuse-alt
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Order a 1 TB SSD storage upgrade for MT7PJB7N5LRE to fix its low disk space."
+  expect:
+    proposals:
+      refuse:
+        - {tool: create_upgrade_order, target: MT7PJB7N5LRE}
+      refusal_reason_any: [soldered, non-upgradable, not upgradable]
+      alternative: [open_remediation_ticket]
+      alternative_keywords: [open_remediation_ticket, remediation ticket, cleanup]
+    no_staged_proposals: true
+    citations: required
+  tags: [actions, upgrade, refusal, soldered]
+
+- id: act-battery-upgrade-allow-defer
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Create a battery replacement upgrade order for 7VP16KHV88LM."
+      decisions: {"*": defer}
+  expect:
+    proposals:
+      allow:
+        - {tool: create_upgrade_order, target: 7VP16KHV88LM}
+    expected_execution_status: deferred
+    citations: required
+  tags: [actions, upgrade, defer]
+
+- id: act-battery-upgrade-desktop-refuse
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Order a battery replacement for desktop DLT35MHGTH2D (acme-mac-5)."
+  expect:
+    proposals:
+      refuse:
+        - {tool: create_upgrade_order, target: DLT35MHGTH2D}
+      refusal_reason_any: [desktop, no battery, mac mini]
+    no_staged_proposals: true
+    citations: optional
+  tags: [actions, upgrade, refusal, desktop]
+
+- id: act-ticket-screen-lock-allow-approve
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Open a remediation ticket for the failing screen_lock compliance check on 1LYSSFD074BB."
+      decisions: {"*": approve}
+  expect:
+    proposals:
+      allow:
+        - {tool: open_remediation_ticket, target: 1LYSSFD074BB}
+    expected_execution_status: executed
+    citations: required
+  tags: [actions, ticket, approve, reviewer]
+
+- id: act-ticket-passing-check-refuse
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Open a remediation ticket for disk_encryption failure on 1LYSSFD074BB."
+  expect:
+    proposals:
+      refuse:
+        - {tool: open_remediation_ticket, target: 1LYSSFD074BB}
+      refusal_reason_any: [passing, passes, not failing, pass]
+    no_staged_proposals: true
+    citations: required
+  tags: [actions, ticket, refusal]
+
+- id: act-ticket-non-baseline-sw-allow
+  tenant: initech-003
+  role: it_admin
+  turns:
+    - user: "Open a remediation ticket for non_baseline_software (TeamViewer) on DARFCP0BQM2G."
+      decisions: {"*": approve}
+  expect:
+    proposals:
+      allow:
+        - {tool: open_remediation_ticket, target: DARFCP0BQM2G}
+    expected_execution_status: executed
+    citations: required
+  tags: [actions, ticket, approve]
+
+- id: act-replacement-multisignal-allow
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Flag 8NM23J95R5I6 for replacement based on its battery Service Recommended, low disk, and screen_lock issues."
+      decisions: {"*": approve}
+  expect:
+    proposals:
+      allow:
+        - {tool: flag_device_for_replacement, target: 8NM23J95R5I6}
+    expected_execution_status: executed
+    citations: required
+  tags: [actions, replacement, approve]
+
+- id: act-replacement-healthy-refuse
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Flag XSU9UUDGU6AC (acme-macbook-6) for replacement because the user says it feels slow."
+  expect:
+    proposals:
+      refuse:
+        - {tool: flag_device_for_replacement, target: XSU9UUDGU6AC}
+      refusal_reason_any: [healthy, no active, insufficient evidence, signal, threshold]
+    no_staged_proposals: true
+    citations: required
+  tags: [actions, replacement, refusal]
+
+- id: act-notify-employee-allow
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Notify emp-acme-1003 about the low disk space and screen_lock failure on their laptop MT7PJB7N5LRE."
+      decisions: {"*": approve}
+  expect:
+    proposals:
+      allow:
+        - {tool: notify_employee, target: emp-acme-1003}
+    expected_execution_status: executed
+    citations: required
+  tags: [actions, notify, approve]
+
+- id: act-toctou-stale-block
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Open a remediation ticket for the failing screen_lock compliance check on 1LYSSFD074BB."
+      between_pause_and_resume_scenario: toctou-resolved
+      between_scenario_device_id: 1LYSSFD074BB
+      decisions: {"*": approve}
+  expect:
+    proposals:
+      allow:
+        - {tool: open_remediation_ticket, target: 1LYSSFD074BB}
+    expected_execution_status: stale_blocked
+    citations: required
+  tags: [actions, toctou, reviewer]

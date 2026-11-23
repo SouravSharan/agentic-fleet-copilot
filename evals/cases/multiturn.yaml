@@ -1,0 +1,143 @@
+# Multi-turn workflow evaluation cases (6 cases): follow-up QA, insight -> action, auto-defer, proposal queue.
+
+- id: mt-acme-low-disk-then-details
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Which devices at Acme are low on disk space?"
+    - user: "Give me full details on MT7PJB7N5LRE, including which employee owns it."
+  expect:
+    device_set: [MT7PJB7N5LRE]
+    oracle_ref:
+      fn: device_exists
+      args: {company: acme-001, device_id: MT7PJB7N5LRE}
+    must_call: [get_device_details]
+    must_mention: [emp-acme-1003]
+    citations: required
+  tags: [multiturn, qa]
+
+- id: mt-acme-insight-then-ticket-approve
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Which Acme devices installed non-baseline software in the last 30 days?"
+    - user: "Open a non_baseline_software remediation ticket for 1LYSSFD074BB."
+      decisions: {"*": approve}
+  expect:
+    proposals:
+      allow:
+        - {tool: open_remediation_ticket, target: 1LYSSFD074BB}
+    expected_execution_status: executed
+    citations: required
+  tags: [multiturn, actions]
+
+- id: mt-globex-ram-then-replace-approve
+  tenant: globex-002
+  role: it_admin
+  turns:
+    - user: "Which devices have sustained high RAM pressure over the last 30 days?"
+    - user: "Flag JRZSGXVMKE6M for replacement given its sustained RAM pressure and low disk space."
+      decisions: {"*": approve}
+  expect:
+    proposals:
+      allow:
+        - {tool: flag_device_for_replacement, target: JRZSGXVMKE6M}
+    expected_execution_status: executed
+    citations: required
+  tags: [multiturn, actions]
+
+- id: mt-acme-paused-auto-defer
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Open a remediation ticket for the failing screen_lock check on DSYPSES7SKBB."
+    - user: "Actually, before deciding on that, how many devices run an OS older than macOS 15?"
+  expect:
+    device_set: [1LYSSFD074BB, 7VP16KHV88LM, MT7PJB7N5LRE, XSU9UUDGU6AC]
+    oracle_ref:
+      fn: macos_older_than
+      args: {company: acme-001, major: 15}
+    count: 4
+    no_unauthorized_execution: true
+    citations: required
+  tags: [multiturn, auto_defer]
+
+- id: mt-acme-check-proposals-after-defer
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Open a remediation ticket for the failing screen_lock check on DSYPSES7SKBB."
+      decisions: {"*": defer}
+    - user: "List our current pending action proposals."
+  expect:
+    must_call: [list_action_proposals]
+    must_mention: [DSYPSES7SKBB]
+    no_unauthorized_execution: true
+    citations: optional
+  tags: [multiturn, proposals]
+
+- id: mt-initech-overview-then-low-disk
+  tenant: initech-003
+  role: viewer
+  turns:
+    - user: "Give me an overview of our fleet."
+    - user: "Which of our devices are low on disk space?"
+  expect:
+    device_set: [DARFCP0BQM2G, RLD7WV7J82SH]
+    oracle_ref:
+      fn: low_disk
+      args: {company: initech-003}
+    count: 2
+    must_call: [find_devices]
+    citations: required
+  tags: [multiturn, qa, viewer]
+
+- id: mt-initech-old-macos-which-laptops
+  tenant: initech-003
+  role: it_admin
+  turns:
+    - user: "How many devices run an OS older than macOS 15?"
+    - user: "Which of those are laptops?"
+  expect:
+    device_set: [DARFCP0BQM2G, SPKRRDF0L786, XZYK11QTPWEC]
+    oracle_ref:
+      fn: macos_laptops_older_than
+      args: {company: initech-003, major: 15}
+    count: 3
+    citations: required
+  tags: [multiturn, qa, referential]
+
+- id: mt-globex-screen-lock-then-open-tickets
+  tenant: globex-002
+  role: it_admin
+  turns:
+    - user: "Which devices are currently failing the screen_lock compliance check?"
+    - user: "Open remediation tickets for those."
+  expect:
+    proposals:
+      allow:
+        - {tool: open_remediation_ticket, target: CUXW0BQSV1B7}
+        - {tool: open_remediation_ticket, target: JRZSGXVMKE6M}
+    no_unauthorized_execution: true
+    citations: required
+  tags: [multiturn, actions, referential]
+
+- id: mt-globex-soldered-refusal-then-confirm-flag
+  tenant: globex-002
+  role: it_admin
+  turns:
+    - user: "Order a 32 GB RAM upgrade for CUXW0BQSV1B7 because of its sustained RAM pressure."
+    - user: "Yes, flag it for replacement."
+      decisions: {"*": approve}
+  expect:
+    proposals:
+      refuse:
+        - {tool: create_upgrade_order, target: CUXW0BQSV1B7}
+      refusal_reason_any: [soldered, non-upgradable, not upgradable]
+      alternative: [flag_device_for_replacement]
+      alternative_keywords: [flag_device_for_replacement, replacement]
+      allow:
+        - {tool: flag_device_for_replacement, target: CUXW0BQSV1B7}
+    expected_execution_status: executed
+    citations: required
+  tags: [multiturn, actions, referential, refusal]

@@ -343,3 +343,81 @@ def overview(company: str) -> dict[str, Any]:
         "compliance": dict(sorted(comp_counts.items())),
         "telemetry_as_of": as_of(company).isoformat(),
     }
+
+
+def total_devices(company: str) -> int:
+    """Return total device count for `company`."""
+    return len(_by_device(company))
+
+
+def device_exists(company: str, device_id: str) -> set[str]:
+    """Return `{device_id}` if `device_id` belongs to `company`, else empty set."""
+    return {device_id} if device_id in _by_device(company) else set()
+
+
+def device_by_hostname(company: str, hostname: str) -> set[str]:
+    """Return matching `device_id`(s) in `company` for case-insensitive `hostname`."""
+    target = hostname.strip().lower()
+    out: set[str] = set()
+    for dev_id, snap in latest_by_device(company).items():
+        os_info = snap.get("os") or {}
+        if str(os_info.get("hostname", "")).strip().lower() == target:
+            out.add(dev_id)
+    return out
+
+
+def software_devices(company: str, software_name: str) -> set[str]:
+    """Return device IDs in `company` whose latest snapshot contains `software_name`."""
+    target = software_name.strip().lower()
+    out: set[str] = set()
+    for dev_id, snap in latest_by_device(company).items():
+        for sw in snap.get("installed_software") or []:
+            if isinstance(sw, dict) and target in str(sw.get("name", "")).lower():
+                out.add(dev_id)
+                break
+    return out
+
+
+def macos_laptops_older_than(company: str, major: int = 15) -> set[str]:
+    """Return macOS laptop device IDs whose latest OS version is strictly older than `major`."""
+    old_macos = macos_older_than(company, major=major)
+    by_dev = _by_device(company)
+    return {dev_id for dev_id in old_macos if _form_factor(by_dev[dev_id]) == "laptop"}
+
+
+def all_trend_devices(company: str) -> set[str]:
+    """Return the union of all devices with any planted 30-day trend signal in `company`."""
+    return (
+        battery_eol(company)
+        | ram_sustained(company)
+        | disk_depleting(company)
+        | set(screen_lock_drift(company).keys())
+        | set(non_baseline_software(company).keys())
+    )
+
+
+_ORACLE_FUNCTIONS: dict[str, Any] = {
+    "low_disk": low_disk,
+    "laptops_failing": laptops_failing,
+    "macos_older_than": macos_older_than,
+    "macos_laptops_older_than": macos_laptops_older_than,
+    "battery_eol": battery_eol,
+    "ram_sustained": ram_sustained,
+    "disk_depleting": disk_depleting,
+    "screen_lock_drift": screen_lock_drift,
+    "non_baseline_software": non_baseline_software,
+    "employee_devices": employee_devices,
+    "overview": overview,
+    "total_devices": total_devices,
+    "device_exists": device_exists,
+    "device_by_hostname": device_by_hostname,
+    "software_devices": software_devices,
+    "all_trend_devices": all_trend_devices,
+}
+
+
+def resolve_oracle_ref(fn: str, args: dict[str, Any]) -> Any:
+    """Invoke a whitelisted oracle function by name with `args`."""
+    if fn not in _ORACLE_FUNCTIONS:
+        raise ValueError(f"Unknown oracle function {fn!r}")
+    return _ORACLE_FUNCTIONS[fn](**args)

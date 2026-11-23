@@ -1,0 +1,150 @@
+# Proactive 30-day trend & insight cases (10 cases).
+
+- id: ins-acme-battery
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Analyze 30-day battery degradation and end-of-life trends across our fleet."
+  expect:
+    device_set: [7VP16KHV88LM, 8NM23J95R5I6, M4XVHUV1MEPZ]
+    oracle_ref:
+      fn: battery_eol
+      args: {company: acme-001}
+    count: 3
+    must_call: [analyze_fleet_trends]
+    citations: required
+  tags: [insights, battery]
+
+- id: ins-acme-ram
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Which devices show sustained high RAM pressure over the last 30 days?"
+  expect:
+    device_set: [M4XVHUV1MEPZ]
+    oracle_ref:
+      fn: ram_sustained
+      args: {company: acme-001}
+    count: 1
+    must_call: [analyze_fleet_trends]
+    citations: required
+  tags: [insights, ram]
+
+- id: ins-globex-ram
+  tenant: globex-002
+  role: it_admin
+  turns:
+    - user: "Run a 30-day memory pressure trend analysis on our fleet."
+  expect:
+    device_set: [CUXW0BQSV1B7, JRZSGXVMKE6M]
+    oracle_ref:
+      fn: ram_sustained
+      args: {company: globex-002}
+    count: 2
+    must_call: [analyze_fleet_trends]
+    citations: required
+  tags: [insights, ram]
+
+- id: ins-initech-ram
+  tenant: initech-003
+  role: it_admin
+  turns:
+    - user: "Are any devices suffering sustained RAM pressure over the past 30 days?"
+  expect:
+    device_set: [I3JLKILKQTAC]
+    oracle_ref:
+      fn: ram_sustained
+      args: {company: initech-003}
+    count: 1
+    must_call: [analyze_fleet_trends]
+    citations: required
+  tags: [insights, ram]
+
+- id: ins-acme-disk-depletion
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Which devices are steadily losing disk space over the 30-day window?"
+  expect:
+    device_set: [8NM23J95R5I6, MT7PJB7N5LRE]
+    oracle_ref:
+      fn: disk_depleting
+      args: {company: acme-001}
+    count: 2
+    must_call: [analyze_fleet_trends]
+    citations: required
+  tags: [insights, disk]
+
+- id: ins-globex-disk-depletion
+  tenant: globex-002
+  role: it_admin
+  turns:
+    - user: "Analyze 30-day disk space depletion trends across our fleet."
+  expect:
+    device_set: [E4V0SB5I0MYU, JRZSGXVMKE6M]
+    oracle_ref:
+      fn: disk_depleting
+      args: {company: globex-002}
+    count: 2
+    must_call: [analyze_fleet_trends]
+    citations: required
+  tags: [insights, disk]
+
+- id: ins-initech-disk-depletion
+  tenant: initech-003
+  role: it_admin
+  turns:
+    - user: "Which devices have a downward disk space trend over the last 30 days?"
+  expect:
+    device_set: [DARFCP0BQM2G, RLD7WV7J82SH]
+    oracle_ref:
+      fn: disk_depleting
+      args: {company: initech-003}
+    count: 2
+    must_call: [analyze_fleet_trends]
+    citations: required
+  tags: [insights, disk]
+
+- id: ins-acme-compliance-drift
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Which devices drifted from passing to failing screen_lock over the last 30 days, and when?"
+  expect:
+    device_set: [1LYSSFD074BB, 8NM23J95R5I6, DLT35MHGTH2D, DSYPSES7SKBB, MT7PJB7N5LRE]
+    oracle_ref:
+      fn: screen_lock_drift
+      args: {company: acme-001}
+    count: 5
+    must_call: [analyze_fleet_trends]
+    citations: required
+  tags: [insights, compliance_drift]
+
+- id: ins-initech-software
+  tenant: initech-003
+  role: it_admin
+  turns:
+    - user: "Detect any non-baseline software installed across our fleet in the last 30 days."
+  expect:
+    device_set: [DARFCP0BQM2G, I3JLKILKQTAC, W2656QDAE2ZJ]
+    oracle_ref:
+      fn: non_baseline_software
+      args: {company: initech-003}
+    count: 3
+    must_call: [analyze_fleet_trends]
+    citations: required
+  tags: [insights, software]
+
+- id: ins-acme-full-health
+  tenant: acme-001
+  role: viewer
+  turns:
+    - user: "Give me a full proactive fleet health report — what is getting worse and needs attention?"
+  expect:
+    device_set: [1LYSSFD074BB, 7VP16KHV88LM, 8NM23J95R5I6, DLT35MHGTH2D, DSYPSES7SKBB, M4XVHUV1MEPZ, MT7PJB7N5LRE]
+    oracle_ref:
+      fn: all_trend_devices
+      args: {company: acme-001}
+    must_call: [analyze_fleet_trends]
+    citations: required
+  tags: [insights, health_report, viewer, reviewer]

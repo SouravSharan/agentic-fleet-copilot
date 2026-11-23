@@ -1,0 +1,64 @@
+name: Live Evals (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Gemini model spec (e.g. google_genai:gemini-3.8-flash)"
+        required: true
+        default: "google_genai:gemini-3.8-flash"
+      repeats:
+        description: "Number of repeats per case (pass^k)"
+        required: true
+        default: "3"
+
+jobs:
+  live-eval:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fleet_copilot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fleet_copilot
+      TELEMETRY_WRITER_DATABASE_URL: postgresql://telemetry_writer:telemetry_writer@localhost:5432/fleet_copilot
+      TELEMETRY_RO_DATABASE_URL: postgresql://telemetry_ro:telemetry_ro@localhost:5432/fleet_copilot
+      COPILOT_DATABASE_URL: postgresql://copilot_app:copilot_app@localhost:5432/fleet_copilot
+      TELEMETRY_WRITER_PASSWORD: telemetry_writer
+      TELEMETRY_RO_PASSWORD: telemetry_ro
+      COPILOT_APP_PASSWORD: copilot_app
+      TEST_DB_NAME: fleet_copilot_test
+      PSEUDONYM_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      LANGGRAPH_AES_KEY: 0123456789abcdef0123456789abcdef
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      LLM_REPLAY_MODE: record
+      REQUIRE_DB: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --frozen --group dev
+      - run: make test-db
+      - run: >-
+          uv run python -m evals.run
+          --mode live
+          --model "${{ inputs.model }}"
+          --repeats "${{ inputs.repeats }}"
+          --yes
+          --out "evals/reports/live-manual"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: live-eval-report
+          path: evals/reports/live-manual.*
