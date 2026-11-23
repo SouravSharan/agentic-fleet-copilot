@@ -437,6 +437,32 @@ CREATE POLICY tool_configs_tenant_delete ON copilot.tenant_tool_configs
     );
 
 -- ---------------------------------------------------------------------------
+-- Tenant Lock Function (write-once transaction-local tenant binding)
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION copilot.lock_tenant(p_company_id TEXT)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $$
+BEGIN
+    IF p_company_id IS NULL OR p_company_id !~ '^[A-Za-z0-9][A-Za-z0-9_-]{1,63}$' THEN
+        RAISE EXCEPTION 'invalid company_id' USING ERRCODE = '22023';
+    END IF;
+    IF current_setting('app.tenant_locked', true) = 'true' THEN
+        RAISE EXCEPTION 'tenant already locked in this transaction' USING ERRCODE = '42501';
+    END IF;
+    PERFORM set_config('app.current_tenant', p_company_id, true);
+    PERFORM set_config('app.tenant_locked', 'true', true);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION copilot.lock_tenant(TEXT)
+    FROM PUBLIC, telemetry_ro, telemetry_writer, copilot_app;
+GRANT EXECUTE ON FUNCTION copilot.lock_tenant(TEXT) TO copilot_app;
+
+-- ---------------------------------------------------------------------------
 -- Least-Privilege Grants (scoped to our 6 tables; never touches LangGraph checkpoints)
 -- ---------------------------------------------------------------------------
 

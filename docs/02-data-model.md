@@ -13,7 +13,13 @@ Both data boundaries run on PostgreSQL 16 as two isolated schemas (`telemetry` a
 | `telemetry_ro` | `telemetry` only | `SELECT` only (`default_transaction_read_only = on`) + fail-closed RLS on `company_id` | Fleet Copilot read/analytics tools |
 | `copilot_app` | `copilot` only (`search_path = copilot`) | `SELECT, INSERT, UPDATE` on `threads`, `turns`, `action_proposals`; `SELECT, INSERT, UPDATE, DELETE` on `tenant_policies`, `tenant_tool_configs`; **`SELECT, INSERT` only** on `audit_logs`; `CREATE` on `copilot` for LangGraph `AsyncPostgresSaver.setup()` | Fleet Copilot service |
 
-All Python connections use thread-safe `psycopg_pool.ConnectionPool` (`prepare_threshold=None`, `check=ConnectionPool.check_connection`) and transaction-local `SELECT set_config('app.current_tenant', %s, true)` so tenant context never leaks across pooled connections (including PgBouncer / Supavisor transaction pooling).
+All Python connections use thread-safe `psycopg_pool.ConnectionPool` (`prepare_threshold=None`, `check=ConnectionPool.check_connection`) and bind `app.current_tenant` transaction-locally through write-once `lock_tenant()` functions so tenant context never leaks across pooled connections.
+
+### Tenant Lock
+
+Both schemas expose a `SECURITY DEFINER` function (`telemetry.lock_tenant(text)` for `telemetry_ro`, `copilot.lock_tenant(text)` for `copilot_app`) with `SET search_path = pg_catalog`. Each function validates `company_id` against the strict identifier regex (rejecting empty values and `*`), checks `app.tenant_locked`, and sets `app.current_tenant` and `app.tenant_locked = 'true'` transaction-locally (`is_local = true`). Calling `lock_tenant` a second time in the same transaction raises an error.
+
+`db/90_hardening.sql` revokes `EXECUTE` on `pg_catalog.set_config(text, text, boolean)` from `PUBLIC` and all three application roles (when run as a superuser). Without this revoke, a buggy query or SQL tool could call `set_config('app.current_tenant', '<other>', true)` mid-transaction and switch tenants despite RLS; with the revoke in place, the tenant binding is write-once per transaction.
 
 ---
 

@@ -125,20 +125,14 @@ def test_db_roles_are_least_privilege(db_manager: DatabaseManager) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("tenant_setting", [None, ""])
 def test_telemetry_rls_fail_closed_when_tenant_unset_or_empty(
     db_manager: DatabaseManager,
-    tenant_setting: str | None,
 ) -> None:
     settings = get_settings()
     with psycopg.connect(settings.telemetry_ro_database_url, prepare_threshold=None) as conn:
+        # No lock -> 0 rows on every telemetry relation
         with conn.transaction():
             with conn.cursor() as cur:
-                if tenant_setting is not None:
-                    cur.execute(
-                        "SELECT set_config('app.current_tenant', %s, true)",
-                        (tenant_setting,),
-                    )
                 for relation in (
                     "telemetry.companies",
                     "telemetry.telemetry_snapshots",
@@ -152,22 +146,22 @@ def test_telemetry_rls_fail_closed_when_tenant_unset_or_empty(
                     cur.execute(f"SELECT COUNT(*) FROM {relation}")
                     assert cur.fetchone()[0] == 0, f"Expected 0 rows on {relation}"
 
+        # lock_tenant('') must raise InvalidParameterValue
+        with pytest.raises(errors.InvalidParameterValue):
+            with conn.transaction():
+                with conn.cursor() as cur:
+                    cur.execute("SELECT telemetry.lock_tenant('')")
 
-@pytest.mark.parametrize("tenant_setting", [None, ""])
+
 def test_copilot_rls_fail_closed_when_tenant_unset_or_empty(
     db_manager: DatabaseManager,
-    tenant_setting: str | None,
 ) -> None:
-    """Even seeded global '*' policies/tool configs must return 0 rows when tenant is unset."""
+    """Even seeded global '*' policies/tool configs must return 0 rows when tenant is unlocked."""
     settings = get_settings()
     with psycopg.connect(settings.copilot_database_url, prepare_threshold=None) as conn:
+        # No lock -> 0 rows on every copilot table
         with conn.transaction():
             with conn.cursor() as cur:
-                if tenant_setting is not None:
-                    cur.execute(
-                        "SELECT set_config('app.current_tenant', %s, true)",
-                        (tenant_setting,),
-                    )
                 for table in (
                     "copilot.threads",
                     "copilot.turns",
@@ -179,20 +173,22 @@ def test_copilot_rls_fail_closed_when_tenant_unset_or_empty(
                     cur.execute(f"SELECT COUNT(*) FROM {table}")
                     assert cur.fetchone()[0] == 0, f"Expected 0 rows on {table}"
 
+        # No lock -> INSERT blocked by RLS WITH CHECK
         with pytest.raises(errors.InsufficientPrivilege):
             with conn.transaction():
                 with conn.cursor() as cur:
-                    if tenant_setting is not None:
-                        cur.execute(
-                            "SELECT set_config('app.current_tenant', %s, true)",
-                            (tenant_setting,),
-                        )
                     cur.execute(
                         """
                         INSERT INTO copilot.threads (thread_id, company_id, actor_id)
                         VALUES ('acme-001:unset-test', 'acme-001', 'admin-1')
                         """
                     )
+
+        # lock_tenant('') must raise InvalidParameterValue
+        with pytest.raises(errors.InvalidParameterValue):
+            with conn.transaction():
+                with conn.cursor() as cur:
+                    cur.execute("SELECT copilot.lock_tenant('')")
 
 
 def test_telemetry_rls_tenant_isolation_and_counts(db_manager: DatabaseManager) -> None:

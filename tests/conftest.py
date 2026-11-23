@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 import psycopg
 import pytest
 
 from fleet_copilot.config import Settings, get_settings, test_database_overrides
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 # Route all tests to the isolated test database (never the dev `fleet_copilot` DB).
 _BASE_SETTINGS = Settings()

@@ -1,12 +1,13 @@
-"""Tenant-scoped, Supavisor-safe PostgreSQL connection managers.
+"""Tenant-scoped PostgreSQL connection managers with write-once tenant locking.
 
 Security invariants:
 - `telemetry_ro_cursor` connects exclusively via the read-only `telemetry_ro` role,
-  opens a `READ ONLY` transaction, and sets `app.current_tenant` transaction-locally.
+  opens a `READ ONLY` transaction, and binds `app.current_tenant` once via
+  `telemetry.lock_tenant(%s)`.
 - `copilot_cursor` connects exclusively via `copilot_app` (search_path = copilot)
-  and sets `app.current_tenant` transaction-locally.
-- `prepare_threshold=None` disables server-side prepared statements so the exact
-  same code works across local Postgres, VPS Postgres, and Supabase Supavisor.
+  and binds `app.current_tenant` once via `copilot.lock_tenant(%s)`.
+- `prepare_threshold=None` disables server-side prepared statements for clean
+  compatibility with transaction-level connection pooling.
 """
 
 import re
@@ -109,7 +110,7 @@ class DatabaseManager:
             with conn.transaction():
                 with conn.cursor() as cur:
                     cur.execute("SET TRANSACTION READ ONLY")
-                    cur.execute("SELECT set_config('app.current_tenant', %s, true)", (tenant,))
+                    cur.execute("SELECT telemetry.lock_tenant(%s)", (tenant,))
                     yield cur
 
     @contextmanager
@@ -120,7 +121,7 @@ class DatabaseManager:
         with pool.connection() as conn:
             with conn.transaction():
                 with conn.cursor() as cur:
-                    cur.execute("SELECT set_config('app.current_tenant', %s, true)", (tenant,))
+                    cur.execute("SELECT copilot.lock_tenant(%s)", (tenant,))
                     yield cur
 
     def close(self) -> None:
