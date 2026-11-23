@@ -8,6 +8,7 @@ import time
 import uuid
 from collections import Counter
 from collections.abc import Callable
+from datetime import timedelta
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -41,9 +42,11 @@ from fleet_copilot.tools.registry import ToolDeps, build_all_tool_specs
 
 logger = logging.getLogger(__name__)
 
+_RUN_LEASE_SECONDS = 90
+
 
 class ThreadNotOwnedError(PermissionError):
-    """Raised when a caller attempts to access or resume a thread outside their tenant."""
+    """Raised when a caller attempts to access or resume a thread outside their tenant or actor."""
 
 
 class CopilotService:
@@ -271,7 +274,14 @@ class CopilotService:
     def audit_service(self) -> Any:
         return self._audit
 
-    def _assert_thread_owned(self, ctx: TenantContext, thread_id: str) -> None:
+    def _assert_thread_owned(
+        self,
+        ctx: TenantContext,
+        thread_id: str,
+        *,
+        require_existing: bool = False,
+    ) -> dict[str, Any] | None:
+        """Enforce tenant-prefix AND actor ownership (`company_id` + `actor_id`)."""
         if not thread_id.startswith(f"{ctx.company_id}:"):
             self._audit.record_standalone(
                 ctx,
@@ -279,6 +289,79 @@ class CopilotService:
                 AccessDeniedPayload(reason_code="thread_not_owned", tool_name="copilot_service"),
             )
             raise ThreadNotOwnedError(f"Thread {thread_id!r} does not belong to {ctx.company_id}")
+
+        existing = self._store.get_thread(ctx.company_id, thread_id)
+        if existing is None:
+            if require_existing:
+                self._audit.record_standalone(
+                    ctx,
+                    "access_denied",
+                    AccessDeniedPayload(
+                        reason_code="thread_not_owned", tool_name="copilot_service"
+                    ),
+                )
+                raise ThreadNotOwnedError(
+                    f"Thread {thread_id!r} does not exist or is not owned by {ctx.actor_id}"
+                )
+            return None
+
+        if str(existing.get("actor_id", "")) != ctx.actor_id:
+            self._audit.record_standalone(
+                ctx,
+                "access_denied",
+                AccessDeniedPayload(reason_code="thread_not_owned", tool_name="copilot_service"),
+            )
+            raise ThreadNotOwnedError(f"Thread {thread_id!r} does not belong to {ctx.actor_id}")
+        return existing
+
+    def _thread_busy_response(
+        self,
+        *,
+        ctx: TenantContext,
+        thread_id: str,
+        turn_id: str,
+        t0: float,
+    ) -> TurnResponse:
+        latency_ms = max(0, int((time.monotonic() - t0) * 1000))
+        friendly = (
+            "This conversation already has a request in progress (`thread_busy`). "
+            "Please wait a moment and retry."
+        )
+        logger.warning(
+            "thread_busy",
+            extra={
+                "company_id": ctx.company_id,
+                "turn_id": turn_id,
+                "error_class": "thread_busy",
+                "latency_ms": latency_ms,
+            },
+        )
+        return TurnResponse(
+            thread_id=thread_id,
+            turn_id=turn_id,
+            trace_id=ctx.trace_id,
+            status="failed",
+            answer_markdown=friendly,
+            answer=Answer(summary=friendly),
+            usage=TurnUsage(latency_ms=latency_ms),
+            warnings=["Turn failed (thread_busy)."],
+        )
+
+    def _safe_release_lease(
+        self,
+        ctx: TenantContext,
+        thread_id: str,
+        lease_until: Any,
+    ) -> None:
+        try:
+            self._store.release_run_lease(
+                ctx.company_id,
+                thread_id,
+                ctx.actor_id,
+                lease_until=lease_until,
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("failed_to_release_thread_run_lease")
 
     def _pending_interrupt_packet(self, config: dict[str, Any]) -> dict[str, Any] | None:
         if self._checkpointer is None:
@@ -388,7 +471,29 @@ class CopilotService:
         with bind_trace_id(ctx.trace_id):
             t0 = time.monotonic()
             tid = thread_id or f"{ctx.company_id}:{uuid.uuid4().hex[:12]}"
+            resolved_turn_id = turn_id or f"turn_{uuid.uuid4().hex[:12]}"
             self._assert_thread_owned(ctx, tid)
+
+            self._store.ensure_thread(
+                ctx.company_id,
+                tid,
+                ctx.actor_id,
+                title=f"Session {tid.split(':')[-1]}",
+            )
+            now = self._clock.now()
+            lease_until = now + timedelta(seconds=_RUN_LEASE_SECONDS)
+            if not self._store.acquire_run_lease(
+                ctx.company_id,
+                tid,
+                ctx.actor_id,
+                now=now,
+                lease_until=lease_until,
+            ):
+                # Re-check ownership in case two actors raced on the same new thread_id
+                self._assert_thread_owned(ctx, tid)
+                return self._thread_busy_response(
+                    ctx=ctx, thread_id=tid, turn_id=resolved_turn_id, t0=t0
+                )
 
             config: dict[str, Any] = {
                 "configurable": {
@@ -399,7 +504,6 @@ class CopilotService:
                 "recursion_limit": self._runtime_cfg.budgets.recursion_limit,
             }
 
-            resolved_turn_id = turn_id or f"turn_{uuid.uuid4().hex[:12]}"
             try:
                 # Pending-interrupt rule (05 §3.2): auto-defer undecided proposals before new msg
                 pending_packet = self._pending_interrupt_packet(config)
@@ -439,6 +543,8 @@ class CopilotService:
                     exc=exc,
                     t0=t0,
                 )
+            finally:
+                self._safe_release_lease(ctx, tid, lease_until)
 
             packet = self._pending_interrupt_packet(config)
             if (
@@ -472,12 +578,26 @@ class CopilotService:
         """Resume a paused HITL interrupt with reviewer decisions (`approve|reject|defer`)."""
         with bind_trace_id(ctx.trace_id):
             t0 = time.monotonic()
-            self._assert_thread_owned(ctx, thread_id)
+            self._assert_thread_owned(ctx, thread_id, require_existing=True)
             config: dict[str, Any] = {
                 "configurable": {"thread_id": thread_id, "_turn_t0": t0},
                 "recursion_limit": self._runtime_cfg.budgets.recursion_limit,
             }
             paused_turn_id = self._paused_turn_id(config) or f"resume_{uuid.uuid4().hex[:8]}"
+
+            now = self._clock.now()
+            lease_until = now + timedelta(seconds=_RUN_LEASE_SECONDS)
+            if not self._store.acquire_run_lease(
+                ctx.company_id,
+                thread_id,
+                ctx.actor_id,
+                now=now,
+                lease_until=lease_until,
+            ):
+                return self._thread_busy_response(
+                    ctx=ctx, thread_id=thread_id, turn_id=paused_turn_id, t0=t0
+                )
+
             try:
                 result_state = self._graph.invoke(
                     Command(resume={"decisions": decisions, "note": note}),
@@ -494,6 +614,9 @@ class CopilotService:
                     exc=exc,
                     t0=t0,
                 )
+            finally:
+                self._safe_release_lease(ctx, thread_id, lease_until)
+
             packet = self._pending_interrupt_packet(config)
             latency_ms = max(0, int((time.monotonic() - t0) * 1000))
             return self._build_turn_response(
@@ -505,42 +628,13 @@ class CopilotService:
             )
 
     def list_threads(self, ctx: TenantContext, *, limit: int = 50) -> list[dict[str, Any]]:
-        """List conversation threads belonging to `ctx.company_id`."""
-        if self._db is None:
-            return []
-        with self._db.copilot_cursor(ctx.company_id) as cur:
-            cur.execute(
-                """
-                SELECT thread_id, company_id, actor_id, title, status, created_at, updated_at
-                FROM copilot.threads
-                ORDER BY updated_at DESC, thread_id ASC
-                LIMIT %s
-                """,
-                (limit,),
-            )
-            return [dict(r) for r in cur.fetchall()]
+        """List conversation threads owned by `(ctx.company_id, ctx.actor_id)`."""
+        return list(self._store.list_threads(ctx.company_id, actor_id=ctx.actor_id, limit=limit))
 
     def get_thread(self, ctx: TenantContext, thread_id: str) -> dict[str, Any] | None:
-        """Return one thread and its turns within `ctx.company_id`."""
-        self._assert_thread_owned(ctx, thread_id)
-        if self._db is None:
+        """Return one thread and its turns owned by `(ctx.company_id, ctx.actor_id)`."""
+        thread = self._assert_thread_owned(ctx, thread_id)
+        if thread is None:
             return None
-        with self._db.copilot_cursor(ctx.company_id) as cur:
-            cur.execute("SELECT * FROM copilot.threads WHERE thread_id = %s", (thread_id,))
-            thread = cur.fetchone()
-            if thread is None:
-                return None
-            cur.execute(
-                """
-                SELECT turn_id, trace_id, actor_id, user_message, plan_json, tool_calls_json,
-                       evidence_json, assistant_response, status, model_id, prompt_version,
-                       input_tokens, output_tokens, cost_usd_est, latency_ms,
-                       created_at, completed_at
-                FROM copilot.turns
-                WHERE thread_id = %s
-                ORDER BY created_at ASC
-                """,
-                (thread_id,),
-            )
-            turns = [dict(r) for r in cur.fetchall()]
-            return {"thread": dict(thread), "turns": turns}
+        turns = list(self._store.list_turns(ctx.company_id, thread_id))
+        return {"thread": dict(thread), "turns": turns}

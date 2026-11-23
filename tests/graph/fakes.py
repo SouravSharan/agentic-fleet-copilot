@@ -365,8 +365,74 @@ class InMemoryCopilotStore:
         self, company_id: str, thread_id: str, actor_id: str, *, title: str | None = None
     ) -> None:
         self.threads.setdefault(
-            thread_id, {"company_id": company_id, "actor_id": actor_id, "title": title}
+            thread_id,
+            {
+                "thread_id": thread_id,
+                "company_id": company_id,
+                "actor_id": actor_id,
+                "title": title,
+                "status": "active",
+                "run_lease_until": None,
+            },
         )
+
+    def get_thread(self, company_id: str, thread_id: str) -> dict[str, Any] | None:
+        row = self.threads.get(thread_id)
+        if row is None or row.get("company_id") != company_id:
+            return None
+        return dict(row)
+
+    def list_threads(
+        self, company_id: str, *, actor_id: str, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        rows = [
+            dict(r)
+            for r in self.threads.values()
+            if r.get("company_id") == company_id and r.get("actor_id") == actor_id
+        ]
+        return rows[:limit]
+
+    def list_turns(self, company_id: str, thread_id: str) -> list[dict[str, Any]]:
+        return [
+            dict(r)
+            for r in self.turns.values()
+            if r.get("company_id") == company_id and r.get("thread_id") == thread_id
+        ]
+
+    def acquire_run_lease(
+        self,
+        company_id: str,
+        thread_id: str,
+        actor_id: str,
+        *,
+        now: datetime,
+        lease_until: datetime,
+    ) -> bool:
+        row = self.threads.get(thread_id)
+        if row is None or row.get("company_id") != company_id or row.get("actor_id") != actor_id:
+            return False
+        cur_lease = row.get("run_lease_until")
+        if cur_lease is not None and cur_lease > now:
+            return False
+        row["run_lease_until"] = lease_until
+        return True
+
+    def release_run_lease(
+        self,
+        company_id: str,
+        thread_id: str,
+        actor_id: str,
+        *,
+        lease_until: datetime,
+    ) -> None:
+        row = self.threads.get(thread_id)
+        if (
+            row is not None
+            and row.get("company_id") == company_id
+            and row.get("actor_id") == actor_id
+            and row.get("run_lease_until") == lease_until
+        ):
+            row["run_lease_until"] = None
 
     def ensure_turn(
         self,
@@ -378,11 +444,17 @@ class InMemoryCopilotStore:
         user_message: str,
         *,
         status: str = "running",
+        input_hash: str | None = None,
     ) -> None:
         self.turns[turn_id] = {
+            "turn_id": turn_id,
+            "trace_id": trace_id,
+            "company_id": company_id,
             "thread_id": thread_id,
+            "actor_id": actor_id,
             "status": status,
             "user_message": user_message,
+            "input_hash": input_hash,
         }
 
     def update_turn(self, company_id: str, turn_id: str, **kwargs: Any) -> None:

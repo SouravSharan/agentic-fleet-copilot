@@ -400,3 +400,16 @@ BEGIN
         ADD CONSTRAINT turns_feedback_chk
         CHECK (feedback IS NULL OR feedback IN ('up', 'down'));
 END $$;
+
+-- ---------------------------------------------------------------------------
+-- (g) Threads Run Lease & Turn Redaction Support (Phase A3)
+-- ---------------------------------------------------------------------------
+
+ALTER TABLE copilot.threads
+    ADD COLUMN IF NOT EXISTS run_lease_until TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_copilot_threads_tenant_actor_updated
+    ON copilot.threads (company_id, actor_id, updated_at DESC);
+
+ALTER TABLE copilot.turns
+    ALTER COLUMN user_message DROP NOT NULL;

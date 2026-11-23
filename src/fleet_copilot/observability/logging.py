@@ -20,6 +20,8 @@ DISALLOWED_LOG_KEYS: frozenset[str] = frozenset(
         "answer",
         "user_message",
         "assistant_response",
+        "response_json",
+        "chart_data",
         "message_text",
         "text",
         "content",

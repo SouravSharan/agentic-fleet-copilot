@@ -66,6 +66,7 @@ def make_load_context_node(deps: Any) -> Any:
             ctx.actor_id,
             user_message,
             status="running",
+            input_hash=input_hash,
         )
         deps.audit_svc.record_standalone(
             ctx,

@@ -146,6 +146,106 @@ class PgCopilotStore:
                 (thread_id, company_id, actor_id, title),
             )
 
+    def get_thread(self, company_id: str, thread_id: str) -> dict[str, Any] | None:
+        """Fetch one thread row inside `company_id` (RLS-scoped)."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                """
+                SELECT thread_id, company_id, actor_id, title, status,
+                       run_lease_until, created_at, updated_at
+                FROM copilot.threads
+                WHERE thread_id = %s
+                """,
+                (thread_id,),
+            )
+            row = cur.fetchone()
+            return dict(row) if row is not None else None
+
+    def list_threads(
+        self,
+        company_id: str,
+        *,
+        actor_id: str,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        """List conversation threads owned by `(company_id, actor_id)`."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                """
+                SELECT thread_id, company_id, actor_id, title, status,
+                       run_lease_until, created_at, updated_at
+                FROM copilot.threads
+                WHERE actor_id = %s
+                ORDER BY updated_at DESC, thread_id ASC
+                LIMIT %s
+                """,
+                (actor_id, limit),
+            )
+            return [dict(r) for r in cur.fetchall()]
+
+    def list_turns(self, company_id: str, thread_id: str) -> list[dict[str, Any]]:
+        """Return ordered turn trace rows for `thread_id` within `company_id`."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                """
+                SELECT turn_id, trace_id, actor_id, user_message, plan_json, tool_calls_json,
+                       evidence_json, assistant_response, status, model_id, prompt_version,
+                       input_hash, answer_hash, input_tokens, output_tokens, cost_usd_est,
+                       latency_ms, created_at, completed_at, redacted_at
+                FROM copilot.turns
+                WHERE thread_id = %s
+                ORDER BY created_at ASC
+                """,
+                (thread_id,),
+            )
+            return [dict(r) for r in cur.fetchall()]
+
+    def acquire_run_lease(
+        self,
+        company_id: str,
+        thread_id: str,
+        actor_id: str,
+        *,
+        now: datetime,
+        lease_until: datetime,
+    ) -> bool:
+        """Atomically acquire a compare-and-set run lease on `(thread_id, actor_id)`."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                """
+                UPDATE copilot.threads
+                SET run_lease_until = %s,
+                    updated_at = %s
+                WHERE thread_id = %s
+                  AND actor_id = %s
+                  AND (run_lease_until IS NULL OR run_lease_until <= %s)
+                RETURNING thread_id
+                """,
+                (lease_until, now, thread_id, actor_id, now),
+            )
+            return cur.fetchone() is not None
+
+    def release_run_lease(
+        self,
+        company_id: str,
+        thread_id: str,
+        actor_id: str,
+        *,
+        lease_until: datetime,
+    ) -> None:
+        """Release a run lease only if it still matches the caller's `lease_until` token."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                """
+                UPDATE copilot.threads
+                SET run_lease_until = NULL
+                WHERE thread_id = %s
+                  AND actor_id = %s
+                  AND run_lease_until = %s
+                """,
+                (thread_id, actor_id, lease_until),
+            )
+
     def ensure_turn(
         self,
         company_id: str,
@@ -156,18 +256,29 @@ class PgCopilotStore:
         user_message: str,
         *,
         status: str = "running",
+        input_hash: str | None = None,
     ) -> None:
         """Create a turn row idempotently inside `company_id`."""
         with self._db.copilot_cursor(company_id) as cur:
             cur.execute(
                 """
                 INSERT INTO copilot.turns (
-                    turn_id, trace_id, thread_id, company_id, actor_id, user_message, status
+                    turn_id, trace_id, thread_id, company_id, actor_id,
+                    user_message, status, input_hash
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (turn_id) DO NOTHING
                 """,
-                (turn_id, trace_id, thread_id, company_id, actor_id, user_message, status),
+                (
+                    turn_id,
+                    trace_id,
+                    thread_id,
+                    company_id,
+                    actor_id,
+                    user_message,
+                    status,
+                    input_hash,
+                ),
             )
 
     def update_turn(
