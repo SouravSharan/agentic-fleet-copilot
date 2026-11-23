@@ -42,14 +42,14 @@ def _seed_pending(db: DatabaseManager, suffix: str) -> str:
                 proposed_by_actor_id, tool_name, target_type, target_id,
                 arguments_json, rationale, evidence_snapshot_ids,
                 evidence_as_of, policy_check_json, status,
-                dedupe_key, approval_hash, policy_version, idempotency_key
+                dedupe_key, approval_hash, policy_version, expires_at, idempotency_key
             )
             VALUES (
                 %s, %s, %s, %s, 'acme-001',
                 'acme_admin', 'open_remediation_ticket', 'device', '1LYSSFD074BB',
                 '{"check_id": "screen_lock"}'::jsonb, 'rationale', '["snap_1"]'::jsonb,
                 '2026-06-12T10:00:00Z', '{"decision": "allow"}'::jsonb, 'pending_approval',
-                %s, 'hash_123', 'pol_1', %s
+                %s, 'hash_123', 'pol_1', '2026-11-26T12:00:00Z', %s
             )
             """,
             (prop_id, f"batch-{suffix}", tid, turn_id, f"ticket:1LYSSFD074BB:{suffix}", prop_id),
@@ -57,28 +57,131 @@ def _seed_pending(db: DatabaseManager, suffix: str) -> str:
     return prop_id
 
 
-def test_frozen_columns_cannot_be_mutated(
+def test_frozen_columns_including_expires_at_cannot_be_mutated(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
     prop_id = _seed_pending(db_manager, "frozen")
     mutations = [
-        ("arguments_json = '{\"tampered\": true}'::jsonb", ()),
-        ("rationale = 'tampered'", ()),
-        ("target_id = 'OTHER_DEV'", ()),
-        ("tool_name = 'flag_device_for_replacement'", ()),
-        ("dedupe_key = 'tampered'", ()),
-        ("approval_hash = 'tampered'", ()),
-        ("policy_version = 'tampered'", ()),
-        ("idempotency_key = 'tampered'", ()),
-        ("evidence_snapshot_ids = '[\"fake\"]'::jsonb", ()),
+        "arguments_json = '{\"tampered\": true}'::jsonb",
+        "rationale = 'tampered'",
+        "target_id = 'OTHER_DEV'",
+        "tool_name = 'flag_device_for_replacement'",
+        "dedupe_key = 'tampered'",
+        "approval_hash = 'tampered'",
+        "policy_version = 'tampered'",
+        "idempotency_key = 'tampered'",
+        "evidence_snapshot_ids = '[\"fake\"]'::jsonb",
+        "expires_at = '2099-01-01T00:00:00Z'",
     ]
-    for set_clause, _ in mutations:
+    for set_clause in mutations:
         with pytest.raises(errors.InsufficientPrivilege, match="immutable"):
             with db_manager.copilot_cursor("acme-001") as cur:
                 cur.execute(
                     f"UPDATE copilot.action_proposals SET {set_clause} WHERE proposal_id = %s",
                     (prop_id,),
+                )
+
+
+def test_transition_gated_columns_and_terminal_row_immutability(
+    db_manager: DatabaseManager,
+    reset_copilot_state: None,
+) -> None:
+    p = _seed_pending(db_manager, "gated")
+
+    # Changing decision or outcome fields without the required status transition raises
+    for set_clause in (
+        "reviewer_id = 'spoofed_reviewer'",
+        "review_note = 'spoofed note'",
+        "decided_via = 'api'",
+        "reviewed_at = '2026-11-23T12:00:00Z'",
+        "executing_since = '2026-11-23T12:00:00Z'",
+        'external_receipt_json = \'{"receipt_id": "fake"}\'::jsonb',
+        "executed_at = '2026-11-23T12:00:00Z'",
+    ):
+        with pytest.raises(errors.InsufficientPrivilege):
+            with db_manager.copilot_cursor("acme-001") as cur:
+                cur.execute(
+                    f"UPDATE copilot.action_proposals SET {set_clause} WHERE proposal_id = %s",
+                    (p,),
+                )
+
+    # Legal pending -> approved WITH decision fields
+    with db_manager.copilot_cursor("acme-001") as cur:
+        cur.execute(
+            """
+            UPDATE copilot.action_proposals
+            SET status = 'approved',
+                reviewer_id = 'acme_admin',
+                decided_via = 'queue',
+                reviewed_at = '2026-11-23T12:00:00Z',
+                review_note = 'LGTM'
+            WHERE proposal_id = %s
+            """,
+            (p,),
+        )
+
+    # Mutating reviewer fields once already approved (status unchanged) raises
+    with pytest.raises(errors.InsufficientPrivilege):
+        with db_manager.copilot_cursor("acme-001") as cur:
+            cur.execute(
+                """
+                UPDATE copilot.action_proposals
+                SET reviewer_id = 'other_admin'
+                WHERE proposal_id = %s
+                """,
+                (p,),
+            )
+
+    # Legal approved -> executing WITH executing_since
+    with db_manager.copilot_cursor("acme-001") as cur:
+        cur.execute(
+            """
+            UPDATE copilot.action_proposals
+            SET status = 'executing', executing_since = '2026-11-23T12:01:00Z'
+            WHERE proposal_id = %s
+            """,
+            (p,),
+        )
+
+    # Mutating external_receipt_json while staying executing raises
+    with pytest.raises(errors.InsufficientPrivilege):
+        with db_manager.copilot_cursor("acme-001") as cur:
+            cur.execute(
+                """
+                UPDATE copilot.action_proposals
+                SET external_receipt_json = '{"fake": true}'::jsonb
+                WHERE proposal_id = %s
+                """,
+                (p,),
+            )
+
+    # Legal executing -> executed WITH receipt & executed_at
+    with db_manager.copilot_cursor("acme-001") as cur:
+        cur.execute(
+            """
+            UPDATE copilot.action_proposals
+            SET status = 'executed',
+                external_receipt_json = '{"receipt_id": "TKT-abc"}'::jsonb,
+                executed_at = '2026-11-23T12:01:05Z'
+            WHERE proposal_id = %s
+            """,
+            (p,),
+        )
+
+    # ANY update on a terminal row raises (even updating review_note, receipt, or no-op status)
+    for set_clause in (
+        "review_note = 'rewritten'",
+        "reviewer_id = 'rewritten'",
+        'external_receipt_json = \'{"receipt_id": "TKT-fake"}\'::jsonb',
+        "executed_at = '2026-11-24T00:00:00Z'",
+        "status = 'executed'",
+    ):
+        with pytest.raises(errors.InsufficientPrivilege, match="terminal"):
+            with db_manager.copilot_cursor("acme-001") as cur:
+                cur.execute(
+                    f"UPDATE copilot.action_proposals SET {set_clause} WHERE proposal_id = %s",
+                    (p,),
                 )
 
 
@@ -102,7 +205,6 @@ def test_illegal_and_legal_status_transitions(
             "UPDATE copilot.action_proposals SET status = 'approved' WHERE proposal_id = %s",
             (p1,),
         )
-    # Illegal from approved: revert to pending or skip executing -> executed
     for bad_status in ("pending_approval", "rejected", "expired", "executed"):
         with pytest.raises(errors.RaiseException):
             with db_manager.copilot_cursor("acme-001") as cur:
@@ -120,38 +222,22 @@ def test_illegal_and_legal_status_transitions(
             "UPDATE copilot.action_proposals SET status = 'executed' WHERE proposal_id = %s",
             (p1,),
         )
-    # Terminal state cannot transition anywhere
-    with pytest.raises(errors.RaiseException):
-        with db_manager.copilot_cursor("acme-001") as cur:
-            cur.execute(
-                "UPDATE copilot.action_proposals SET status = 'approved' WHERE proposal_id = %s",
-                (p1,),
-            )
 
-    # Legal path 2: pending -> rejected (terminal)
-    p2 = _seed_pending(db_manager, "rej")
-    with db_manager.copilot_cursor("acme-001") as cur:
-        cur.execute(
-            "UPDATE copilot.action_proposals SET status = 'rejected' WHERE proposal_id = %s",
-            (p2,),
-        )
-    with pytest.raises(errors.RaiseException):
+    # Terminal states (rejected, expired) block any further UPDATE
+    for suffix, terminal_status in (("rej", "rejected"), ("exp", "expired")):
+        pid = _seed_pending(db_manager, suffix)
         with db_manager.copilot_cursor("acme-001") as cur:
             cur.execute(
-                "UPDATE copilot.action_proposals SET status = 'approved' WHERE proposal_id = %s",
-                (p2,),
+                "UPDATE copilot.action_proposals SET status = %s WHERE proposal_id = %s",
+                (terminal_status, pid),
             )
-
-    # Legal path 3: pending -> expired (terminal)
-    p3 = _seed_pending(db_manager, "exp")
-    with db_manager.copilot_cursor("acme-001") as cur:
-        cur.execute(
-            "UPDATE copilot.action_proposals SET status = 'expired' WHERE proposal_id = %s",
-            (p3,),
-        )
-    with pytest.raises(errors.RaiseException):
-        with db_manager.copilot_cursor("acme-001") as cur:
-            cur.execute(
-                "UPDATE copilot.action_proposals SET status = 'approved' WHERE proposal_id = %s",
-                (p3,),
-            )
+        with pytest.raises(errors.InsufficientPrivilege, match="terminal"):
+            with db_manager.copilot_cursor("acme-001") as cur:
+                cur.execute(
+                    """
+                    UPDATE copilot.action_proposals
+                    SET status = 'approved'
+                    WHERE proposal_id = %s
+                    """,
+                    (pid,),
+                )

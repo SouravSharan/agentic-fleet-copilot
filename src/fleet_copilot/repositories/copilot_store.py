@@ -435,6 +435,26 @@ class PgCopilotStore:
         row = cur.fetchone()
         return dict(row) if row is not None else None
 
+    def record_execution_attempt(
+        self,
+        cur: psycopg.Cursor[DictRow],
+        *,
+        proposal_id: str,
+    ) -> dict[str, Any] | None:
+        """Increment `attempts` by 1 while keeping a proposal in `executing` status."""
+        cur.execute(
+            """
+            UPDATE copilot.action_proposals
+            SET attempts = attempts + 1
+            WHERE proposal_id = %s
+              AND status = 'executing'
+            RETURNING *
+            """,
+            (proposal_id,),
+        )
+        row = cur.fetchone()
+        return dict(row) if row is not None else None
+
     def mark_terminal(
         self,
         cur: psycopg.Cursor[DictRow],
@@ -443,27 +463,50 @@ class PgCopilotStore:
         status: str,
         external_receipt_json: dict[str, Any] | None = None,
         executed_at: datetime | None = None,
+        increment_attempts: bool = False,
     ) -> dict[str, Any] | None:
         """Transition an approved/executing proposal to executed, failed, or stale_blocked."""
-        cur.execute(
-            """
-            UPDATE copilot.action_proposals
-            SET status = %s,
-                external_receipt_json = %s::jsonb,
-                executed_at = %s
-            WHERE proposal_id = %s
-              AND status IN ('approved', 'executing')
-            RETURNING *
-            """,
-            (
-                status,
-                json.dumps(external_receipt_json, sort_keys=True)
-                if external_receipt_json is not None
-                else None,
-                executed_at,
-                proposal_id,
-            ),
-        )
+        if increment_attempts:
+            cur.execute(
+                """
+                UPDATE copilot.action_proposals
+                SET status = %s,
+                    attempts = attempts + 1,
+                    external_receipt_json = %s::jsonb,
+                    executed_at = %s
+                WHERE proposal_id = %s
+                  AND status = 'executing'
+                RETURNING *
+                """,
+                (
+                    status,
+                    json.dumps(external_receipt_json, sort_keys=True)
+                    if external_receipt_json is not None
+                    else None,
+                    executed_at,
+                    proposal_id,
+                ),
+            )
+        else:
+            cur.execute(
+                """
+                UPDATE copilot.action_proposals
+                SET status = %s,
+                    external_receipt_json = %s::jsonb,
+                    executed_at = %s
+                WHERE proposal_id = %s
+                  AND status IN ('approved', 'executing')
+                RETURNING *
+                """,
+                (
+                    status,
+                    json.dumps(external_receipt_json, sort_keys=True)
+                    if external_receipt_json is not None
+                    else None,
+                    executed_at,
+                    proposal_id,
+                ),
+            )
         row = cur.fetchone()
         return dict(row) if row is not None else None
 

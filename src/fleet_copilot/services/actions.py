@@ -121,6 +121,9 @@ def _cooldown_delta(tool_name: str, policies: dict[str, PolicyValue]) -> timedel
     return timedelta(days=7)
 
 
+MAX_EXECUTION_ATTEMPTS = 3
+
+
 class ActionService:
     """Enforces deterministic prechecks, HITL staging/CAS decisions, TOCTOU recheck, and audit."""
 
@@ -779,7 +782,60 @@ class ActionService:
             )
 
         # Step 4: Call external adapter OUTSIDE a DB transaction with idempotency_key
-        receipt = self._adapter.execute(proposal, idem_key)
+        try:
+            receipt = self._adapter.execute(proposal, idem_key)
+        except Exception as exc:  # noqa: BLE001
+            next_attempt = int(proposal.get("attempts") or 0) + 1
+            if next_attempt < MAX_EXECUTION_ATTEMPTS:
+                with self._db.copilot_cursor(ctx.company_id) as cur:
+                    updated_attempt = self._store.record_execution_attempt(
+                        cur,
+                        proposal_id=proposal_id,
+                    )
+                return ExecuteResult(
+                    status="executing",
+                    proposal=updated_attempt,
+                    receipt=None,
+                    message=(
+                        f"adapter_exception (attempt {next_attempt}/{MAX_EXECUTION_ATTEMPTS}): "
+                        f"{type(exc).__name__}"
+                    ),
+                )
+
+            err_payload = {
+                "error_code": "adapter_exception",
+                "exception_type": type(exc).__name__,
+                "attempts": next_attempt,
+            }
+            err_hash = _sha256_hex(json.dumps(err_payload, sort_keys=True, separators=(",", ":")))
+            with self._db.copilot_cursor(ctx.company_id) as cur:
+                failed_row = self._store.mark_terminal(
+                    cur,
+                    proposal_id=proposal_id,
+                    status="failed",
+                    external_receipt_json=err_payload,
+                    executed_at=clock.now(),
+                    increment_attempts=True,
+                )
+                self._audit.record(
+                    cur,
+                    ctx,
+                    "action_failed",
+                    ActionFailedPayload(
+                        proposal_id=proposal_id,
+                        adapter=self._adapter.name,
+                        error_code="adapter_exception",
+                        receipt_hash=err_hash,
+                    ),
+                    thread_id=thread_id,
+                )
+            return ExecuteResult(
+                status="failed",
+                proposal=failed_row,
+                receipt=None,
+                message=f"adapter_exception after {next_attempt} attempts: {type(exc).__name__}",
+            )
+
         receipt_dict = receipt.model_dump(mode="json")
         receipt_hash = _sha256_hex(json.dumps(receipt_dict, sort_keys=True, separators=(",", ":")))
 

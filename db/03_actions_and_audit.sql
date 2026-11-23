@@ -33,7 +33,8 @@ ALTER TABLE copilot.action_proposals
     ADD COLUMN IF NOT EXISTS expires_at      TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS decided_via     TEXT,
     ADD COLUMN IF NOT EXISTS idempotency_key TEXT,
-    ADD COLUMN IF NOT EXISTS executing_since TIMESTAMPTZ;
+    ADD COLUMN IF NOT EXISTS executing_since TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS attempts        INTEGER NOT NULL DEFAULT 0;
 
 DO $$
 BEGIN
@@ -67,7 +68,13 @@ LANGUAGE plpgsql
 SET search_path = pg_catalog, copilot
 AS $$
 BEGIN
-    -- Freeze all 19 payload/identity columns after insertion
+    -- 1. Terminal rows are completely immutable: any UPDATE on a terminal status raises.
+    IF OLD.status IN ('rejected', 'expired', 'executed', 'failed', 'stale_blocked') THEN
+        RAISE EXCEPTION 'terminal proposal rows are immutable (status=%)', OLD.status
+            USING ERRCODE = '42501';
+    END IF;
+
+    -- 2. Freeze all 20 payload/identity/TTL columns after insertion.
     IF NEW.proposal_id           IS DISTINCT FROM OLD.proposal_id
     OR NEW.batch_id              IS DISTINCT FROM OLD.batch_id
     OR NEW.thread_id             IS DISTINCT FROM OLD.thread_id
@@ -85,6 +92,7 @@ BEGIN
     OR NEW.dedupe_key            IS DISTINCT FROM OLD.dedupe_key
     OR NEW.approval_hash         IS DISTINCT FROM OLD.approval_hash
     OR NEW.policy_version        IS DISTINCT FROM OLD.policy_version
+    OR NEW.expires_at            IS DISTINCT FROM OLD.expires_at
     OR NEW.idempotency_key       IS DISTINCT FROM OLD.idempotency_key
     OR NEW.created_at            IS DISTINCT FROM OLD.created_at
     THEN
@@ -92,7 +100,7 @@ BEGIN
             USING ERRCODE = '42501';
     END IF;
 
-    -- Enforce legal status transitions per 05 §3.6
+    -- 3. Enforce legal status transitions per 05 §3.6.
     IF NEW.status IS DISTINCT FROM OLD.status THEN
         IF OLD.status = 'pending_approval'
            AND NEW.status IN ('approved', 'rejected', 'expired') THEN
@@ -106,6 +114,39 @@ BEGIN
         ELSE
             RAISE EXCEPTION 'illegal proposal status transition: % -> %', OLD.status, NEW.status
                 USING ERRCODE = 'P0001';
+        END IF;
+    END IF;
+
+    -- 4. Transition-gate mutable decision, execution, and outcome fields.
+    IF (NEW.reviewer_id IS DISTINCT FROM OLD.reviewer_id
+        OR NEW.reviewed_at IS DISTINCT FROM OLD.reviewed_at
+        OR NEW.review_note IS DISTINCT FROM OLD.review_note
+        OR NEW.decided_via IS DISTINCT FROM OLD.decided_via)
+       AND NOT (OLD.status = 'pending_approval' AND NEW.status IN ('approved', 'rejected')) THEN
+        RAISE EXCEPTION 'reviewer fields may only change on pending_approval -> approved|rejected'
+            USING ERRCODE = '42501';
+    END IF;
+
+    IF NEW.executing_since IS DISTINCT FROM OLD.executing_since
+       AND NOT (OLD.status = 'approved' AND NEW.status = 'executing') THEN
+        RAISE EXCEPTION 'executing_since may only change on approved -> executing'
+            USING ERRCODE = '42501';
+    END IF;
+
+    IF (NEW.external_receipt_json IS DISTINCT FROM OLD.external_receipt_json
+        OR NEW.executed_at IS DISTINCT FROM OLD.executed_at)
+       AND NOT (
+           NEW.status IS DISTINCT FROM OLD.status
+           AND NEW.status IN ('executed', 'failed', 'stale_blocked')
+       ) THEN
+        RAISE EXCEPTION 'outcome fields may only change when transitioning into a terminal status'
+            USING ERRCODE = '42501';
+    END IF;
+
+    IF NEW.attempts IS DISTINCT FROM OLD.attempts THEN
+        IF NOT (OLD.status = 'executing' AND NEW.attempts = OLD.attempts + 1) THEN
+            RAISE EXCEPTION 'attempts may only increment by 1 while executing'
+                USING ERRCODE = '42501';
         END IF;
     END IF;
 

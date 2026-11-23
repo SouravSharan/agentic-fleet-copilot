@@ -22,6 +22,7 @@ class MockAdapter:
 
     def __init__(self) -> None:
         self._fail_next: str | None = None
+        self._raise_queue: list[Exception] = []
         self._receipts: dict[str, Receipt] = {}
         self.call_count: int = 0
 
@@ -31,12 +32,19 @@ class MockAdapter:
         return set(self._receipts.keys())
 
     def fail_next(self, error_code: str = "adapter_unavailable") -> None:
-        """Instruct the next `execute()` call to fail with `error_code`."""
+        """Instruct the next `execute()` call to return a failed receipt with `error_code`."""
         self._fail_next = error_code
+
+    def raise_next(self, exc: Exception, count: int = 1) -> None:
+        """Instruct the next `count` `execute()` calls to raise `exc`."""
+        for _ in range(count):
+            self._raise_queue.append(exc)
 
     def execute(self, proposal: dict[str, Any], idempotency_key: str) -> Receipt:
         """Execute a proposal idempotently, returning a deterministic prefixed receipt ID."""
         self.call_count += 1
+        if self._raise_queue:
+            raise self._raise_queue.pop(0)
         if self._fail_next is not None:
             err = self._fail_next
             self._fail_next = None
