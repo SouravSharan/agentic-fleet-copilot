@@ -230,9 +230,7 @@ def _fetch_latest_payload(
     require_compliance: bool = False,
 ) -> dict[str, Any]:
     where_extra = (
-        "AND jsonb_typeof(payload->'compliance_results') = 'array'"
-        if require_compliance
-        else ""
+        "AND jsonb_typeof(payload->'compliance_results') = 'array'" if require_compliance else ""
     )
     with psycopg.connect(dsn, prepare_threshold=None) as conn:
         with conn.cursor() as cur:
@@ -346,9 +344,7 @@ def scenario(
         late["collected_at"] = "2026-05-01T00:00:00Z"
         late["agent_version"] = "41.0.0-late"
         late_id = ingest_snapshot(late, writer_url=dsn)
-        typer.echo(
-            f"[duplicate-and-late] Ingested retry={retry_id} and backdated={late_id}"
-        )
+        typer.echo(f"[duplicate-and-late] Ingested retry={retry_id} and backdated={late_id}")
 
     elif name == "toctou-resolved":
         latest = _fetch_latest_payload(dsn, company_id, device_id, require_compliance=True)
@@ -362,9 +358,7 @@ def scenario(
         latest = _fetch_latest_payload(dsn, company_id, device_id, require_compliance=True)
         alert = json.loads(json.dumps(latest))
         alert["collected_at"] = "2026-06-13T12:05:00Z"
-        _upsert_compliance_check(
-            alert, check_id="disk_encryption", status="fail", severity="high"
-        )
+        _upsert_compliance_check(alert, check_id="disk_encryption", status="fail", severity="high")
         snap_id = ingest_snapshot(alert, writer_url=dsn)
         typer.echo(f"[high-sev-alert] Ingested disk_encryption=fail(high) snapshot_id={snap_id}")
 
