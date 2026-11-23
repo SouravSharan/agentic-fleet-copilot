@@ -10,14 +10,17 @@ Security invariants:
   compatibility with transaction-level connection pooling.
 """
 
+import os
 import re
 import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Self, cast
+from typing import Any, Self, cast
 
 import psycopg
+from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.checkpoint.serde.encrypted import EncryptedSerializer
 from psycopg.rows import DictRow, dict_row
 from psycopg_pool import ConnectionPool
 
@@ -62,6 +65,7 @@ class DatabaseManager:
         self._lock = threading.Lock()
         self._telemetry_pool: ConnectionPool[psycopg.Connection[DictRow]] | None = None
         self._copilot_pool: ConnectionPool[psycopg.Connection[DictRow]] | None = None
+        self._checkpoint_pool: ConnectionPool[psycopg.Connection[DictRow]] | None = None
 
     def __enter__(self) -> Self:
         return self
@@ -124,6 +128,27 @@ class DatabaseManager:
                     cur.execute("SELECT copilot.lock_tenant(%s)", (tenant,))
                     yield cur
 
+    def checkpoint_pool(self) -> ConnectionPool[psycopg.Connection[DictRow]]:
+        """Dedicated `copilot_app` pool (`autocommit=True`, `dict_row`) for `PostgresSaver`."""
+        with self._lock:
+            if self._checkpoint_pool is None:
+                self._checkpoint_pool = cast(
+                    ConnectionPool[psycopg.Connection[DictRow]],
+                    ConnectionPool(
+                        conninfo=self._copilot_dsn,
+                        min_size=self._min_size,
+                        max_size=self._max_size,
+                        open=True,
+                        check=ConnectionPool.check_connection,
+                        kwargs={
+                            "autocommit": True,
+                            "prepare_threshold": None,
+                            "row_factory": dict_row,
+                        },
+                    ),
+                )
+            return self._checkpoint_pool
+
     def close(self) -> None:
         """Close open connection pools cleanly."""
         with self._lock:
@@ -133,6 +158,35 @@ class DatabaseManager:
             if self._copilot_pool is not None:
                 self._copilot_pool.close()
                 self._copilot_pool = None
+            if self._checkpoint_pool is not None:
+                self._checkpoint_pool.close()
+                self._checkpoint_pool = None
+
+
+def make_checkpointer(
+    db: DatabaseManager | None = None,
+    *,
+    settings: Settings | None = None,
+) -> PostgresSaver:
+    """Create a sync `PostgresSaver` with `EncryptedSerializer.from_pycryptodome_aes()`."""
+    cfg = settings if settings is not None else get_settings()
+    aes_secret = cfg.langgraph_aes_key
+    key_str = (
+        aes_secret.get_secret_value() if aes_secret is not None else os.getenv("LANGGRAPH_AES_KEY")
+    )
+    if not key_str or not key_str.strip():
+        raise ValueError(
+            "LANGGRAPH_AES_KEY must be configured (16, 24, or 32 UTF-8 bytes, e.g. 32 hex chars)"
+        )
+    key_bytes = key_str.strip().encode("utf-8")
+    if len(key_bytes) not in (16, 24, 32):
+        raise ValueError(
+            f"LANGGRAPH_AES_KEY must encode to 16, 24, or 32 bytes (got {len(key_bytes)})"
+        )
+    serde = EncryptedSerializer.from_pycryptodome_aes(key=key_bytes)
+    manager = db if db is not None else get_db_manager()
+    pool = cast(Any, manager.checkpoint_pool())
+    return PostgresSaver(pool, serde=serde)
 
 
 @lru_cache(maxsize=1)

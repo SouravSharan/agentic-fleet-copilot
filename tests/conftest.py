@@ -20,9 +20,11 @@ if str(_REPO_ROOT) not in sys.path:
 _BASE_SETTINGS = Settings()
 for _env_key, _env_val in test_database_overrides(_BASE_SETTINGS).items():
     os.environ[_env_key] = _env_val
-# Provide a deterministic fallback PSEUDONYM_KEY for test environments without a local .env.
+# Provide deterministic fallback test keys for CI / environments without a local .env.
 if not os.environ.get("PSEUDONYM_KEY"):
     os.environ["PSEUDONYM_KEY"] = "0123456789abcdef" * 4
+if not os.environ.get("LANGGRAPH_AES_KEY"):
+    os.environ["LANGGRAPH_AES_KEY"] = "0123456789abcdef" * 2
 get_settings.cache_clear()
 
 _DIR_MARKERS = {
@@ -61,8 +63,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         if rel_parts and rel_parts[0] in _DIR_MARKERS:
             marker_name = _DIR_MARKERS[rel_parts[0]]
             item.add_marker(getattr(pytest.mark, marker_name))
-            if marker_name in _DB_MARKERS:
-                db_items.append(item)
+
+        if any(item.get_closest_marker(m) is not None for m in _DB_MARKERS):
+            db_items.append(item)
 
     if not db_items:
         return

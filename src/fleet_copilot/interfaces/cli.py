@@ -1,0 +1,220 @@
+"""Typer + Rich CLI (`fleet-copilot`) for chat, ask, proposals, decide, and audit (05 §7)."""
+
+from __future__ import annotations
+
+import uuid
+from typing import Annotated, Any, Literal
+
+import typer
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.table import Table
+
+from fleet_copilot.clock import SystemClock
+from fleet_copilot.config import get_settings
+from fleet_copilot.db.postgres import get_db_manager
+from fleet_copilot.domain.models import TenantContext
+from fleet_copilot.observability.logging import configure_logging
+from fleet_copilot.repositories.copilot_store import PgCopilotStore
+from fleet_copilot.repositories.telemetry import PgTelemetryRepository
+from fleet_copilot.services.actions import ActionService
+from fleet_copilot.services.adapters.mock import MockAdapter
+from fleet_copilot.services.audit import AuditService
+from fleet_copilot.services.copilot import CopilotService
+from fleet_copilot.services.policy import PolicyService
+
+app = typer.Typer(add_completion=False, help="Fleet Copilot CLI (chat, ask, proposals, audit).")
+console = Console()
+
+
+def _ctx(
+    company: str, role: Literal["viewer", "it_admin"], actor: str | None = None
+) -> TenantContext:
+    return TenantContext(
+        company_id=company,
+        actor_id=actor or f"{company}_{role}",
+        role=role,
+        trace_id=f"cli-{uuid.uuid4().hex[:12]}",
+    )
+
+
+def _render_trace(resp: Any) -> None:
+    if resp.plan is not None:
+        steps = ", ".join(s.tool_hint or s.goal for s in resp.plan.steps) or "none"
+        console.print(f"[dim]Plan ({resp.plan.intent}): {steps}[/dim]")
+    if resp.tool_trace:
+        parts = [f"{t['tool_name']}({t['duration_ms']}ms)" for t in resp.tool_trace]
+        console.print(f"[dim]Tools: {' -> '.join(parts)}[/dim]")
+
+
+def _build_copilot(cassette: str | None = None) -> CopilotService:
+    settings = get_settings()
+    configure_logging(log_format=settings.log_format, log_level=settings.log_level)
+    db = get_db_manager()
+    return CopilotService(db=db, settings=settings, cassette_name=cassette)
+
+
+@app.command()
+def ask(
+    question: Annotated[str, typer.Argument(help="Question or instruction for Fleet Copilot.")],
+    company: Annotated[str, typer.Option(help="Tenant company_id.")] = "acme-001",
+    role: Annotated[str, typer.Option(help="Actor role: viewer | it_admin.")] = "it_admin",
+    thread_id: Annotated[str | None, typer.Option(help="Optional existing thread_id.")] = None,
+    cassette: Annotated[str | None, typer.Option(help="Optional replay cassette name.")] = None,
+) -> None:
+    """Run a single turn and print the structured `TurnResponse` JSON."""
+    if role not in ("viewer", "it_admin"):
+        raise typer.BadParameter("role must be 'viewer' or 'it_admin'")
+    svc = _build_copilot(cassette=cassette)
+    resp = svc.run_turn(_ctx(company, role), thread_id, question)  # type: ignore[arg-type]
+    typer.echo(resp.model_dump_json(indent=2))
+
+
+@app.command()
+def chat(
+    company: Annotated[str, typer.Option(help="Tenant company_id.")] = "acme-001",
+    role: Annotated[str, typer.Option(help="Actor role: viewer | it_admin.")] = "it_admin",
+    cassette: Annotated[str | None, typer.Option(help="Optional replay cassette name.")] = None,
+) -> None:
+    """Interactive REPL with dimmed plan/tool trace, footnotes, and a/r/d approval prompts."""
+    if role not in ("viewer", "it_admin"):
+        raise typer.BadParameter("role must be 'viewer' or 'it_admin'")
+    svc = _build_copilot(cassette=cassette)
+    thread_id = f"{company}:{uuid.uuid4().hex[:12]}"
+    console.print(
+        Panel.fit(
+            f"Fleet Copilot · tenant=[bold]{company}[/bold] · role=[bold]{role}[/bold]\n"
+            f"thread=[dim]{thread_id}[/dim] · type 'exit' to quit"
+        )
+    )
+
+    while True:
+        try:
+            user_input = console.input("[bold cyan]you>[/bold cyan] ").strip()
+        except (EOFError, KeyboardInterrupt):
+            break
+        if not user_input or user_input.lower() in ("exit", "quit"):
+            break
+
+        ctx = _ctx(company, role)  # type: ignore[arg-type]
+        resp = svc.run_turn(ctx, thread_id, user_input)
+        _render_trace(resp)
+        console.print(Markdown(resp.answer_markdown))
+        console.print(
+            f"[dim]as_of={resp.telemetry_as_of} · tokens={resp.usage.total_tokens} · "
+            f"est=${resp.usage.cost_usd_est:.4f} · trace={resp.trace_id}[/dim]"
+        )
+
+        if resp.status == "waiting_approval" and resp.approval_packet:
+            decisions: dict[str, str] = {}
+            for prop in resp.approval_packet.get("proposals", []):
+                console.print(
+                    Panel(
+                        f"Tool: [bold]{prop['tool_name']}[/bold]\n"
+                        f"Target: {prop['target_type']} `{prop['target_id']}`\n"
+                        f"Args: {prop['arguments']}\n"
+                        f"Rationale: {prop['rationale']}",
+                        title=f"Approval required: {prop['proposal_id']}",
+                    )
+                )
+                choice = (
+                    console.input("[bold yellow][a]pprove / [r]eject / [d]efer>[/bold yellow] ")
+                    .strip()
+                    .lower()
+                )
+                decisions[prop["proposal_id"]] = (
+                    "approve"
+                    if choice.startswith("a")
+                    else ("reject" if choice.startswith("r") else "defer")
+                )
+            resumed = svc.resume(_ctx(company, role), thread_id, decisions)  # type: ignore[arg-type]
+            console.print(Markdown(resumed.answer_markdown))
+
+
+@app.command()
+def proposals(
+    company: Annotated[str, typer.Option(help="Tenant company_id.")] = "acme-001",
+    status: Annotated[str | None, typer.Option(help="Optional status filter.")] = None,
+    device_id: Annotated[str | None, typer.Option(help="Optional device_id filter.")] = None,
+) -> None:
+    """List action proposals for `company`."""
+    db = get_db_manager()
+    store = PgCopilotStore(db)
+    svc = ActionService(
+        db, PgTelemetryRepository(db), store, PolicyService(store), AuditService(db), MockAdapter()
+    )
+    rows = svc.list(_ctx(company, "it_admin"), status=status, device_id=device_id)
+    table = Table(title=f"Action Proposals ({company})")
+    for col in ("proposal_id", "tool_name", "target_id", "status", "reviewer_id"):
+        table.add_column(col)
+    for r in rows:
+        table.add_row(
+            str(r["proposal_id"]),
+            str(r["tool_name"]),
+            str(r["target_id"]),
+            str(r["status"]),
+            str(r.get("reviewer_id") or "-"),
+        )
+    console.print(table)
+
+
+@app.command()
+def decide(
+    proposal_id: Annotated[str, typer.Argument(help="Proposal ID to decide.")],
+    decision: Annotated[str, typer.Argument(help="approve | reject | defer")],
+    company: Annotated[str, typer.Option(help="Tenant company_id.")] = "acme-001",
+    note: Annotated[str | None, typer.Option(help="Optional review note.")] = None,
+) -> None:
+    """Decide a pending proposal directly in the queue (and execute if approved)."""
+    if decision not in ("approve", "reject", "defer"):
+        raise typer.BadParameter("decision must be approve, reject, or defer")
+    db = get_db_manager()
+    store = PgCopilotStore(db)
+    svc = ActionService(
+        db, PgTelemetryRepository(db), store, PolicyService(store), AuditService(db), MockAdapter()
+    )
+    ctx = _ctx(company, "it_admin")
+    clock = SystemClock()
+    res = svc.decide(ctx, proposal_id, decision, "queue", clock, note=note)  # type: ignore[arg-type]
+    typer.echo(f"Decision: applied={res.applied} message={res.message}")
+    if res.applied and decision == "approve":
+        exe = svc.execute(ctx, proposal_id, clock)
+        typer.echo(f"Execute: status={exe.status} message={exe.message}")
+
+
+@app.command()
+def audit(
+    company: Annotated[str, typer.Option(help="Tenant company_id.")] = "acme-001",
+    trace: Annotated[str | None, typer.Option("--trace", help="Filter by trace_id.")] = None,
+    verify: Annotated[bool, typer.Option("--verify", help="Verify hash chain integrity.")] = False,
+) -> None:
+    """Display tenant audit events and optionally verify the tamper-evident hash chain."""
+    db = get_db_manager()
+    audit_svc = AuditService(db)
+    ctx = _ctx(company, "it_admin")
+    if verify:
+        res = audit_svc.verify(ctx)
+        typer.echo(
+            f"Audit chain ({company}): ok={res['ok']} "
+            f"rows_checked={res['rows_checked']} first_bad_seq={res['first_bad_seq']}"
+        )
+        if not res["ok"]:
+            raise typer.Exit(code=1)
+    rows = audit_svc.list(ctx, trace_id=trace, limit=50)
+    table = Table(title=f"Audit Log ({company})")
+    for col in ("seq_no", "event_type", "actor_id", "trace_id", "payload_json"):
+        table.add_column(col)
+    for r in rows:
+        table.add_row(
+            str(r["seq_no"]),
+            str(r["event_type"]),
+            str(r["actor_id"]),
+            str(r["trace_id"]),
+            str(r["payload_json"]),
+        )
+    console.print(table)
+
+
+if __name__ == "__main__":
+    app()

@@ -1,4 +1,8 @@
-.PHONY: setup up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck
+.PHONY: setup up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck chat eval-verify-cases eval eval-live
+
+COMPANY ?= acme-001
+ROLE ?= it_admin
+MODEL ?= google_genai:gemini-3.8-flash
 
 setup:
 	uv sync --all-groups
@@ -10,7 +14,7 @@ down:
 	docker compose down
 
 migrate:
-	uv run python scripts/db_setup.py
+	uv run python -m fleet_copilot.ops.migrate
 
 seed:
 	uv run python scripts/telemetry_sim.py seed
@@ -19,7 +23,7 @@ reset:
 	uv run python scripts/telemetry_sim.py reset
 
 test-db:
-	uv run python scripts/db_setup.py --test-db
+	uv run python -m fleet_copilot.ops.migrate --test-db
 
 test:
 	uv run pytest -m "not live"
@@ -38,3 +42,15 @@ fmt:
 
 typecheck:
 	uv run pyright
+
+chat:
+	uv run fleet-copilot chat --company $(COMPANY) --role $(ROLE)
+
+eval-verify-cases:
+	uv run pytest tests/eval -m eval
+
+eval:
+	LLM_REPLAY_MODE=replay uv run python -m evals.run --mode replay
+
+eval-live:
+	LLM_REPLAY_MODE=record uv run python -m evals.run --mode live --model $(MODEL) --repeats 3

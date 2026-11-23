@@ -4,13 +4,23 @@ version = "0.1.0"
 description = "Agentic AI Fleet Copilot over device telemetry"
 requires-python = ">=3.12"
 dependencies = [
+    "langchain>=1,<2",
+    "langchain-core>=0.3",
+    "langchain-google-genai>=2.1",
+    "langgraph>=1.2.24,<1.3",
+    "langgraph-checkpoint-postgres>=3.2,<4",
     "numpy>=2.0",
     "psycopg[binary,pool]>=3.2",
+    "pycryptodome>=3.20",
     "pydantic>=2.10",
     "pydantic-settings>=2.7",
     "pyyaml>=6.0",
+    "rich>=13.9",
     "typer>=0.15",
 ]
+
+[project.scripts]
+fleet-copilot = "fleet_copilot.interfaces.cli:app"
 
 [dependency-groups]
 dev = [

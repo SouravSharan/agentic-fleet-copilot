@@ -1,0 +1,57 @@
+# Runtime configuration for the Fleet Copilot LangGraph agent.
+# Gemini 3 rules: temperature left unset (default sampling), thinking_level tuned per node.
+
+nodes:
+  planner:
+    thinking_level: low
+    max_output_tokens: 1024
+    max_retries: 2
+    timeout_s: 45
+  investigator:
+    thinking_level: low
+    max_output_tokens: 2048
+    max_retries: 2
+    timeout_s: 45
+  synthesizer:
+    thinking_level: low
+    max_output_tokens: 2048
+    max_retries: 2
+    timeout_s: 45
+
+budgets:
+  max_tool_calls: 8
+  max_replans: 1
+  max_verifier_retries: 1
+  recursion_limit: 30
+  turn_timeout_s: 60
+  per_tool_caps:
+    default: 4
+    get_fleet_overview: 2
+    find_devices: 4
+    query_compliance: 4
+    get_device_details: 6
+    get_employee_devices: 4
+    analyze_fleet_trends: 3
+    list_action_proposals: 3
+    create_upgrade_order: 4
+    open_remediation_ticket: 4
+    flag_device_for_replacement: 4
+    notify_employee: 4
+
+# Approximate USD per 1M tokens (paid tier; update if provider pricing changes).
+pricing_usd_per_1m:
+  gemini-3.8-flash:
+    input: 0.30
+    output: 2.50
+  gemini-3.5-flash-lite:
+    input: 0.10
+    output: 0.40
+  gemini-3.5-flash:
+    input: 0.30
+    output: 2.50
+  gemini-2.5-flash:
+    input: 0.30
+    output: 2.50
+  default:
+    input: 0.30
+    output: 2.50
