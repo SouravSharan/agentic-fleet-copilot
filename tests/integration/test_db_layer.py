@@ -150,7 +150,7 @@ def test_telemetry_rls_fail_closed_when_tenant_unset_or_empty(
         with pytest.raises(errors.InvalidParameterValue):
             with conn.transaction():
                 with conn.cursor() as cur:
-                    cur.execute("SELECT telemetry.lock_tenant('')")
+                    cur.execute("SELECT telemetry.lock_tenant('', now(), '')")
 
 
 def test_copilot_rls_fail_closed_when_tenant_unset_or_empty(
@@ -188,7 +188,7 @@ def test_copilot_rls_fail_closed_when_tenant_unset_or_empty(
         with pytest.raises(errors.InvalidParameterValue):
             with conn.transaction():
                 with conn.cursor() as cur:
-                    cur.execute("SELECT copilot.lock_tenant('')")
+                    cur.execute("SELECT copilot.lock_tenant('', now(), '')")
 
 
 def test_telemetry_rls_tenant_isolation_and_counts(db_manager: DatabaseManager) -> None:

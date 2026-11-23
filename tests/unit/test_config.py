@@ -63,6 +63,7 @@ def test_env_example_has_dev_keys_and_demo_vars() -> None:
 
     assert len(kv.get("LANGGRAPH_AES_KEY", "").encode("utf-8")) == 32
     assert len(kv.get("PSEUDONYM_KEY", "")) == 64
+    assert len(kv.get("TENANT_LOCK_KEY", "")) == 64
     assert float(kv.get("DEMO_SPEND_CAP_USD", "0")) > 0
     assert int(kv.get("DEMO_TURNS_PER_ACCESS_CODE", "0")) > 0
 
@@ -70,11 +71,13 @@ def test_env_example_has_dev_keys_and_demo_vars() -> None:
         _env_file=None,
         langgraph_aes_key=kv["LANGGRAPH_AES_KEY"],  # type: ignore[arg-type]
         pseudonym_key=kv["PSEUDONYM_KEY"],  # type: ignore[arg-type]
+        tenant_lock_key=kv["TENANT_LOCK_KEY"],  # type: ignore[arg-type]
         demo_spend_cap_usd=float(kv["DEMO_SPEND_CAP_USD"]),
         demo_turns_per_access_code=int(kv["DEMO_TURNS_PER_ACCESS_CODE"]),
     )
     assert parsed.langgraph_aes_key is not None
     assert parsed.pseudonym_key is not None
+    assert parsed.tenant_lock_key is not None
     assert parsed.demo_spend_cap_usd == 3.0
     assert parsed.demo_turns_per_access_code == 25
 

@@ -1,20 +1,23 @@
-"""Tenant-scoped PostgreSQL connection managers with write-once tenant locking.
+"""Tenant-scoped PostgreSQL connection managers with credentialed write-once tenant locking.
 
 Security invariants:
 - `telemetry_ro_cursor` connects exclusively via the read-only `telemetry_ro` role,
   opens a `READ ONLY` transaction, and binds `app.current_tenant` once via
-  `telemetry.lock_tenant(%s)`.
+  `telemetry.lock_tenant(%s, %s, %s)` authenticated with HMAC-SHA256 (`TENANT_LOCK_KEY`).
 - `copilot_cursor` connects exclusively via `copilot_app` (search_path = copilot)
-  and binds `app.current_tenant` once via `copilot.lock_tenant(%s)`.
+  and binds `app.current_tenant` once via `copilot.lock_tenant(%s, %s, %s)`.
 - `prepare_threshold=None` disables server-side prepared statements for clean
   compatibility with transaction-level connection pooling.
 """
 
+import hashlib
+import hmac
 import os
 import re
 import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from functools import lru_cache
 from typing import Any, Self, cast
 
@@ -47,9 +50,37 @@ def validate_company_id(company_id: str) -> str:
     return company_id
 
 
+def _resolve_tenant_lock_key(explicit_key: str | None = None) -> str:
+    """Resolve `TENANT_LOCK_KEY` from explicit arg, Settings, or env; raise if missing."""
+    raw = explicit_key
+    if raw is None:
+        secret = get_settings().tenant_lock_key
+        raw = secret.get_secret_value() if secret is not None else os.getenv("TENANT_LOCK_KEY")
+    if not raw or not raw.strip():
+        raise ValueError(
+            "TENANT_LOCK_KEY must be configured (64 hex chars, e.g. openssl rand -hex 32)"
+        )
+    return raw.strip()
+
+
+def sign_tenant_lock(
+    company_id: str,
+    *,
+    key: str | None = None,
+    issued_at: datetime | None = None,
+) -> tuple[datetime, str]:
+    """Compute `(issued_at, hex_hmac_sha256)` authenticating `lock_tenant(company_id, ...)`."""
+    ts = (issued_at or datetime.now(UTC)).astimezone(UTC)
+    key_str = _resolve_tenant_lock_key(key)
+    msg = f"{company_id}|{ts.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}".encode()
+    mac = hmac.new(key_str.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+    return ts, mac
+
+
 def _reset_pooled_connection(conn: psycopg.Connection[Any]) -> None:
-    """Run `RESET ALL` when returning a pooled connection to clear any session-level GUCs."""
+    """Run `RESET ALL` and clear session advisory locks when returning a pooled connection."""
     conn.execute("RESET ALL")
+    conn.execute("SELECT pg_advisory_unlock_all()")
     if not conn.autocommit:
         conn.commit()
 
@@ -64,11 +95,13 @@ class DatabaseManager:
         *,
         min_size: int = 1,
         max_size: int = 10,
+        tenant_lock_key: str | None = None,
     ) -> None:
         self._telemetry_ro_dsn = telemetry_ro_dsn
         self._copilot_dsn = copilot_dsn
         self._min_size = min_size
         self._max_size = max_size
+        self._tenant_lock_key = tenant_lock_key
         self._lock = threading.Lock()
         self._telemetry_pool: ConnectionPool[psycopg.Connection[DictRow]] | None = None
         self._copilot_pool: ConnectionPool[psycopg.Connection[DictRow]] | None = None
@@ -118,23 +151,31 @@ class DatabaseManager:
     def telemetry_ro_cursor(self, company_id: str) -> Iterator[psycopg.Cursor[DictRow]]:
         """Yield a read-only cursor scoped to a single verified tenant via Postgres RLS."""
         tenant = validate_company_id(company_id)
+        issued_at, mac = sign_tenant_lock(tenant, key=self._tenant_lock_key)
         pool = self._get_telemetry_pool()
         with pool.connection() as conn:
             with conn.transaction():
                 with conn.cursor() as cur:
                     cur.execute("SET TRANSACTION READ ONLY")
-                    cur.execute("SELECT telemetry.lock_tenant(%s)", (tenant,))
+                    cur.execute(
+                        "SELECT telemetry.lock_tenant(%s, %s, %s)",
+                        (tenant, issued_at, mac),
+                    )
                     yield cur
 
     @contextmanager
     def copilot_cursor(self, company_id: str) -> Iterator[psycopg.Cursor[DictRow]]:
         """Yield a read/write cursor on `copilot` scoped to a single verified tenant."""
         tenant = validate_company_id(company_id)
+        issued_at, mac = sign_tenant_lock(tenant, key=self._tenant_lock_key)
         pool = self._get_copilot_pool()
         with pool.connection() as conn:
             with conn.transaction():
                 with conn.cursor() as cur:
-                    cur.execute("SELECT copilot.lock_tenant(%s)", (tenant,))
+                    cur.execute(
+                        "SELECT copilot.lock_tenant(%s, %s, %s)",
+                        (tenant, issued_at, mac),
+                    )
                     yield cur
 
     def checkpoint_pool(self) -> ConnectionPool[psycopg.Connection[DictRow]]:

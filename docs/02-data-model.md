@@ -17,9 +17,13 @@ All Python connections use thread-safe `psycopg_pool.ConnectionPool` (`prepare_t
 
 ### Tenant Lock
 
-Both schemas expose a `SECURITY DEFINER` function (`telemetry.lock_tenant(text)` for `telemetry_ro`, `copilot.lock_tenant(text)` for `copilot_app`) with `SET search_path = pg_catalog`. Each function validates `company_id` against the strict identifier regex (rejecting empty values and `*`), checks `app.tenant_locked`, and sets `app.current_tenant` and `app.tenant_locked = 'true'` transaction-locally (`is_local = true`). Calling `lock_tenant` a second time in the same transaction raises an error.
+Both schemas expose a credentialed `SECURITY DEFINER` function (`telemetry.lock_tenant(text, timestamptz, text)` for `telemetry_ro`, `copilot.lock_tenant(text, timestamptz, text)` for `copilot_app`) with `SET search_path = pg_catalog, <schema>`. Each function:
+1. Validates `company_id` against the strict identifier regex (rejecting empty values and `*`).
+2. Refuses to re-lock if this backend already holds a transaction-level advisory lock (`K = 73110` telemetry / `73120` copilot) — a marker that `RESET` cannot clear.
+3. Verifies a 30 s freshness window and an HMAC-SHA256 MAC (`TENANT_LOCK_KEY`, synced by `ops.migrate` into owner-only `*.tenant_lock_secret` tables via `pgcrypto`). `DatabaseManager` computes the MAC using bound parameters (never interpolated, never logged).
+4. Acquires `pg_advisory_xact_lock_shared(<K>, hashtext(company_id))` and writes `app.current_tenant`, `app.tenant_sig`, and `app.tenant_locked` transaction-locally.
 
-`db/90_hardening.sql` revokes `EXECUTE` on `pg_catalog.set_config(text, text, boolean)` from `PUBLIC` and all three application roles (when run as a superuser). Without this revoke, a buggy query or SQL tool could call `set_config('app.current_tenant', '<other>', true)` mid-transaction and switch tenants despite RLS; with the revoke in place, the tenant binding is write-once per transaction.
+Every RLS policy filters on `(SELECT <schema>.current_tenant())`, a `SECURITY DEFINER STABLE` verifier that returns the tenant only when both the transaction-scoped SHA-256 signature and the matching advisory lock are present (else `NULL`, fail closed). Pooled connections run `RESET ALL` and `pg_advisory_unlock_all()` on return, and `db/90_hardening.sql` revokes `EXECUTE` on `pg_catalog.set_config(text, text, boolean)` from all application roles. Even arbitrary SQL running as an app role cannot read another tenant without the application-held key (`TENANT_LOCK_KEY`).
 
 ---
 

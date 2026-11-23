@@ -66,6 +66,33 @@ def _seed_hardware_catalog(conn: psycopg.Connection) -> int:
     return len(models)
 
 
+def _sync_tenant_lock_key(conn: psycopg.Connection, key: str | None) -> None:
+    """Upsert `TENANT_LOCK_KEY` into both owner-only secret tables via bound params."""
+    if not key or not key.strip():
+        raise ValueError(
+            "TENANT_LOCK_KEY must be configured before running migrations "
+            "(generate 64 hex chars with: openssl rand -hex 32)"
+        )
+    secret = key.strip()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO telemetry.tenant_lock_secret (id, secret)
+            VALUES (1, %s)
+            ON CONFLICT (id) DO UPDATE SET secret = EXCLUDED.secret
+            """,
+            (secret,),
+        )
+        cur.execute(
+            """
+            INSERT INTO copilot.tenant_lock_secret (id, secret)
+            VALUES (1, %s)
+            ON CONFLICT (id) DO UPDATE SET secret = EXCLUDED.secret
+            """,
+            (secret,),
+        )
+
+
 def _sync_role_passwords(conn: psycopg.Connection, passwords: dict[str, str]) -> None:
     """Apply non-empty role passwords safely via psycopg SQL composition."""
     with conn.cursor() as cur:
@@ -112,6 +139,11 @@ def run_setup(admin_url: str | None = None) -> None:
             )
             for path in migration_files[1:]:
                 conn.execute(cast(LiteralString, path.read_text(encoding="utf-8")))
+            lock_secret = settings.tenant_lock_key
+            _sync_tenant_lock_key(
+                conn,
+                lock_secret.get_secret_value() if lock_secret is not None else None,
+            )
             catalog_count = _seed_hardware_catalog(conn)
 
         with conn.transaction():

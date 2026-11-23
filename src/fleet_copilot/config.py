@@ -64,6 +64,7 @@ class Settings(BaseSettings):
     # Actions kill-switch & privacy keys
     actions_enabled: bool = Field(default=True)
     pseudonym_key: SecretStr | None = Field(default=None)
+    tenant_lock_key: SecretStr | None = Field(default=None)
     langgraph_aes_key: SecretStr | None = Field(default=None)
 
     # Ops logging
@@ -90,6 +91,7 @@ class Settings(BaseSettings):
     @field_validator(
         "gemini_api_key",
         "pseudonym_key",
+        "tenant_lock_key",
         "langgraph_aes_key",
         "session_signing_key",
         "demo_admin_token",

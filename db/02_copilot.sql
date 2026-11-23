@@ -343,6 +343,19 @@ BEGIN
         RETURN NULL;
     END IF;
 
+    IF NOT EXISTS (
+        SELECT 1
+          FROM pg_catalog.pg_locks
+         WHERE locktype = 'advisory'
+           AND pid = pg_backend_pid()
+           AND classid = 73120::oid
+           AND objid = hashtext(v_tenant)::oid
+           AND objsubid = 2
+           AND granted
+    ) THEN
+        RETURN NULL;
+    END IF;
+
     SELECT secret INTO v_secret FROM copilot.tenant_lock_secret WHERE id = 1;
     IF v_secret IS NULL THEN
         RETURN NULL;
@@ -498,24 +511,65 @@ CREATE POLICY tool_configs_tenant_delete ON copilot.tenant_tool_configs
 -- Tenant Lock Function (write-once signed transaction-local tenant binding)
 -- ---------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION copilot.lock_tenant(p_company_id TEXT)
+DROP FUNCTION IF EXISTS copilot.lock_tenant(TEXT);
+
+CREATE OR REPLACE FUNCTION copilot.lock_tenant(
+    p_company_id TEXT,
+    p_issued_at  TIMESTAMPTZ,
+    p_mac        TEXT
+)
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, copilot
 AS $$
 DECLARE
-    v_secret TEXT;
-    v_sig    TEXT;
+    v_secret       TEXT;
+    v_msg          TEXT;
+    v_expected_mac TEXT;
+    v_sig          TEXT;
 BEGIN
     IF p_company_id IS NULL OR p_company_id !~ '^[A-Za-z0-9][A-Za-z0-9_-]{1,63}$' THEN
         RAISE EXCEPTION 'invalid company_id' USING ERRCODE = '22023';
     END IF;
-    IF current_setting('app.tenant_locked', true) = 'true'
-       OR NULLIF(current_setting('app.tenant_sig', true), '') IS NOT NULL THEN
+
+    IF EXISTS (
+        SELECT 1
+          FROM pg_catalog.pg_locks
+         WHERE locktype = 'advisory'
+           AND pid = pg_backend_pid()
+           AND classid = 73120::oid
+           AND granted
+    ) OR current_setting('app.tenant_locked', true) = 'true' THEN
         RAISE EXCEPTION 'tenant already locked in this transaction' USING ERRCODE = '42501';
     END IF;
+
+    IF p_issued_at IS NULL
+       OR abs(extract(epoch FROM (clock_timestamp() - p_issued_at))) > 30 THEN
+        RAISE EXCEPTION 'stale or missing tenant lock timestamp' USING ERRCODE = '42501';
+    END IF;
+
+    IF p_mac IS NULL OR p_mac = '' THEN
+        RAISE EXCEPTION 'missing tenant lock MAC' USING ERRCODE = '42501';
+    END IF;
+
     SELECT secret INTO v_secret FROM copilot.tenant_lock_secret WHERE id = 1;
+    IF v_secret IS NULL OR v_secret = '' THEN
+        RAISE EXCEPTION 'tenant lock key not configured' USING ERRCODE = '42501';
+    END IF;
+
+    v_msg := p_company_id || '|'
+        || to_char(p_issued_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"');
+    v_expected_mac := encode(
+        public.hmac(convert_to(v_msg, 'UTF8'), convert_to(v_secret, 'UTF8'), 'sha256'),
+        'hex'
+    );
+    IF p_mac <> v_expected_mac THEN
+        RAISE EXCEPTION 'invalid tenant lock MAC' USING ERRCODE = '42501';
+    END IF;
+
+    PERFORM pg_advisory_xact_lock_shared(73120, hashtext(p_company_id));
+
     v_sig := encode(
         pg_catalog.sha256(
             convert_to(
@@ -533,9 +587,9 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION copilot.lock_tenant(TEXT)
+REVOKE ALL ON FUNCTION copilot.lock_tenant(TEXT, TIMESTAMPTZ, TEXT)
     FROM PUBLIC, telemetry_ro, telemetry_writer, copilot_app;
-GRANT EXECUTE ON FUNCTION copilot.lock_tenant(TEXT) TO copilot_app;
+GRANT EXECUTE ON FUNCTION copilot.lock_tenant(TEXT, TIMESTAMPTZ, TEXT) TO copilot_app;
 
 -- ---------------------------------------------------------------------------
 -- Least-Privilege Grants (scoped to our 6 tables; never touches LangGraph checkpoints)

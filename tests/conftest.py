@@ -21,9 +21,11 @@ _BASE_SETTINGS = Settings()
 for _env_key, _env_val in test_database_overrides(_BASE_SETTINGS).items():
     os.environ[_env_key] = _env_val
 # Provide deterministic fallback test keys for CI / environments without a local .env.
-if not os.environ.get("PSEUDONYM_KEY"):
+if _BASE_SETTINGS.pseudonym_key is None and not os.environ.get("PSEUDONYM_KEY"):
     os.environ["PSEUDONYM_KEY"] = "0123456789abcdef" * 4
-if not os.environ.get("LANGGRAPH_AES_KEY"):
+if _BASE_SETTINGS.tenant_lock_key is None and not os.environ.get("TENANT_LOCK_KEY"):
+    os.environ["TENANT_LOCK_KEY"] = "fedcba9876543210" * 4
+if _BASE_SETTINGS.langgraph_aes_key is None and not os.environ.get("LANGGRAPH_AES_KEY"):
     os.environ["LANGGRAPH_AES_KEY"] = "0123456789abcdef" * 2
 get_settings.cache_clear()
 

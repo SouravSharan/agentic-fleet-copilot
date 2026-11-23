@@ -144,6 +144,8 @@ $$;
 -- Signed Tenant Context (owner-only secret + SECURITY DEFINER STABLE verifier)
 -- ---------------------------------------------------------------------------
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS telemetry.tenant_lock_secret (
     id     SMALLINT PRIMARY KEY CHECK (id = 1),
     secret TEXT NOT NULL
@@ -174,6 +176,19 @@ BEGIN
     v_tenant := NULLIF(current_setting('app.current_tenant', true), '');
     v_sig := NULLIF(current_setting('app.tenant_sig', true), '');
     IF v_tenant IS NULL OR v_sig IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+          FROM pg_catalog.pg_locks
+         WHERE locktype = 'advisory'
+           AND pid = pg_backend_pid()
+           AND classid = 73110::oid
+           AND objid = hashtext(v_tenant)::oid
+           AND objsubid = 2
+           AND granted
+    ) THEN
         RETURN NULL;
     END IF;
 
@@ -485,27 +500,68 @@ CROSS JOIN LATERAL jsonb_array_elements(
 WHERE jsonb_typeof(net) = 'object';
 
 -- ---------------------------------------------------------------------------
--- Tenant Lock Function (write-once transaction-local tenant binding)
+-- Tenant Lock Function (credentialed HMAC-SHA256 + advisory xact lock marker)
 -- ---------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION telemetry.lock_tenant(p_company_id TEXT)
+DROP FUNCTION IF EXISTS telemetry.lock_tenant(TEXT);
+
+CREATE OR REPLACE FUNCTION telemetry.lock_tenant(
+    p_company_id TEXT,
+    p_issued_at  TIMESTAMPTZ,
+    p_mac        TEXT
+)
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, telemetry
 AS $$
 DECLARE
-    v_secret TEXT;
-    v_sig    TEXT;
+    v_secret       TEXT;
+    v_msg          TEXT;
+    v_expected_mac TEXT;
+    v_sig          TEXT;
 BEGIN
     IF p_company_id IS NULL OR p_company_id !~ '^[A-Za-z0-9][A-Za-z0-9_-]{1,63}$' THEN
         RAISE EXCEPTION 'invalid company_id' USING ERRCODE = '22023';
     END IF;
-    IF current_setting('app.tenant_locked', true) = 'true'
-       OR NULLIF(current_setting('app.tenant_sig', true), '') IS NOT NULL THEN
+
+    IF EXISTS (
+        SELECT 1
+          FROM pg_catalog.pg_locks
+         WHERE locktype = 'advisory'
+           AND pid = pg_backend_pid()
+           AND classid = 73110::oid
+           AND granted
+    ) OR current_setting('app.tenant_locked', true) = 'true' THEN
         RAISE EXCEPTION 'tenant already locked in this transaction' USING ERRCODE = '42501';
     END IF;
+
+    IF p_issued_at IS NULL
+       OR abs(extract(epoch FROM (clock_timestamp() - p_issued_at))) > 30 THEN
+        RAISE EXCEPTION 'stale or missing tenant lock timestamp' USING ERRCODE = '42501';
+    END IF;
+
+    IF p_mac IS NULL OR p_mac = '' THEN
+        RAISE EXCEPTION 'missing tenant lock MAC' USING ERRCODE = '42501';
+    END IF;
+
     SELECT secret INTO v_secret FROM telemetry.tenant_lock_secret WHERE id = 1;
+    IF v_secret IS NULL OR v_secret = '' THEN
+        RAISE EXCEPTION 'tenant lock key not configured' USING ERRCODE = '42501';
+    END IF;
+
+    v_msg := p_company_id || '|'
+        || to_char(p_issued_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"');
+    v_expected_mac := encode(
+        public.hmac(convert_to(v_msg, 'UTF8'), convert_to(v_secret, 'UTF8'), 'sha256'),
+        'hex'
+    );
+    IF p_mac <> v_expected_mac THEN
+        RAISE EXCEPTION 'invalid tenant lock MAC' USING ERRCODE = '42501';
+    END IF;
+
+    PERFORM pg_advisory_xact_lock_shared(73110, hashtext(p_company_id));
+
     v_sig := encode(
         pg_catalog.sha256(
             convert_to(
@@ -523,9 +579,9 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION telemetry.lock_tenant(TEXT)
+REVOKE ALL ON FUNCTION telemetry.lock_tenant(TEXT, TIMESTAMPTZ, TEXT)
     FROM PUBLIC, telemetry_ro, telemetry_writer, copilot_app;
-GRANT EXECUTE ON FUNCTION telemetry.lock_tenant(TEXT) TO telemetry_ro;
+GRANT EXECUTE ON FUNCTION telemetry.lock_tenant(TEXT, TIMESTAMPTZ, TEXT) TO telemetry_ro;
 
 -- ---------------------------------------------------------------------------
 -- Least-Privilege Grants

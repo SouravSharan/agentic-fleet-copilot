@@ -30,6 +30,7 @@ DISALLOWED_LOG_KEYS: frozenset[str] = frozenset(
         "api_key",
         "gemini_api_key",
         "pseudonym_key",
+        "tenant_lock_key",
         "langgraph_aes_key",
         "password",
         "secret",

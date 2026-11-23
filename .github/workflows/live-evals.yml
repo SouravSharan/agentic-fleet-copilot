@@ -39,6 +39,7 @@ jobs:
       COPILOT_APP_PASSWORD: copilot_app
       TEST_DB_NAME: fleet_copilot_test
       PSEUDONYM_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      TENANT_LOCK_KEY: fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210
       LANGGRAPH_AES_KEY: 0123456789abcdef0123456789abcdef
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       LLM_REPLAY_MODE: record
