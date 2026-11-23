@@ -141,6 +141,70 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Signed Tenant Context (owner-only secret + SECURITY DEFINER STABLE verifier)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS telemetry.tenant_lock_secret (
+    id     SMALLINT PRIMARY KEY CHECK (id = 1),
+    secret TEXT NOT NULL
+);
+
+INSERT INTO telemetry.tenant_lock_secret (id, secret)
+VALUES (1, gen_random_uuid()::text || gen_random_uuid()::text)
+ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE telemetry.tenant_lock_secret ENABLE ROW LEVEL SECURITY;
+ALTER TABLE telemetry.tenant_lock_secret NO FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON telemetry.tenant_lock_secret
+    FROM PUBLIC, telemetry_ro, telemetry_writer, copilot_app;
+
+CREATE OR REPLACE FUNCTION telemetry.current_tenant()
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+SET search_path = pg_catalog, telemetry
+AS $$
+DECLARE
+    v_tenant   TEXT;
+    v_sig      TEXT;
+    v_secret   TEXT;
+    v_expected TEXT;
+BEGIN
+    v_tenant := NULLIF(current_setting('app.current_tenant', true), '');
+    v_sig := NULLIF(current_setting('app.tenant_sig', true), '');
+    IF v_tenant IS NULL OR v_sig IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    SELECT secret INTO v_secret FROM telemetry.tenant_lock_secret WHERE id = 1;
+    IF v_secret IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    v_expected := encode(
+        pg_catalog.sha256(
+            convert_to(
+                v_secret || '|' || v_tenant || '|'
+                || pg_backend_pid()::text || '|'
+                || to_char(transaction_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+                'UTF8'
+            )
+        ),
+        'hex'
+    );
+    IF v_sig = v_expected THEN
+        RETURN v_tenant;
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION telemetry.current_tenant()
+    FROM PUBLIC, telemetry_ro, telemetry_writer, copilot_app;
+GRANT EXECUTE ON FUNCTION telemetry.current_tenant() TO telemetry_ro;
+
+-- ---------------------------------------------------------------------------
 -- Fail-Closed Row-Level Security (enforced on all non-owner NOBYPASSRLS roles)
 -- ---------------------------------------------------------------------------
 
@@ -154,10 +218,7 @@ DROP POLICY IF EXISTS companies_tenant_isolation_ro ON telemetry.companies;
 CREATE POLICY companies_tenant_isolation_ro ON telemetry.companies
     FOR SELECT
     TO telemetry_ro
-    USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
-    );
+    USING (company_id = (SELECT telemetry.current_tenant()));
 
 DROP POLICY IF EXISTS companies_writer_all ON telemetry.companies;
 CREATE POLICY companies_writer_all ON telemetry.companies
@@ -170,10 +231,7 @@ DROP POLICY IF EXISTS snapshots_tenant_isolation_ro ON telemetry.telemetry_snaps
 CREATE POLICY snapshots_tenant_isolation_ro ON telemetry.telemetry_snapshots
     FOR SELECT
     TO telemetry_ro
-    USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
-    );
+    USING (company_id = (SELECT telemetry.current_tenant()));
 
 DROP POLICY IF EXISTS snapshots_writer_all ON telemetry.telemetry_snapshots;
 CREATE POLICY snapshots_writer_all ON telemetry.telemetry_snapshots
@@ -434,16 +492,33 @@ CREATE OR REPLACE FUNCTION telemetry.lock_tenant(p_company_id TEXT)
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog
+SET search_path = pg_catalog, telemetry
 AS $$
+DECLARE
+    v_secret TEXT;
+    v_sig    TEXT;
 BEGIN
     IF p_company_id IS NULL OR p_company_id !~ '^[A-Za-z0-9][A-Za-z0-9_-]{1,63}$' THEN
         RAISE EXCEPTION 'invalid company_id' USING ERRCODE = '22023';
     END IF;
-    IF current_setting('app.tenant_locked', true) = 'true' THEN
+    IF current_setting('app.tenant_locked', true) = 'true'
+       OR NULLIF(current_setting('app.tenant_sig', true), '') IS NOT NULL THEN
         RAISE EXCEPTION 'tenant already locked in this transaction' USING ERRCODE = '42501';
     END IF;
+    SELECT secret INTO v_secret FROM telemetry.tenant_lock_secret WHERE id = 1;
+    v_sig := encode(
+        pg_catalog.sha256(
+            convert_to(
+                v_secret || '|' || p_company_id || '|'
+                || pg_backend_pid()::text || '|'
+                || to_char(transaction_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+                'UTF8'
+            )
+        ),
+        'hex'
+    );
     PERFORM set_config('app.current_tenant', p_company_id, true);
+    PERFORM set_config('app.tenant_sig', v_sig, true);
     PERFORM set_config('app.tenant_locked', 'true', true);
 END;
 $$;

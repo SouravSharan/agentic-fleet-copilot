@@ -307,7 +307,71 @@ END
 $$;
 
 -- ---------------------------------------------------------------------------
--- Row-Level Security (Fail-Closed on app.current_tenant for non-owner copilot_app)
+-- Signed Tenant Context (owner-only secret + SECURITY DEFINER STABLE verifier)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS copilot.tenant_lock_secret (
+    id     SMALLINT PRIMARY KEY CHECK (id = 1),
+    secret TEXT NOT NULL
+);
+
+INSERT INTO copilot.tenant_lock_secret (id, secret)
+VALUES (1, gen_random_uuid()::text || gen_random_uuid()::text)
+ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE copilot.tenant_lock_secret ENABLE ROW LEVEL SECURITY;
+ALTER TABLE copilot.tenant_lock_secret NO FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON copilot.tenant_lock_secret
+    FROM PUBLIC, telemetry_ro, telemetry_writer, copilot_app;
+
+CREATE OR REPLACE FUNCTION copilot.current_tenant()
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+SET search_path = pg_catalog, copilot
+AS $$
+DECLARE
+    v_tenant   TEXT;
+    v_sig      TEXT;
+    v_secret   TEXT;
+    v_expected TEXT;
+BEGIN
+    v_tenant := NULLIF(current_setting('app.current_tenant', true), '');
+    v_sig := NULLIF(current_setting('app.tenant_sig', true), '');
+    IF v_tenant IS NULL OR v_sig IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    SELECT secret INTO v_secret FROM copilot.tenant_lock_secret WHERE id = 1;
+    IF v_secret IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    v_expected := encode(
+        pg_catalog.sha256(
+            convert_to(
+                v_secret || '|' || v_tenant || '|'
+                || pg_backend_pid()::text || '|'
+                || to_char(transaction_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+                'UTF8'
+            )
+        ),
+        'hex'
+    );
+    IF v_sig = v_expected THEN
+        RETURN v_tenant;
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION copilot.current_tenant()
+    FROM PUBLIC, telemetry_ro, telemetry_writer, copilot_app;
+GRANT EXECUTE ON FUNCTION copilot.current_tenant() TO copilot_app;
+
+-- ---------------------------------------------------------------------------
+-- Row-Level Security (Fail-Closed on signed copilot.current_tenant() for copilot_app)
 -- ---------------------------------------------------------------------------
 
 ALTER TABLE copilot.threads             ENABLE ROW LEVEL SECURITY;
@@ -327,71 +391,46 @@ ALTER TABLE copilot.audit_logs          NO FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS threads_tenant_isolation ON copilot.threads;
 CREATE POLICY threads_tenant_isolation ON copilot.threads
     FOR ALL TO copilot_app
-    USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
-    )
-    WITH CHECK (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
-    );
+    USING (company_id = (SELECT copilot.current_tenant()))
+    WITH CHECK (company_id = (SELECT copilot.current_tenant()));
 
 DROP POLICY IF EXISTS turns_tenant_isolation ON copilot.turns;
 CREATE POLICY turns_tenant_isolation ON copilot.turns
     FOR ALL TO copilot_app
-    USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
-    )
-    WITH CHECK (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
-    );
+    USING (company_id = (SELECT copilot.current_tenant()))
+    WITH CHECK (company_id = (SELECT copilot.current_tenant()));
 
 DROP POLICY IF EXISTS proposals_tenant_isolation ON copilot.action_proposals;
 CREATE POLICY proposals_tenant_isolation ON copilot.action_proposals
     FOR ALL TO copilot_app
-    USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
-    )
-    WITH CHECK (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
-    );
+    USING (company_id = (SELECT copilot.current_tenant()))
+    WITH CHECK (company_id = (SELECT copilot.current_tenant()));
 
 -- Append-only audit_logs (SELECT + INSERT only; UPDATE/DELETE/TRUNCATE also revoked below)
 DROP POLICY IF EXISTS audit_tenant_select ON copilot.audit_logs;
 CREATE POLICY audit_tenant_select ON copilot.audit_logs
     FOR SELECT TO copilot_app
-    USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
-    );
+    USING (company_id = (SELECT copilot.current_tenant()));
 
 DROP POLICY IF EXISTS audit_tenant_insert ON copilot.audit_logs;
 CREATE POLICY audit_tenant_insert ON copilot.audit_logs
     FOR INSERT TO copilot_app
-    WITH CHECK (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
-    );
+    WITH CHECK (company_id = (SELECT copilot.current_tenant()));
 
 -- Policies & tool configs: tenants read global '*' + own rows, write ONLY own non-global rows.
 DROP POLICY IF EXISTS policies_tenant_select ON copilot.tenant_policies;
 CREATE POLICY policies_tenant_select ON copilot.tenant_policies
     FOR SELECT TO copilot_app
     USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id IN ('*', current_setting('app.current_tenant', true))
+        (SELECT copilot.current_tenant()) IS NOT NULL
+        AND company_id IN ('*', (SELECT copilot.current_tenant()))
     );
 
 DROP POLICY IF EXISTS policies_tenant_insert ON copilot.tenant_policies;
 CREATE POLICY policies_tenant_insert ON copilot.tenant_policies
     FOR INSERT TO copilot_app
     WITH CHECK (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
+        company_id = (SELECT copilot.current_tenant())
         AND company_id <> '*'
         AND scope_type <> 'global'
     );
@@ -400,14 +439,12 @@ DROP POLICY IF EXISTS policies_tenant_update ON copilot.tenant_policies;
 CREATE POLICY policies_tenant_update ON copilot.tenant_policies
     FOR UPDATE TO copilot_app
     USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
+        company_id = (SELECT copilot.current_tenant())
         AND company_id <> '*'
         AND scope_type <> 'global'
     )
     WITH CHECK (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
+        company_id = (SELECT copilot.current_tenant())
         AND company_id <> '*'
         AND scope_type <> 'global'
     );
@@ -416,8 +453,7 @@ DROP POLICY IF EXISTS policies_tenant_delete ON copilot.tenant_policies;
 CREATE POLICY policies_tenant_delete ON copilot.tenant_policies
     FOR DELETE TO copilot_app
     USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
+        company_id = (SELECT copilot.current_tenant())
         AND company_id <> '*'
         AND scope_type <> 'global'
     );
@@ -426,16 +462,15 @@ DROP POLICY IF EXISTS tool_configs_tenant_select ON copilot.tenant_tool_configs;
 CREATE POLICY tool_configs_tenant_select ON copilot.tenant_tool_configs
     FOR SELECT TO copilot_app
     USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id IN ('*', current_setting('app.current_tenant', true))
+        (SELECT copilot.current_tenant()) IS NOT NULL
+        AND company_id IN ('*', (SELECT copilot.current_tenant()))
     );
 
 DROP POLICY IF EXISTS tool_configs_tenant_write ON copilot.tenant_tool_configs;
 CREATE POLICY tool_configs_tenant_write ON copilot.tenant_tool_configs
     FOR INSERT TO copilot_app
     WITH CHECK (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
+        company_id = (SELECT copilot.current_tenant())
         AND company_id <> '*'
     );
 
@@ -443,13 +478,11 @@ DROP POLICY IF EXISTS tool_configs_tenant_update ON copilot.tenant_tool_configs;
 CREATE POLICY tool_configs_tenant_update ON copilot.tenant_tool_configs
     FOR UPDATE TO copilot_app
     USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
+        company_id = (SELECT copilot.current_tenant())
         AND company_id <> '*'
     )
     WITH CHECK (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
+        company_id = (SELECT copilot.current_tenant())
         AND company_id <> '*'
     );
 
@@ -457,29 +490,45 @@ DROP POLICY IF EXISTS tool_configs_tenant_delete ON copilot.tenant_tool_configs;
 CREATE POLICY tool_configs_tenant_delete ON copilot.tenant_tool_configs
     FOR DELETE TO copilot_app
     USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-        AND company_id = current_setting('app.current_tenant', true)
+        company_id = (SELECT copilot.current_tenant())
         AND company_id <> '*'
     );
 
 -- ---------------------------------------------------------------------------
--- Tenant Lock Function (write-once transaction-local tenant binding)
+-- Tenant Lock Function (write-once signed transaction-local tenant binding)
 -- ---------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION copilot.lock_tenant(p_company_id TEXT)
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog
+SET search_path = pg_catalog, copilot
 AS $$
+DECLARE
+    v_secret TEXT;
+    v_sig    TEXT;
 BEGIN
     IF p_company_id IS NULL OR p_company_id !~ '^[A-Za-z0-9][A-Za-z0-9_-]{1,63}$' THEN
         RAISE EXCEPTION 'invalid company_id' USING ERRCODE = '22023';
     END IF;
-    IF current_setting('app.tenant_locked', true) = 'true' THEN
+    IF current_setting('app.tenant_locked', true) = 'true'
+       OR NULLIF(current_setting('app.tenant_sig', true), '') IS NOT NULL THEN
         RAISE EXCEPTION 'tenant already locked in this transaction' USING ERRCODE = '42501';
     END IF;
+    SELECT secret INTO v_secret FROM copilot.tenant_lock_secret WHERE id = 1;
+    v_sig := encode(
+        pg_catalog.sha256(
+            convert_to(
+                v_secret || '|' || p_company_id || '|'
+                || pg_backend_pid()::text || '|'
+                || to_char(transaction_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+                'UTF8'
+            )
+        ),
+        'hex'
+    );
     PERFORM set_config('app.current_tenant', p_company_id, true);
+    PERFORM set_config('app.tenant_sig', v_sig, true);
     PERFORM set_config('app.tenant_locked', 'true', true);
 END;
 $$;

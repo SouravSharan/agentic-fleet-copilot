@@ -272,7 +272,7 @@ AS $$
 DECLARE
     v_tenant TEXT;
 BEGIN
-    v_tenant := NULLIF(current_setting('app.current_tenant', true), '');
+    v_tenant := copilot.current_tenant();
     IF v_tenant IS NULL THEN
         RETURN;
     END IF;

@@ -190,3 +190,142 @@ def test_spoof_probe_is_blocked(db_manager: DatabaseManager) -> None:
     with pytest.raises(errors.InsufficientPrivilege):
         with db_manager.copilot_cursor("acme-001") as cur:
             cur.execute("SELECT set_config('app.current_tenant', 'globex-002', true)")
+
+
+@pytest.mark.parametrize("schema", ["telemetry", "copilot"])
+def test_set_local_spoof_is_blocked(db_manager: DatabaseManager, schema: str) -> None:
+    """11 §2 A2: `SET LOCAL app.current_tenant` invalidates the signature and fails closed."""
+    if schema == "telemetry":
+        with db_manager.telemetry_ro_cursor("acme-001") as cur:
+            cur.execute("SET LOCAL app.current_tenant = 'globex-002'")
+            cur.execute("SELECT telemetry.current_tenant() AS t")
+            row = cur.fetchone()
+            assert row is not None and row["t"] is None
+            cur.execute("SELECT COUNT(*) AS n FROM telemetry.v_latest_device_state")
+            cnt = cur.fetchone()
+            assert cnt is not None and cnt["n"] == 0
+    else:
+        with db_manager.copilot_cursor("acme-001") as cur:
+            cur.execute("SET LOCAL app.current_tenant = 'globex-002'")
+            cur.execute("SELECT copilot.current_tenant() AS t")
+            row = cur.fetchone()
+            assert row is not None and row["t"] is None
+            cur.execute("SELECT COUNT(*) AS n FROM copilot.tenant_policies")
+            cnt = cur.fetchone()
+            assert cnt is not None and cnt["n"] == 0
+
+
+@pytest.mark.parametrize("schema", ["telemetry", "copilot"])
+def test_session_set_spoof_is_blocked(db_manager: DatabaseManager, schema: str) -> None:
+    """11 §2 A2: Session-level `SET app.current_tenant` without valid signature fails closed."""
+    settings = get_settings()
+    if schema == "telemetry":
+        with psycopg.connect(
+            settings.telemetry_ro_database_url, prepare_threshold=None, row_factory=dict_row
+        ) as conn:
+            with conn.transaction():
+                with conn.cursor() as cur:
+                    cur.execute("SELECT telemetry.lock_tenant('acme-001')")
+                    cur.execute("SET app.current_tenant = 'globex-002'")
+                    cur.execute("SELECT telemetry.current_tenant() AS t")
+                    row = cur.fetchone()
+                    assert row is not None and row["t"] is None
+                    cur.execute("SELECT COUNT(*) AS n FROM telemetry.v_latest_device_state")
+                    cnt = cur.fetchone()
+                    assert cnt is not None and cnt["n"] == 0
+            # Next transaction on same connection still fails closed even though session SET stuck
+            with conn.transaction():
+                with conn.cursor() as cur:
+                    cur.execute("SELECT COUNT(*) AS n FROM telemetry.v_latest_device_state")
+                    cnt = cur.fetchone()
+                    assert cnt is not None and cnt["n"] == 0
+    else:
+        with psycopg.connect(
+            settings.copilot_database_url, prepare_threshold=None, row_factory=dict_row
+        ) as conn:
+            with conn.transaction():
+                with conn.cursor() as cur:
+                    cur.execute("SELECT copilot.lock_tenant('acme-001')")
+                    cur.execute("SET app.current_tenant = 'globex-002'")
+                    cur.execute("SELECT copilot.current_tenant() AS t")
+                    row = cur.fetchone()
+                    assert row is not None and row["t"] is None
+                    cur.execute("SELECT COUNT(*) AS n FROM copilot.tenant_policies")
+                    cnt = cur.fetchone()
+                    assert cnt is not None and cnt["n"] == 0
+
+
+def test_reset_spoof_is_blocked(db_manager: DatabaseManager) -> None:
+    """11 §2 A2: `RESET app.current_tenant` / `RESET app.tenant_locked` cannot bypass lock."""
+    with db_manager.telemetry_ro_cursor("acme-001") as cur:
+        cur.execute("RESET app.current_tenant")
+        cur.execute("SELECT telemetry.current_tenant() AS t")
+        row = cur.fetchone()
+        assert row is not None and row["t"] is None
+        cur.execute("SELECT COUNT(*) AS n FROM telemetry.v_latest_device_state")
+        cnt = cur.fetchone()
+        assert cnt is not None and cnt["n"] == 0
+
+    # Resetting app.tenant_locked alone still cannot re-lock to another tenant (sig is present)
+    with pytest.raises(errors.InsufficientPrivilege, match="already locked"):
+        with db_manager.telemetry_ro_cursor("acme-001") as cur:
+            cur.execute("RESET app.tenant_locked")
+            cur.execute("SELECT telemetry.lock_tenant('globex-002')")
+
+    with db_manager.copilot_cursor("acme-001") as cur:
+        cur.execute("RESET app.current_tenant")
+        cur.execute("SELECT copilot.current_tenant() AS t")
+        row = cur.fetchone()
+        assert row is not None and row["t"] is None
+        cur.execute("SELECT COUNT(*) AS n FROM copilot.tenant_policies")
+        cnt = cur.fetchone()
+        assert cnt is not None and cnt["n"] == 0
+
+
+def test_pool_connection_is_reset_on_return() -> None:
+    """11 §2 A2: Pooled connections run `RESET ALL` on return, clearing session-level SETs."""
+    settings = get_settings()
+    with DatabaseManager(
+        telemetry_ro_dsn=settings.telemetry_ro_database_url,
+        copilot_dsn=settings.copilot_database_url,
+        min_size=1,
+        max_size=1,
+    ) as single_db:
+        # Pollute session GUC on the single pooled telemetry connection
+        with single_db.telemetry_ro_cursor("acme-001") as cur:
+            cur.execute("SET app.current_tenant = 'globex-002'")
+            cur.execute("SET app.custom_pollution = 'leaked'")
+
+        # Next checkout from the same 1-connection pool must have cleared session GUCs
+        pool = single_db._get_telemetry_pool()
+        with pool.connection() as conn, conn.cursor() as cur:
+            cur.execute("SELECT current_setting('app.current_tenant', true) AS t")
+            r1 = cur.fetchone()
+            assert r1 is not None and (r1["t"] is None or r1["t"] == "")
+            cur.execute("SELECT current_setting('app.custom_pollution', true) AS p")
+            r2 = cur.fetchone()
+            assert r2 is not None and (r2["p"] is None or r2["p"] == "")
+
+        # Same check on copilot pool, AND verify copilot_app search_path remains 'copilot'
+        with single_db.copilot_cursor("acme-001") as cur:
+            cur.execute("SET app.current_tenant = 'globex-002'")
+
+        cpool = single_db._get_copilot_pool()
+        with cpool.connection() as conn, conn.cursor() as cur:
+            cur.execute("SELECT current_setting('app.current_tenant', true) AS t")
+            r1 = cur.fetchone()
+            assert r1 is not None and (r1["t"] is None or r1["t"] == "")
+            cur.execute("SHOW search_path")
+            sp = cur.fetchone()
+            assert sp is not None and "copilot" in str(sp["search_path"])
+
+
+def test_tenant_lock_secret_tables_denied_to_app_roles(db_manager: DatabaseManager) -> None:
+    """App roles must never be able to SELECT the HMAC/SHA-256 tenant lock secret tables."""
+    with pytest.raises(errors.InsufficientPrivilege):
+        with db_manager.telemetry_ro_cursor("acme-001") as cur:
+            cur.execute("SELECT secret FROM telemetry.tenant_lock_secret")
+
+    with pytest.raises(errors.InsufficientPrivilege):
+        with db_manager.copilot_cursor("acme-001") as cur:
+            cur.execute("SELECT secret FROM copilot.tenant_lock_secret")

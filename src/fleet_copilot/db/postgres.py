@@ -47,6 +47,13 @@ def validate_company_id(company_id: str) -> str:
     return company_id
 
 
+def _reset_pooled_connection(conn: psycopg.Connection[Any]) -> None:
+    """Run `RESET ALL` when returning a pooled connection to clear any session-level GUCs."""
+    conn.execute("RESET ALL")
+    if not conn.autocommit:
+        conn.commit()
+
+
 class DatabaseManager:
     """Manages thread-safe isolated connection pools for `telemetry_ro` and `copilot_app`."""
 
@@ -84,6 +91,7 @@ class DatabaseManager:
                         max_size=self._max_size,
                         open=True,
                         check=ConnectionPool.check_connection,
+                        reset=_reset_pooled_connection,
                         kwargs={"prepare_threshold": None, "row_factory": dict_row},
                     ),
                 )
@@ -100,6 +108,7 @@ class DatabaseManager:
                         max_size=self._max_size,
                         open=True,
                         check=ConnectionPool.check_connection,
+                        reset=_reset_pooled_connection,
                         kwargs={"prepare_threshold": None, "row_factory": dict_row},
                     ),
                 )
@@ -140,6 +149,7 @@ class DatabaseManager:
                         max_size=self._max_size,
                         open=True,
                         check=ConnectionPool.check_connection,
+                        reset=_reset_pooled_connection,
                         kwargs={
                             "autocommit": True,
                             "prepare_threshold": None,
