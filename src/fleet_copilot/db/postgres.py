@@ -14,7 +14,7 @@ import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Self
+from typing import Self, cast
 
 import psycopg
 from psycopg.rows import DictRow, dict_row
@@ -71,26 +71,32 @@ class DatabaseManager:
     def _get_telemetry_pool(self) -> ConnectionPool[psycopg.Connection[DictRow]]:
         with self._lock:
             if self._telemetry_pool is None:
-                self._telemetry_pool = ConnectionPool(
-                    conninfo=self._telemetry_ro_dsn,
-                    min_size=self._min_size,
-                    max_size=self._max_size,
-                    open=True,
-                    check=ConnectionPool.check_connection,
-                    kwargs={"prepare_threshold": None, "row_factory": dict_row},
+                self._telemetry_pool = cast(
+                    ConnectionPool[psycopg.Connection[DictRow]],
+                    ConnectionPool(
+                        conninfo=self._telemetry_ro_dsn,
+                        min_size=self._min_size,
+                        max_size=self._max_size,
+                        open=True,
+                        check=ConnectionPool.check_connection,
+                        kwargs={"prepare_threshold": None, "row_factory": dict_row},
+                    ),
                 )
             return self._telemetry_pool
 
     def _get_copilot_pool(self) -> ConnectionPool[psycopg.Connection[DictRow]]:
         with self._lock:
             if self._copilot_pool is None:
-                self._copilot_pool = ConnectionPool(
-                    conninfo=self._copilot_dsn,
-                    min_size=self._min_size,
-                    max_size=self._max_size,
-                    open=True,
-                    check=ConnectionPool.check_connection,
-                    kwargs={"prepare_threshold": None, "row_factory": dict_row},
+                self._copilot_pool = cast(
+                    ConnectionPool[psycopg.Connection[DictRow]],
+                    ConnectionPool(
+                        conninfo=self._copilot_dsn,
+                        min_size=self._min_size,
+                        max_size=self._max_size,
+                        open=True,
+                        check=ConnectionPool.check_connection,
+                        kwargs={"prepare_threshold": None, "row_factory": dict_row},
+                    ),
                 )
             return self._copilot_pool
 

@@ -1,16 +1,30 @@
 """Application configuration loaded from environment variables / .env."""
 
+from __future__ import annotations
+
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
-from pydantic import Field
+from psycopg.conninfo import conninfo_to_dict, make_conninfo
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _REPO_ENV = Path(__file__).resolve().parents[2] / ".env"
 
 
+def with_database(url: str, dbname: str) -> str:
+    """Return a psycopg conninfo string identical to `url` except for `dbname`."""
+    if not dbname or not dbname.strip():
+        raise ValueError("dbname must be a non-empty string")
+    params = conninfo_to_dict(url)
+    params["dbname"] = dbname
+    return make_conninfo("", **params)
+
+
 class Settings(BaseSettings):
-    """12-factor configuration for local Docker, VPS, or Supabase/Railway deployments."""
+    """Configuration for local dev, CI, and Railway deployments."""
 
     model_config = SettingsConfigDict(
         env_file=(str(_REPO_ENV), ".env"),
@@ -37,13 +51,69 @@ class Settings(BaseSettings):
     telemetry_ro_password: str = Field(default="telemetry_ro")
     copilot_app_password: str = Field(default="copilot_app")
 
-    # OpenAI-compatible LLM settings (used from Milestone 3 onward)
-    llm_base_url: str = Field(
-        default="https://generativelanguage.googleapis.com/v1beta/openai/"
+    # Testing & data-clock controls
+    test_db_name: str = Field(default="fleet_copilot_test")
+    fleet_as_of: datetime | None = Field(default=None)
+
+    # LLM & replay configuration (used from Step 5 onward)
+    llm_model: str = Field(default="google_genai:gemini-3.8-flash")
+    gemini_api_key: SecretStr | None = Field(default=None)
+    llm_replay_mode: str = Field(default="off")
+    llm_cassette_dir: str = Field(default="evals/cassettes")
+
+    # Actions kill-switch & privacy keys
+    actions_enabled: bool = Field(default=True)
+    pseudonym_key: SecretStr | None = Field(default=None)
+    langgraph_aes_key: SecretStr | None = Field(default=None)
+
+    # Ops logging
+    log_format: str = Field(default="json")
+    log_level: str = Field(default="INFO")
+
+    # Demo API / UI auth & budgets (Step 7+)
+    session_signing_key: SecretStr | None = Field(default=None)
+    demo_access_codes: str = Field(default="demo-code:rev_01")
+    demo_admin_token: SecretStr | None = Field(default=None)
+    rate_limit_turns_per_hour: int = Field(default=20)
+    daily_token_budget: int = Field(default=2_000_000)
+    turn_retention_days: int = Field(default=7)
+
+    @field_validator("fleet_as_of", mode="before")
+    @classmethod
+    def _empty_datetime_to_none(cls, value: Any) -> Any:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator(
+        "gemini_api_key",
+        "pseudonym_key",
+        "langgraph_aes_key",
+        "session_signing_key",
+        "demo_admin_token",
+        mode="before",
     )
-    llm_api_key: str = Field(default="")
-    llm_model: str = Field(default="gemini-2.5-flash")
-    llm_temperature: float = Field(default=0.0)
+    @classmethod
+    def _empty_secret_to_none(cls, value: Any) -> Any:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+
+def test_database_overrides(settings: Settings, name: str | None = None) -> dict[str, str]:
+    """Build environment variable overrides pointing all four DB URLs at `name`."""
+    dbname = name or settings.test_db_name
+    return {
+        "ADMIN_DATABASE_URL": with_database(settings.admin_database_url, dbname),
+        "TELEMETRY_WRITER_DATABASE_URL": with_database(
+            settings.telemetry_writer_database_url, dbname
+        ),
+        "TELEMETRY_RO_DATABASE_URL": with_database(settings.telemetry_ro_database_url, dbname),
+        "COPILOT_DATABASE_URL": with_database(settings.copilot_database_url, dbname),
+    }
+
+
+test_database_overrides.__test__ = False
 
 
 @lru_cache(maxsize=1)

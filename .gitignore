@@ -10,10 +10,6 @@ __pycache__/
 .env.*
 !.env.example
 
-# Dataset is not redistributed: download it via the link in the brief into ../data/ or ./data/
-data/
-*.ndjson
-
 # Runtime artifacts
 audit/
 *.log
