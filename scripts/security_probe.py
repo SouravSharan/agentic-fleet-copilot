@@ -129,6 +129,9 @@ def main() -> int:
         "telemetry_ro", str(s.telemetry_ro_database_url), "copilot.spend_ledger"
     )
     leaks += run_table_deny("copilot_app", str(s.copilot_database_url), "copilot.spend_ledger")
+    leaks += run_table_deny(
+        "telemetry_ro", str(s.telemetry_ro_database_url), "copilot.integration_outbox"
+    )
     return 1 if leaks else 0
 
 

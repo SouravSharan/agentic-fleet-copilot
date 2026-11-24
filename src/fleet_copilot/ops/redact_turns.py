@@ -99,6 +99,50 @@ def _redacted_assignment(col: dict[str, Any]) -> sql.Composable:
     return sql.SQL("{} = ''").format(ident)
 
 
+def redact_expired_outbox(
+    *,
+    cutoff: datetime,
+    now: datetime | None = None,
+    company_id: str | None = None,
+    admin_url: str | None = None,
+) -> int:
+    """Clear `payload_json` on expired `copilot.integration_outbox` rows via admin connection.
+
+    `copilot_app` holds only `SELECT, INSERT` on `integration_outbox`, so retention redaction
+    runs via the ops/admin connection while preserving `receipt_id`, `proposal_id`, `channel`,
+    and stamping `redacted_at`.
+    """
+    ts_now = now if now is not None else datetime.now(UTC)
+    dsn = admin_url or get_settings().admin_database_url
+    with psycopg.connect(dsn, prepare_threshold=None) as conn:
+        with conn.transaction():
+            with conn.cursor() as cur:
+                if company_id is not None:
+                    cur.execute(
+                        """
+                        UPDATE copilot.integration_outbox
+                        SET payload_json = '{}'::jsonb,
+                            redacted_at = %s
+                        WHERE company_id = %s
+                          AND created_at < %s
+                          AND redacted_at IS NULL
+                        """,
+                        (ts_now, company_id, cutoff),
+                    )
+                else:
+                    cur.execute(
+                        """
+                        UPDATE copilot.integration_outbox
+                        SET payload_json = '{}'::jsonb,
+                            redacted_at = %s
+                        WHERE created_at < %s
+                          AND redacted_at IS NULL
+                        """,
+                        (ts_now, cutoff),
+                    )
+                return max(0, cur.rowcount or 0)
+
+
 def redact_expired_turns(
     db: DatabaseManager,
     *,
@@ -106,7 +150,7 @@ def redact_expired_turns(
     now: datetime | None = None,
     company_id: str | None = None,
 ) -> int:
-    """Clear all non-retained text and JSON/JSONB columns on turns older than `cutoff`.
+    """Clear all non-retained text and JSON/JSONB columns on turns and outbox older than `cutoff`.
 
     Preserves `input_hash`, `answer_hash`, token/cost/latency metrics, and stamps `redacted_at`.
     Automatically discovers future JSON/text columns (e.g. `response_json`) from catalog metadata.
@@ -130,7 +174,39 @@ def redact_expired_turns(
             ).format(sets=sql.SQL(", ").join(assignments))
             cur.execute(query, (ts_now, cutoff))
             total += max(0, cur.rowcount or 0)
+
+    redact_expired_outbox(cutoff=cutoff, now=ts_now, company_id=company_id)
     return total
+
+
+def scan_redacted_outbox(
+    db: DatabaseManager,
+    *,
+    company_id: str | None = None,
+) -> list[dict[str, Any]]:
+    """Verify every redacted `integration_outbox` row has an empty `payload_json`."""
+    tenants = [company_id] if company_id else _discover_tenants()
+    violations: list[dict[str, Any]] = []
+    for cid in tenants:
+        with db.copilot_cursor(cid) as cur:
+            cur.execute(
+                """
+                SELECT receipt_id, payload_json
+                FROM copilot.integration_outbox
+                WHERE redacted_at IS NOT NULL
+                ORDER BY receipt_id ASC
+                """
+            )
+            for row in cur.fetchall():
+                if row["payload_json"] not in (None, {}):
+                    violations.append(
+                        {
+                            "company_id": cid,
+                            "receipt_id": str(row["receipt_id"]),
+                            "column": "payload_json",
+                        }
+                    )
+    return violations
 
 
 def scan_redacted_turns(

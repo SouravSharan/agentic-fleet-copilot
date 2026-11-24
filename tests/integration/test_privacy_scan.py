@@ -226,4 +226,15 @@ def test_audit_payloads_contain_zero_pii_hostnames_or_forbidden_keys(
         overlap = FORBIDDEN_AUDIT_FIELD_NAMES & _walk_keys(payload)
         assert not overlap, f"Forbidden key(s) {overlap} in audit row {row}"
 
+    # 5. Scan integration_outbox.payload_json for network/hardware PII leaks
+    outbox_rows = store.list_outbox("acme-001")
+    assert len(outbox_rows) == 4
+    for row in outbox_rows:
+        serialized = json.dumps(row["payload_json"])
+        assert not _IPV4_RE.search(serialized), f"IPv4 leaked in outbox {row}"
+        assert not _MAC_RE.search(serialized), f"MAC leaked in outbox {row}"
+        assert not _EMAIL_RE.search(serialized), f"Email leaked in outbox {row}"
+        assert "hardware_uuid" not in serialized
+        assert "serial_number" not in serialized
+
     assert audit_svc.verify(ctx)["ok"] is True

@@ -135,3 +135,37 @@ GRANT EXECUTE ON FUNCTION copilot.turns_by_rev_since(TEXT, TIMESTAMPTZ)
     TO copilot_app;
 GRANT EXECUTE ON FUNCTION copilot.turns_by_actor_since(TEXT, TIMESTAMPTZ)
     TO copilot_app;
+
+-- ---------------------------------------------------------------------------
+-- (b) Integration Outbox (append-only for copilot_app; tenant RLS)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS copilot.integration_outbox (
+    receipt_id   TEXT PRIMARY KEY,
+    company_id   TEXT NOT NULL CHECK (company_id <> '*'),
+    proposal_id  TEXT NOT NULL REFERENCES copilot.action_proposals(proposal_id),
+    adapter      TEXT NOT NULL,
+    channel      TEXT NOT NULL CHECK (
+        channel IN ('ticketing', 'procurement', 'email', 'asset_management')
+    ),
+    payload_json JSONB NOT NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    redacted_at  TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_copilot_integration_outbox_tenant_created
+    ON copilot.integration_outbox (company_id, created_at DESC);
+
+ALTER TABLE copilot.integration_outbox ENABLE ROW LEVEL SECURITY;
+ALTER TABLE copilot.integration_outbox NO FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS integration_outbox_tenant_isolation ON copilot.integration_outbox;
+CREATE POLICY integration_outbox_tenant_isolation ON copilot.integration_outbox
+    FOR ALL
+    TO copilot_app
+    USING (company_id = (SELECT copilot.current_tenant()))
+    WITH CHECK (company_id = (SELECT copilot.current_tenant()));
+
+REVOKE ALL ON copilot.integration_outbox
+    FROM PUBLIC, telemetry_ro, telemetry_writer, copilot_app;
+GRANT SELECT, INSERT ON copilot.integration_outbox TO copilot_app;

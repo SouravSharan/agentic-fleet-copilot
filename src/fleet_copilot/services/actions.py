@@ -884,8 +884,14 @@ class ActionService:
             )
 
         # Step 4: Call external adapter OUTSIDE a DB transaction with idempotency_key
+        adapter_proposal = dict(proposal)
+        if target_type == "device":
+            dev_state = self._repo.resolve_device(ctx.company_id, target_id)
+            if dev_state is not None:
+                adapter_proposal["employee_id"] = dev_state.employee_id
+
         try:
-            receipt = self._adapter.execute(proposal, idem_key)
+            receipt = self._adapter.execute(adapter_proposal, idem_key)
         except Exception as exc:  # noqa: BLE001
             next_attempt = int(proposal.get("attempts") or 0) + 1
             if next_attempt < MAX_EXECUTION_ATTEMPTS:
@@ -941,17 +947,29 @@ class ActionService:
         receipt_dict = receipt.model_dump(mode="json")
         receipt_hash = _sha256_hex(json.dumps(receipt_dict, sort_keys=True, separators=(",", ":")))
 
-        # Step 5: Persist final status + receipt + audit in ONE transaction
+        # Step 5: Persist final status + receipt + outbox + audit in ONE transaction
         final_status = "executed" if receipt.status == "ok" else "failed"
+        exec_now = clock.now()
         with self._db.copilot_cursor(ctx.company_id) as cur:
             updated = self._store.mark_terminal(
                 cur,
                 proposal_id=proposal_id,
                 status=final_status,
                 external_receipt_json=receipt_dict,
-                executed_at=clock.now(),
+                executed_at=exec_now,
             )
             if final_status == "executed":
+                if receipt.channel is not None:
+                    self._store.insert_outbox_in_tx(
+                        cur,
+                        receipt_id=receipt.receipt_id,
+                        company_id=ctx.company_id,
+                        proposal_id=proposal_id,
+                        adapter=receipt.adapter,
+                        channel=receipt.channel,
+                        payload_json=receipt.payload,
+                        created_at=exec_now,
+                    )
                 self._audit.record(
                     cur,
                     ctx,

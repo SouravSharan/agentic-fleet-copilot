@@ -292,6 +292,7 @@ class InMemoryCopilotStore:
         self.turns: dict[str, dict[str, Any]] = {}
         self.proposals: dict[str, dict[str, Any]] = {}
         self.spend_ledger: list[dict[str, Any]] = []
+        self.outbox: list[dict[str, Any]] = []
 
     def policies(self, company_id: str) -> list[PolicyRow]:
         defaults = {
@@ -572,6 +573,23 @@ class InMemoryCopilotStore:
             and r["actor_id"] == actor_id
             and r["created_at"] >= since
         )
+
+    def list_outbox(
+        self,
+        company_id: str,
+        *,
+        channel: str | None = None,
+        proposal_id: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        rows = [
+            r
+            for r in self.outbox
+            if r["company_id"] == company_id
+            and (channel is None or r["channel"] == channel)
+            and (proposal_id is None or r["proposal_id"] == proposal_id)
+        ]
+        return rows[:limit]
 
 
 class InMemoryAuditService:

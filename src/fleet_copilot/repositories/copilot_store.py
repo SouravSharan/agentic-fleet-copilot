@@ -798,6 +798,75 @@ class PgCopilotStore:
             row = cur.fetchone()
             return int(row["cnt"]) if row is not None and row["cnt"] is not None else 0
 
+    # --- Integration Outbox (append-only for copilot_app; tenant RLS) ---
+
+    def insert_outbox_in_tx(
+        self,
+        cur: psycopg.Cursor[DictRow],
+        *,
+        receipt_id: str,
+        company_id: str,
+        proposal_id: str,
+        adapter: str,
+        channel: str,
+        payload_json: dict[str, Any],
+        created_at: datetime,
+    ) -> dict[str, Any] | None:
+        """Idempotently record an outbound adapter payload inside the caller's transaction."""
+        cur.execute(
+            """
+            INSERT INTO copilot.integration_outbox (
+                receipt_id, company_id, proposal_id, adapter, channel, payload_json, created_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s)
+            ON CONFLICT (receipt_id) DO NOTHING
+            RETURNING *
+            """,
+            (
+                receipt_id,
+                company_id,
+                proposal_id,
+                adapter,
+                channel,
+                json.dumps(payload_json, sort_keys=True),
+                created_at,
+            ),
+        )
+        row = cur.fetchone()
+        return dict(row) if row is not None else None
+
+    def list_outbox(
+        self,
+        company_id: str,
+        *,
+        channel: str | None = None,
+        proposal_id: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        """List integration outbox rows for `company_id` newest-first under RLS."""
+        clauses: list[sql.SQL] = [sql.SQL("1=1")]
+        params: list[Any] = []
+        if channel is not None:
+            clauses.append(sql.SQL("channel = %s"))
+            params.append(channel)
+        if proposal_id is not None:
+            clauses.append(sql.SQL("proposal_id = %s"))
+            params.append(proposal_id)
+        params.append(limit)
+        query = sql.SQL(
+            """
+            SELECT receipt_id, company_id, proposal_id, adapter, channel,
+                   payload_json, created_at, redacted_at
+            FROM copilot.integration_outbox
+            WHERE {where}
+            ORDER BY created_at DESC, receipt_id ASC
+            LIMIT %s
+            """
+        ).format(where=sql.SQL(" AND ").join(clauses))
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(query, params)
+            return [dict(r) for r in cur.fetchall()]
+
     # --- Personal Saved Charts ---
 
     def insert_chart(

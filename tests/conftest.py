@@ -97,6 +97,7 @@ def reset_copilot_state() -> Iterator[None]:
             conn.execute(
                 """
                 TRUNCATE TABLE
+                    copilot.integration_outbox,
                     copilot.charts,
                     copilot.action_proposals,
                     copilot.turns,

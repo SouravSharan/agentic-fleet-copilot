@@ -6,6 +6,8 @@ from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
+OutboxChannel = Literal["ticketing", "procurement", "email", "asset_management"]
+
 
 class Receipt(BaseModel):
     """Structured execution receipt returned by an external action adapter."""
@@ -17,6 +19,8 @@ class Receipt(BaseModel):
     idempotency_key: str
     status: Literal["ok", "failed"] = "ok"
     error_code: str | None = None
+    channel: OutboxChannel | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
     details: dict[str, Any] = Field(default_factory=dict)
 
 
