@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -262,10 +263,13 @@ def test_cli_threads_and_chat_thread_id_option(
     reset_copilot_state: None,
 ) -> None:
     """CLI exposes `threads` command and `chat --thread-id` option."""
-    runner = CliRunner()
+    # CI terminals (e.g. GitHub Actions) make Rich colour the help text, which splits
+    # option names with ANSI escapes; disable colour so the check is about content.
+    runner = CliRunner(env={"NO_COLOR": "1", "TERM": "dumb", "FORCE_COLOR": ""})
     help_res = runner.invoke(cli_app, ["chat", "--help"])
     assert help_res.exit_code == 0
-    assert "--thread-id" in help_res.output
+    plain_help = re.sub(r"\x1b\[[0-9;]*m", "", help_res.output)
+    assert "--thread-id" in plain_help
 
     store = PgCopilotStore(db_manager)
     store.ensure_thread("acme-001", "acme-001:cli-t1", "acme-001_it_admin", title="CLI Thread One")
