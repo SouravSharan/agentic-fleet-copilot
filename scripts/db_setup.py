@@ -93,6 +93,34 @@ def _sync_tenant_lock_key(conn: psycopg.Connection, key: str | None) -> None:
         )
 
 
+def _sync_ops_runtime_and_seeds(conn: psycopg.Connection, *, demo_mode: bool) -> int:
+    """Write `DEMO_MODE` flag and baseline seed `snapshot_id` set into owner-only `ops.*`."""
+    from fleet_copilot.ops.scenarios import load_seed_snapshot_ids
+
+    seed_pairs = load_seed_snapshot_ids()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO ops.runtime_settings (key, value_bool, updated_at)
+            VALUES ('demo_mode', %s, now())
+            ON CONFLICT (key) DO UPDATE
+                SET value_bool = EXCLUDED.value_bool,
+                    updated_at = now()
+            """,
+            (bool(demo_mode),),
+        )
+        for company_id, snapshot_id in seed_pairs:
+            cur.execute(
+                """
+                INSERT INTO ops.seed_snapshot_ids (company_id, snapshot_id)
+                VALUES (%s, %s)
+                ON CONFLICT (company_id, snapshot_id) DO NOTHING
+                """,
+                (company_id, snapshot_id),
+            )
+    return len(seed_pairs)
+
+
 def _sync_role_passwords(conn: psycopg.Connection, passwords: dict[str, str]) -> None:
     """Apply non-empty role passwords safely via psycopg SQL composition."""
     with conn.cursor() as cur:
@@ -135,6 +163,7 @@ def run_setup(admin_url: str | None = None) -> None:
                     "telemetry_writer": settings.telemetry_writer_password,
                     "telemetry_ro": settings.telemetry_ro_password,
                     "copilot_app": settings.copilot_app_password,
+                    "demo_ops": settings.demo_ops_password,
                 },
             )
             for path in migration_files[1:]:
@@ -144,6 +173,7 @@ def run_setup(admin_url: str | None = None) -> None:
                 conn,
                 lock_secret.get_secret_value() if lock_secret is not None else None,
             )
+            _sync_ops_runtime_and_seeds(conn, demo_mode=settings.demo_mode)
             catalog_count = _seed_hardware_catalog(conn)
 
         with conn.transaction():
@@ -152,7 +182,7 @@ def run_setup(admin_url: str | None = None) -> None:
                     """
                     SELECT rolname, rolsuper, rolbypassrls, rolcanlogin
                     FROM pg_roles
-                    WHERE rolname IN ('telemetry_writer', 'telemetry_ro', 'copilot_app')
+                    WHERE rolname IN ('telemetry_writer', 'telemetry_ro', 'copilot_app', 'demo_ops')
                     ORDER BY rolname
                     """
                 )

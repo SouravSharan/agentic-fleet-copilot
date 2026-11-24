@@ -72,3 +72,20 @@ Only `company_id` is a tenant boundary. Devices, employees, and users exist *ins
    - **Database layer**: Separate least-privilege PostgreSQL roles (`telemetry_ro` vs `copilot_app`) with fail-closed Row-Level Security (`app.current_tenant`).
    - **No existence oracle**: Looking up a `device_id` that belongs to another company returns `not_found` inside the caller's tenant rather than confirming the ID exists elsewhere.
 4. **Intra-company visibility**: Chat threads are scoped to `(company_id, actor_id)`; the action approval queue, policies, and audit logs are scoped to `company_id` so any `it_admin` within the same company can review and audit actions.
+5. **No admin/superuser credentials in the web app**: Demo resets and scenario injection run through admin-owned `SECURITY DEFINER` functions (`ops.demo_reset_company`, `ops.inject_scenario`) executed by a dedicated `NOBYPASSRLS` login role (`demo_ops`, zero direct table privileges) gated by an owner-only `ops.runtime_settings` table row synced from `DEMO_MODE`.
+
+---
+
+## Demo & Runtime Environment Variables
+
+| Variable | Default (Dev) | Purpose |
+|---|---|---|
+| `APP_ENV` | `dev` | `dev` allows access code `"dev"` when `DEMO_ACCESS_CODES` is empty; `prod` refuses startup without configured codes. |
+| `DEMO_MODE` | `true` | Written into owner-only `ops.runtime_settings` during `ops.migrate`; `ops.demo_reset_company` and `ops.inject_scenario` refuse when `false`. |
+| `DEMO_OPS_DATABASE_URL` | `postgresql://demo_ops:...@localhost:5432/fleet_copilot` | Least-privilege login DSN used by the web app for demo resets and scenario injection (zero table grants). |
+| `DEMO_OPS_PASSWORD` | `demo_ops` | Password synced onto the `demo_ops` role during `ops.migrate`. |
+| `DEMO_ACCESS_CODES` | *(empty in dev)* | Comma-separated `code:rev_id` pairs validated in constant time (`hmac.compare_digest`). |
+| `SESSION_SIGNING_KEY` | *(dev 64-hex in `.env.example`)* | HS256 JWT signing key for API demo sessions (8 h expiry; stripped from logs). |
+| `DEMO_SPEND_CAP_USD` | `2.00` | Hard cumulative live spend cap (with `$0.05` reserve) persisted in `copilot.spend_ledger`. |
+| `DEMO_TURNS_PER_CODE` | `25` | Lifetime live turn limit per reviewer access code (`rev_id`). |
+| `DEMO_TURNS_PER_HOUR` | `20` | Rolling 1-hour live turn rate limit per `(company_id, actor_id)`. |

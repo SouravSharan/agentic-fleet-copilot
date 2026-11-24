@@ -8,7 +8,7 @@ DECLARE
     role_name TEXT;
     is_super  BOOLEAN := current_setting('is_superuser') = 'on';
 BEGIN
-    FOREACH role_name IN ARRAY ARRAY['telemetry_writer', 'telemetry_ro', 'copilot_app'] LOOP
+    FOREACH role_name IN ARRAY ARRAY['telemetry_writer', 'telemetry_ro', 'copilot_app', 'demo_ops'] LOOP
         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = role_name) THEN
             -- Newly created roles default to NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS.
             EXECUTE format('CREATE ROLE %I LOGIN', role_name);
@@ -23,7 +23,7 @@ BEGIN
     END LOOP;
 
     EXECUTE format(
-        'GRANT CONNECT ON DATABASE %I TO telemetry_writer, telemetry_ro, copilot_app',
+        'GRANT CONNECT ON DATABASE %I TO telemetry_writer, telemetry_ro, copilot_app, demo_ops',
         current_database()
     );
 

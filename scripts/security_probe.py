@@ -99,20 +99,23 @@ def run_fresh(role: str, url: str, schema: str) -> int:
     return leaks
 
 
-def run_table_deny(role: str, url: str, table: str) -> int:
-    """Verify an app role cannot directly SELECT a restricted operational/secret table."""
+def run_table_deny(role: str, url: str, table: str, *, verb: str = "SELECT") -> int:
+    """Verify an app role cannot directly SELECT or DELETE a restricted table."""
+    stmt = (
+        f"SELECT 1 FROM {table} LIMIT 1" if verb == "SELECT" else f"DELETE FROM {table} WHERE false"
+    )
     with psycopg.connect(url) as conn:
         cur = conn.cursor()
         try:
-            cur.execute(f"SELECT 1 FROM {table} LIMIT 1")  # type: ignore[arg-type]
-            out = f"LEAK (SELECT allowed on {table})"
+            cur.execute(stmt)  # type: ignore[arg-type]
+            out = f"LEAK ({verb} allowed on {table})"
             leaked = 1
         except Exception as exc:  # noqa: BLE001
             out = f"BLOCKED ({type(exc).__name__})"
             leaked = 0
         finally:
             conn.rollback()
-    print(f"{role:13} {table:21} {out}")
+    print(f"{role:13} {verb + ' ' + table:34} {out}")
     return leaked
 
 
@@ -132,6 +135,15 @@ def main() -> int:
     leaks += run_table_deny(
         "telemetry_ro", str(s.telemetry_ro_database_url), "copilot.integration_outbox"
     )
+    for tbl in (
+        "telemetry.telemetry_snapshots",
+        "copilot.action_proposals",
+        "copilot.audit_logs",
+        "copilot.spend_ledger",
+        "ops.runtime_settings",
+    ):
+        leaks += run_table_deny("demo_ops", str(s.demo_ops_database_url), tbl, verb="SELECT")
+        leaks += run_table_deny("demo_ops", str(s.demo_ops_database_url), tbl, verb="DELETE")
     return 1 if leaks else 0
 
 

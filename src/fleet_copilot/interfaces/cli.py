@@ -317,5 +317,23 @@ def brief(
             console.print(f"  [dim]Action prompt:[/dim] {item.suggested_action_prompt}")
 
 
+@app.command()
+def nightly(
+    min_age_minutes: Annotated[
+        int,
+        typer.Option(help="Minimum minutes in `executing` before recovery retries."),
+    ] = 5,
+) -> None:
+    """Run nightly maintenance: expire proposals, recover stuck executions, and reset demos."""
+    from fleet_copilot.ops.nightly import run_nightly
+
+    summary = run_nightly(min_age_minutes=min_age_minutes)
+    typer.echo(
+        f"Nightly complete: companies={len(summary['companies'])}, "
+        f"expired={summary['expired_count']}, recovered={summary['recovered_count']}, "
+        f"reset={len(summary['resets'])}"
+    )
+
+
 if __name__ == "__main__":
     app()
