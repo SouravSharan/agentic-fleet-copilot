@@ -6,12 +6,15 @@ from typing import Any
 
 import streamlit as st
 
+from fleet_copilot.interfaces.ui.charts_ui import prepare_chart_spec_for_render
 from fleet_copilot.interfaces.ui.services import (
     cached_personas,
     cached_telemetry_as_of,
     get_cached_briefing,
+    get_resolved_policies,
 )
 from fleet_copilot.interfaces.ui.state import (
+    clear_session,
     mark_tour_step_done,
     queue_copilot_prompt,
     require_session,
@@ -29,7 +32,7 @@ from fleet_copilot.interfaces.ui.theme import (
 from fleet_copilot.services.briefing import BriefingItem
 
 _CATEGORY_CHART_Y_TITLE: dict[str, str] = {
-    "battery": "Cycles",
+    "battery": "Battery cycles",
     "disk": "Disk free (%)",
     "ram": "RAM used (%)",
     "compliance_drift": "Status",
@@ -38,9 +41,19 @@ _CATEGORY_CHART_Y_TITLE: dict[str, str] = {
     "stale_devices": "Days offline",
 }
 
+_CATEGORY_METRIC: dict[str, str] = {
+    "battery": "battery_cycles",
+    "disk": "disk_free_pct",
+    "ram": "ram_used_pct",
+}
 
-def _mini_chart_spec(item: BriefingItem) -> dict[str, Any] | None:
-    """Build a compact inline Vega-Lite v5 sparkline/trend chart from `item.chart_series`."""
+
+def _mini_chart_spec(
+    item: BriefingItem,
+    *,
+    policies: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Build a compact inline Vega-Lite v5 trend chart with threshold line from `chart_series`."""
     if not item.chart_series:
         return None
     dev_to_host = dict(zip(item.device_ids, item.hostnames, strict=False))
@@ -67,7 +80,7 @@ def _mini_chart_spec(item: BriefingItem) -> dict[str, Any] | None:
         return {
             "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
             "width": "container",
-            "height": 120,
+            "height": 140,
             "data": {"values": rows},
             "mark": {"type": "bar", "cornerRadiusTopLeft": 3, "cornerRadiusTopRight": 3},
             "encoding": {
@@ -81,10 +94,10 @@ def _mini_chart_spec(item: BriefingItem) -> dict[str, Any] | None:
             },
         }
 
-    return {
+    base_spec: dict[str, Any] = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
         "width": "container",
-        "height": 135,
+        "height": 175,
         "data": {"values": rows},
         "mark": {"type": "line", "point": False, "strokeWidth": 2},
         "encoding": {
@@ -99,13 +112,14 @@ def _mini_chart_spec(item: BriefingItem) -> dict[str, Any] | None:
                 "type": "quantitative",
                 "title": y_title,
                 "scale": {"zero": False},
+                "axis": {"title": y_title, "titlePadding": 8},
             },
             "color": {
                 "field": "device",
                 "type": "nominal",
                 "title": "Device",
                 "scale": {"range": list(CHART_PALETTE)},
-                "legend": {"orient": "bottom", "columns": 3},
+                "legend": {"orient": "bottom", "columns": 3, "title": "Device"},
             },
             "tooltip": [
                 {"field": "date", "type": "temporal", "title": "Date"},
@@ -114,6 +128,13 @@ def _mini_chart_spec(item: BriefingItem) -> dict[str, Any] | None:
             ],
         },
     }
+    return prepare_chart_spec_for_render(
+        base_spec,
+        metric=_CATEGORY_METRIC.get(item.category),
+        policies=policies,
+        height=175,
+        strip_inner_title=True,
+    )
 
 
 def _render_briefing_card(
@@ -121,17 +142,21 @@ def _render_briefing_card(
     *,
     is_admin: bool,
     key_prefix: str,
+    policies: dict[str, Any] | None = None,
 ) -> None:
     """Render one ranked fleet briefing attention card."""
     with st.container(border=True):
-        top_left, top_right = st.columns([4.5, 1.5])
-        with top_left:
+        with st.container(
+            horizontal=True,
+            horizontal_alignment="distribute",
+            vertical_alignment="center",
+            gap="small",
+        ):
             render_status_badge(item.severity)
-            st.markdown(f"<div class='fc-card-title'>{item.title}</div>", unsafe_allow_html=True)
-        with top_right:
             if item.recency:
                 st.caption(f"Latest signal: {item.recency}")
 
+        st.markdown(f"<div class='fc-card-title'>{item.title}</div>", unsafe_allow_html=True)
         st.markdown(item.explanation)
 
         if item.hostnames:
@@ -141,7 +166,7 @@ def _render_briefing_card(
                 if len(item.hostnames) > 8:
                     st.badge(f"+{len(item.hostnames) - 8} more", color="gray")
 
-        spec = _mini_chart_spec(item)
+        spec = _mini_chart_spec(item, policies=policies)
         if spec is not None:
             st.vega_lite_chart(spec=spec, width="stretch", key=f"{key_prefix}_chart_{item.id}")
 
@@ -224,9 +249,8 @@ def _render_guided_tour(*, company_id: str, is_admin: bool) -> None:
                 "Ask to upgrade RAM on globex-thinkpad-6 (soldered RAM -> refusal + alternatives)."
             ),
             "action_label": "Try it" if company_id == "globex-002" else "Switch to Globex",
-            "kind": "prompt" if company_id == "globex-002" else "page",
+            "kind": "prompt" if company_id == "globex-002" else "sign_out",
             "prompt": "Order a 32 GB RAM upgrade for globex-thinkpad-6",
-            "page": "sign_in",
         },
         {
             "num": 6,
@@ -234,10 +258,9 @@ def _render_guided_tour(*, company_id: str, is_admin: bool) -> None:
             "detail": (
                 "Stage screen-lock tickets, review the policy checklist, and approve selected."
             ),
-            "action_label": "Try it",
-            "kind": "prompt" if is_admin else "page",
+            "action_label": "Try it" if is_admin else "Switch persona",
+            "kind": "prompt" if is_admin else "sign_out",
             "prompt": "Open screen_lock remediation tickets for all failing laptops",
-            "page": "sign_in",
         },
         {
             "num": 7,
@@ -272,8 +295,7 @@ def _render_guided_tour(*, company_id: str, is_admin: bool) -> None:
                 "Confirm viewers see the same briefing with zero Approve or Propose controls."
             ),
             "action_label": "Switch persona",
-            "kind": "page",
-            "page": "sign_in",
+            "kind": "sign_out",
         },
     ]
 
@@ -317,6 +339,9 @@ def _render_guided_tour(*, company_id: str, is_admin: bool) -> None:
                         switch_to_page("copilot")
                     elif step["kind"] == "page":
                         switch_to_page(str(step["page"]))
+                    elif step["kind"] == "sign_out":
+                        clear_session()
+                        st.rerun()
                     else:
                         st.rerun()
 
@@ -333,6 +358,7 @@ def render_home_page() -> None:
         session.role,
         session.actor_id,
     )
+    policies = get_resolved_policies(session.company_id, as_of_iso)
 
     head_left, head_right = st.columns([4, 2])
     with head_left:
@@ -373,7 +399,12 @@ def render_home_page() -> None:
         )
     else:
         for item in high_med:
-            _render_briefing_card(item, is_admin=is_admin, key_prefix="attn")
+            _render_briefing_card(
+                item,
+                is_admin=is_admin,
+                key_prefix="attn",
+                policies=policies,
+            )
 
     if low_items:
         with st.expander(
@@ -382,7 +413,12 @@ def render_home_page() -> None:
             icon=":material/info:",
         ):
             for item in low_items:
-                _render_briefing_card(item, is_admin=is_admin, key_prefix="low")
+                _render_briefing_card(
+                    item,
+                    is_admin=is_admin,
+                    key_prefix="low",
+                    policies=policies,
+                )
 
     # Ask box + persona suggested prompts
     personas = cached_personas()

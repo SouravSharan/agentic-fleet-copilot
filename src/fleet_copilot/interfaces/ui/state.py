@@ -39,6 +39,11 @@ _TENANT_SCOPED_KEYS: tuple[str, ...] = (
     "ephemeral_turns",
     "_active_turns_by_id",
     "_active_turn_order",
+    "expanded_thread_ids",
+    "selected_device_id",
+    "approvals_outbox_receipt",
+    "how_it_works_default_tab",
+    "queue_decision_outcomes",
 )
 
 # Registry populated by app.py so any page can switch cleanly via `st.switch_page`
@@ -128,6 +133,13 @@ def queue_copilot_prompt(
     if new_chat:
         st.session_state["active_thread_id"] = None
         st.session_state["selected_turn_id"] = None
+
+
+def open_copilot_thread(thread_id: str) -> None:
+    """Select an actor-owned thread and switch to Copilot."""
+    st.session_state["active_thread_id"] = thread_id
+    st.session_state["selected_turn_id"] = None
+    switch_to_page("copilot")
 
 
 def mark_tour_step_done(step_num: int) -> None:

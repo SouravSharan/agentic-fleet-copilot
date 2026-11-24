@@ -1,4 +1,4 @@
-"""Copilot chat page: 3-zone layout (history, live streaming transcript, technical Inspector)."""
+"""Copilot chat page: centred transcript (~820 px), sidebar history, on-demand Inspector."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from fleet_copilot.interfaces.ui.services import (
     cached_thread_list,
     cached_thread_turns,
     get_hostname_map,
+    get_resolved_policies,
     get_ui_container,
 )
 from fleet_copilot.interfaces.ui.state import (
@@ -26,9 +27,12 @@ from fleet_copilot.interfaces.ui.state import (
     safe_page_run,
     switch_to_page,
 )
-from fleet_copilot.interfaces.ui.theme import fmt_relative_time
 from fleet_copilot.services.copilot import collapse_progress_events
 from fleet_copilot.services.demo_auth import DemoSession
+
+_DEFAULT_VISIBLE_TURNS = 8
+_USER_AVATAR = ":material/person:"
+_ASSISTANT_AVATAR = ":material/devices:"
 
 _CAPABILITY_EXAMPLES: list[tuple[str, str, str]] = [
     (
@@ -167,7 +171,7 @@ def _render_active_job_poller(session: DemoSession) -> None:
         prompt_text = str(st.session_state.get("active_job_prompt") or "")
 
         if prompt_text:
-            with st.chat_message("user"):
+            with st.chat_message("user", avatar=_USER_AVATAR):
                 st.markdown(prompt_text)
 
         if snap is None:
@@ -178,7 +182,7 @@ def _render_active_job_poller(session: DemoSession) -> None:
         collapsed = collapse_progress_events(snap.events)
         if snap.status in ("queued", "running"):
             current_label = collapsed[-1].label if collapsed else "Reading your fleet context"
-            with st.chat_message("assistant"):
+            with st.chat_message("assistant", avatar=_ASSISTANT_AVATAR):
                 with st.status(current_label, state="running", expanded=True):
                     if not collapsed:
                         st.markdown(":material/hourglass_top: Reading your fleet context")
@@ -266,15 +270,144 @@ def _turn_to_response_dict(turn_row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _render_transcript_zone(
+    *,
+    session: DemoSession,
+    turns: list[dict[str, Any]],
+    active_tid: str | None,
+    selected_turn_id: str | None,
+    hostname_map: dict[str, str],
+    policies: dict[str, Any],
+    examples_only: bool,
+    inspector_open: bool,
+) -> None:
+    """Render the Copilot header, examples-only banner, paginated transcript, poller, and input."""
+    with st.container(
+        horizontal=True,
+        horizontal_alignment="distribute",
+        vertical_alignment="center",
+        gap="small",
+    ):
+        st.markdown("### :material/chat: Copilot")
+        if turns and not inspector_open:
+            if st.button(
+                "Open Inspector",
+                key="copilot_header_open_inspector",
+                icon=":material/search_insights:",
+                type="secondary",
+                width="content",
+            ):
+                perf_mark_start("toggle_inspector")
+                st.session_state["inspector_open"] = True
+                if not st.session_state.get("selected_turn_id"):
+                    st.session_state["selected_turn_id"] = str(turns[-1].get("turn_id") or "")
+                st.rerun(scope="app")
+
+    if examples_only:
+        with st.container(border=True):
+            with st.container(
+                horizontal=True,
+                horizontal_alignment="distribute",
+                vertical_alignment="center",
+                gap="small",
+            ):
+                st.info(
+                    "Examples only (live budget used). Live chat input is disabled.",
+                    icon=":material/menu_book:",
+                )
+                if st.button(
+                    "View Examples",
+                    key="copilot_go_examples",
+                    icon=":material/arrow_forward:",
+                    width="content",
+                ):
+                    st.session_state["how_it_works_default_tab"] = "Examples"
+                    switch_to_page("how_it_works")
+
+    @st.fragment(key="copilot_transcript")
+    def _transcript_fragment() -> None:
+        def _on_inspect(tid_sel: str) -> None:
+            # Always rerun at app scope so Inspector mounts cleanly (fixes U11)
+            st.session_state["selected_turn_id"] = tid_sel
+            st.session_state["inspector_open"] = True
+            st.rerun(scope="app")
+
+        active_job = st.session_state.get("active_job_id")
+        if not turns and not active_job:
+            _render_empty_state(session, input_disabled=examples_only)
+        else:
+            expanded_threads: set[str] = set(st.session_state.get("expanded_thread_ids") or ())
+            tid_key = active_tid or "__active__"
+            show_all = tid_key in expanded_threads or len(turns) <= _DEFAULT_VISIBLE_TURNS
+            hidden_count = 0 if show_all else len(turns) - _DEFAULT_VISIBLE_TURNS
+            visible_turns = turns if show_all else turns[-_DEFAULT_VISIBLE_TURNS:]
+
+            if hidden_count > 0:
+                if st.button(
+                    f"Show {hidden_count} earlier turns",
+                    key=f"show_earlier_{tid_key}",
+                    icon=":material/history:",
+                    type="secondary",
+                    width="stretch",
+                ):
+                    expanded_threads.add(tid_key)
+                    st.session_state["expanded_thread_ids"] = expanded_threads
+                    st.rerun(scope="fragment")
+
+            for idx, turn_row in enumerate(visible_turns):
+                turn_id = str(turn_row.get("turn_id") or f"turn_{idx}")
+                user_msg = str(turn_row.get("user_message") or "").strip()
+                if user_msg:
+                    with st.chat_message("user", avatar=_USER_AVATAR):
+                        st.markdown(user_msg)
+
+                resp_dict = _turn_to_response_dict(turn_row)
+                with st.chat_message("assistant", avatar=_ASSISTANT_AVATAR):
+                    render_answer_card(
+                        resp_dict,
+                        session=session,
+                        hostname_map=hostname_map,
+                        turn_id=turn_id,
+                        policies=policies,
+                        is_selected=(inspector_open and selected_turn_id == turn_id),
+                        on_inspect_click=_on_inspect,
+                    )
+                    render_proposal_cards(
+                        resp_dict,
+                        session=session,
+                        hostname_map=hostname_map,
+                        thread_id=active_tid or str(resp_dict.get("thread_id") or ""),
+                        turn_id=turn_id,
+                    )
+
+        perf_finish_if_active()
+
+    _transcript_fragment()
+
+    # Live streaming progress poller (mounts ONLY while a TurnJobs job is active)
+    _render_active_job_poller(session)
+
+    chat_disabled = examples_only or bool(st.session_state.get("active_job_id"))
+    placeholder = (
+        "Examples only mode — browse recorded examples in How it works"
+        if examples_only
+        else "Ask about your fleet, request a chart, or propose an action..."
+    )
+    new_msg = st.chat_input(placeholder, disabled=chat_disabled, key="copilot_chat_input")
+    if new_msg and not chat_disabled:
+        _start_turn(session, new_msg, new_chat=False)
+        st.rerun()
+
+
 def render_copilot_page() -> None:
-    """Render the 3-zone Copilot page (History · Transcript · Inspector)."""
+    """Render the Copilot page (chat history lives in sidebar; Inspector mounts only when open)."""
     session = require_session()
     container = get_ui_container()
 
     mode = container.guarded.mode(session.company_id)
     examples_only = mode == "examples_only"
 
-    # Handle incoming prompt handoffs (from Home cards, Guided Tour, or refusal alternatives)
+    # Handle incoming prompt handoffs (from Home cards, Guided Tour, Fleet, or refusal alternatives)
     pending_prompt = st.session_state.pop("pending_prompt", None)
     pending_auto = bool(st.session_state.pop("pending_auto_send", False))
     pending_new = bool(st.session_state.pop("pending_new_chat", False))
@@ -283,8 +416,8 @@ def render_copilot_page() -> None:
 
     as_of_iso = cached_telemetry_as_of(session.company_id)
     hostname_map = get_hostname_map(session.company_id, as_of_iso)
+    policies = get_resolved_policies(session.company_id, as_of_iso)
 
-    # Load actor's thread list (cached by version + search so thread switches are instant)
     search_q = str(st.session_state.get("thread_search_query") or "").strip() or None
     thread_ver = int(st.session_state.get("thread_list_version", 0))
     threads = cached_thread_list(
@@ -298,7 +431,7 @@ def render_copilot_page() -> None:
     active_tid: str | None = st.session_state.get("active_thread_id")
     turns = _load_thread_turns(session, active_tid, threads)
 
-    # Populate lookup map in session state so Inspector fragment can switch turns independently
+    # Populate lookup map in session state so Inspector renders the chosen turn cleanly
     turns_by_id = {str(t.get("turn_id") or f"turn_{idx}"): t for idx, t in enumerate(turns)}
     st.session_state["_active_turns_by_id"] = turns_by_id
     st.session_state["_active_turn_order"] = list(turns_by_id.keys())
@@ -306,160 +439,35 @@ def render_copilot_page() -> None:
     if selected_turn_id not in turns_by_id:
         selected_turn_id = next(reversed(turns_by_id), None)
 
-    # 3-zone layout: left history, centre transcript, right toggleable Inspector
-    col_hist, col_main, col_insp = st.columns([2.1, 6.7, 3.2], gap="medium")
+    inspector_open = bool(st.session_state.get("inspector_open", False))
 
-    with col_hist:
-
-        def _on_select_thread(target_tid: str | None) -> None:
-            perf_mark_start("switch_thread")
-            st.session_state["active_thread_id"] = target_tid
-            st.session_state["selected_turn_id"] = None
-
-        st.markdown("#### :material/forum: Chats")
-        st.button(
-            "New chat",
-            key="copilot_new_chat_btn",
-            type="primary",
-            icon=":material/add:",
-            width="stretch",
-            on_click=_on_select_thread,
-            args=(None,),
-        )
-
-        st.text_input(
-            "Search chats",
-            key="thread_search_query",
-            placeholder="Search by title...",
-            label_visibility="collapsed",
-        )
-
-        if not threads:
-            st.caption("No saved conversations yet.")
-        else:
-            for t in threads:
-                tid = str(t["thread_id"])
-                title = str(t.get("title") or "Untitled chat")
-                rel_time = fmt_relative_time(t.get("updated_at"))
-                is_active = tid == st.session_state.get("active_thread_id")
-
-                row_main, row_menu = st.columns([4.5, 1.1])
-                with row_main:
-                    btn_label = f"{title}" + (f" · {rel_time}" if rel_time else "")
-                    st.button(
-                        btn_label,
-                        key=f"thread_select_{tid}",
-                        type="primary" if is_active else "tertiary",
-                        width="stretch",
-                        on_click=_on_select_thread,
-                        args=(tid,),
-                    )
-                with row_menu:
-                    with st.popover(
-                        "",
-                        icon=":material/more_horiz:",
-                        type="tertiary",
-                        key=f"thread_menu_{tid}",
-                    ):
-                        new_title = st.text_input(
-                            "Rename chat",
-                            value=title,
-                            key=f"rename_input_{tid}",
-                        )
-                        if st.button("Save title", key=f"rename_save_{tid}", width="stretch"):
-                            if new_title.strip():
-                                ctx_r = make_tenant_context(session)
-                                container.guarded.rename_thread(ctx_r, tid, new_title.strip())
-                                bump_thread_list_version()
-                                st.rerun()
-                        if st.button(
-                            "Hide chat",
-                            key=f"hide_thread_{tid}",
-                            icon=":material/visibility_off:",
-                            width="stretch",
-                        ):
-                            ctx_h = make_tenant_context(session)
-                            container.guarded.hide_thread(ctx_h, tid, hidden=True)
-                            if st.session_state.get("active_thread_id") == tid:
-                                st.session_state["active_thread_id"] = None
-                                st.session_state["selected_turn_id"] = None
-                            bump_thread_list_version()
-                            st.rerun()
-
-    with col_main:
-        if examples_only:
-            with st.container(border=True):
-                e_left, e_right = st.columns([4.2, 1.8])
-                with e_left:
-                    st.info(
-                        "Examples only (live budget used). Live chat input is disabled.",
-                        icon=":material/menu_book:",
-                    )
-                with e_right:
-                    if st.button(
-                        "View Examples",
-                        key="copilot_go_examples",
-                        icon=":material/arrow_forward:",
-                        width="stretch",
-                    ):
-                        switch_to_page("how_it_works")
-
-        @st.fragment(key="copilot_transcript")
-        def _transcript_fragment() -> None:
-            def _on_inspect(tid_sel: str) -> None:
-                st.session_state["selected_turn_id"] = tid_sel
-                st.session_state["inspector_open"] = True
-                st.rerun(scope="copilot_inspector")
-
-            active_job = st.session_state.get("active_job_id")
-            if not turns and not active_job:
-                _render_empty_state(session, input_disabled=examples_only)
-            else:
-                for idx, turn_row in enumerate(turns):
-                    turn_id = str(turn_row.get("turn_id") or f"turn_{idx}")
-                    user_msg = str(turn_row.get("user_message") or "").strip()
-                    if user_msg:
-                        with st.chat_message("user"):
-                            st.markdown(user_msg)
-
-                    resp_dict = _turn_to_response_dict(turn_row)
-                    with st.chat_message("assistant"):
-                        render_answer_card(
-                            resp_dict,
-                            session=session,
-                            hostname_map=hostname_map,
-                            turn_id=turn_id,
-                            is_selected=(selected_turn_id == turn_id),
-                            on_inspect_click=_on_inspect,
-                        )
-                        render_proposal_cards(
-                            resp_dict,
-                            session=session,
-                            hostname_map=hostname_map,
-                            thread_id=active_tid or str(resp_dict.get("thread_id") or ""),
-                            turn_id=turn_id,
-                        )
-
-            perf_finish_if_active()
-
-        _transcript_fragment()
-
-        # Live streaming progress poller (mounts ONLY while a TurnJobs job is active)
-        _render_active_job_poller(session)
-
-        chat_disabled = examples_only or bool(st.session_state.get("active_job_id"))
-        placeholder = (
-            "Examples only mode — browse recorded examples in How it works"
-            if examples_only
-            else "Ask about your fleet, request a chart, or propose an action..."
-        )
-        new_msg = st.chat_input(placeholder, disabled=chat_disabled, key="copilot_chat_input")
-        if new_msg and not chat_disabled:
-            _start_turn(session, new_msg, new_chat=False)
-            st.rerun()
-
-    with col_insp:
-        render_inspector_panel()
+    if inspector_open:
+        col_main, col_insp = st.columns([6.4, 3.6], gap="medium")
+        with col_main:
+            _render_transcript_zone(
+                session=session,
+                turns=turns,
+                active_tid=active_tid,
+                selected_turn_id=selected_turn_id,
+                hostname_map=hostname_map,
+                policies=policies,
+                examples_only=examples_only,
+                inspector_open=True,
+            )
+        with col_insp:
+            render_inspector_panel()
+    else:
+        with st.container(key="copilot_centered_wrap"):
+            _render_transcript_zone(
+                session=session,
+                turns=turns,
+                active_tid=active_tid,
+                selected_turn_id=selected_turn_id,
+                hostname_map=hostname_map,
+                policies=policies,
+                examples_only=examples_only,
+                inspector_open=False,
+            )
 
 
 def main() -> None:

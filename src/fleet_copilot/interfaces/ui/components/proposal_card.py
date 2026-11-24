@@ -7,6 +7,12 @@ from typing import Any
 
 import streamlit as st
 
+from fleet_copilot.interfaces.ui.humanize import (
+    humanize_actor_label,
+    humanize_check_name,
+    humanize_source,
+    humanize_tool_name,
+)
 from fleet_copilot.interfaces.ui.services import cached_thread_turns, get_ui_container
 from fleet_copilot.interfaces.ui.state import (
     bump_thread_list_version,
@@ -17,7 +23,6 @@ from fleet_copilot.interfaces.ui.state import (
 )
 from fleet_copilot.interfaces.ui.theme import (
     fmt_expires_in,
-    plain_tool_name,
     render_proposal_status_badge,
 )
 from fleet_copilot.services.demo_auth import DemoSession
@@ -58,10 +63,66 @@ def _extract_stale_reason_from_markdown(markdown: str, proposal_id: str) -> str 
     return None
 
 
-def _summarize_args(args: dict[str, Any]) -> str:
+def summarize_proposal_args(args: dict[str, Any], rationale: str = "") -> str:
+    """Format non-redundant action arguments (skipping `note` when it duplicates `rationale`)."""
     skip = {"device_id", "employee_id", "evidence"}
-    parts = [f"{k.replace('_', ' ')}: {v}" for k, v in args.items() if k not in skip and v]
+    rationale_norm = rationale.strip().lower()
+    parts: list[str] = []
+    for k, v in args.items():
+        if k in skip or not v:
+            continue
+        val_str = str(v).strip()
+        # Avoid repeating identical rationale/note copy on the proposal card (U4)
+        if k in ("note", "reason") and (
+            val_str.lower() == rationale_norm
+            or (rationale_norm and val_str.lower() in rationale_norm)
+            or (rationale_norm and rationale_norm in val_str.lower())
+        ):
+            continue
+        label = k.replace("_", " ").capitalize()
+        parts.append(f"{label}: {val_str}")
     return " · ".join(parts)
+
+
+def format_already_decided_message(proposal_row: dict[str, Any]) -> str:
+    """Build a crisp cross-path status message when a proposal was already decided elsewhere."""
+    status = str(proposal_row.get("status") or "")
+    reviewer = proposal_row.get("reviewer_id")
+    via = proposal_row.get("decided_via") or "queue"
+    rev_label = humanize_actor_label(str(reviewer)) if reviewer else "an IT admin"
+    if status in ("approved", "executed"):
+        return f"Already approved via {via} by {rev_label}."
+    if status == "rejected":
+        return f"Already rejected via {via} by {rev_label}."
+    if status == "stale_blocked":
+        return f"Already approved via {via} by {rev_label}, then blocked by fresh data check."
+    if status == "expired":
+        return "This approval request has expired."
+    return f"Already decided ({status}) via {via} by {rev_label}."
+
+
+def render_policy_checklist(checks: list[dict[str, Any]], *, expanded: bool = False) -> None:
+    """Render a humanized policy checklist expander with pass/fail icons and readable sources."""
+    if not checks:
+        return
+    passed_n = sum(1 for c in checks if c.get("passed", True))
+    with st.expander(
+        f"Policy checklist ({passed_n}/{len(checks)} passed)",
+        expanded=expanded,
+        icon=":material/verified_user:",
+    ):
+        for chk in checks:
+            ok_flag = bool(chk.get("passed", True))
+            icon = ":material/check_circle:" if ok_flag else ":material/cancel:"
+            mark = "Pass" if ok_flag else "Fail"
+            chk_label = humanize_check_name(str(chk.get("name") or ""))
+            src_label = humanize_source(str(chk.get("source") or ""))
+            st.markdown(
+                f"{icon} **{chk_label}** ({mark}) — "
+                f"observed `{chk.get('observed')}` vs "
+                f"threshold `{chk.get('threshold')}` "
+                f"({src_label})"
+            )
 
 
 def render_proposal_cards(
@@ -71,6 +132,7 @@ def render_proposal_cards(
     hostname_map: dict[str, str],
     thread_id: str,
     turn_id: str,
+    read_only: bool = False,
 ) -> None:
     """Render all staged action proposals for one turn inside an isolated `@st.fragment`."""
     packet = resp.get("approval_packet") if isinstance(resp.get("approval_packet"), dict) else None
@@ -90,7 +152,7 @@ def render_proposal_cards(
 
     @st.fragment(key=frag_key)
     def _proposal_batch_fragment() -> None:
-        is_admin = session.role == "it_admin"
+        is_admin = session.role == "it_admin" and not read_only
         fixture_map: dict[str, dict[str, Any]] = dict(
             st.session_state.get("fixture_decisions") or {}
         )
@@ -149,32 +211,62 @@ def render_proposal_cards(
 
             container = get_ui_container()
             ctx = make_tenant_context(session)
+
+            # Capture pre-resume DB statuses to detect cross-path decisions made via queue/API
+            prior_db: dict[str, dict[str, Any]] = {}
+            for pid_k in decisions:
+                try:
+                    row_before = container.store.get_proposal(session.company_id, pid_k)
+                except Exception:  # noqa: BLE001
+                    row_before = None
+                if isinstance(row_before, dict):
+                    prior_db[pid_k] = row_before
+
             res = container.guarded.resume(ctx, thread_id, decisions, note=note or None)
             outcomes = dict(st.session_state.get("last_resume_outcomes") or {})
-            for p_res in res.proposals:
-                pid_r = str(p_res.get("proposal_id") or "")
-                st_r = str(p_res.get("status") or "")
-                if pid_r:
-                    outcomes[pid_r] = {
-                        "status": "deferred" if decisions.get(pid_r) == "defer" else st_r,
-                        "receipt_id": _extract_receipt_from_markdown(res.answer_markdown, pid_r),
-                        "message": _extract_stale_reason_from_markdown(res.answer_markdown, pid_r)
+
+            for pid_k, dec in decisions.items():
+                prior = prior_db.get(pid_k)
+                if prior is not None and str(prior.get("status") or "") != "pending_approval":
+                    rcpt_json = prior.get("external_receipt_json")
+                    rcpt_id = (
+                        str(rcpt_json.get("receipt_id"))
+                        if isinstance(rcpt_json, dict) and rcpt_json.get("receipt_id")
+                        else None
+                    )
+                    outcomes[pid_k] = {
+                        "status": str(prior.get("status") or "executed"),
+                        "receipt_id": rcpt_id,
+                        "message": format_already_decided_message(prior),
+                        "already_decided": True,
+                    }
+                    continue
+
+                p_res = next(
+                    (p for p in res.proposals if str(p.get("proposal_id") or "") == pid_k),
+                    None,
+                )
+                if p_res is not None:
+                    st_r = str(p_res.get("status") or "")
+                    outcomes[pid_k] = {
+                        "status": "deferred" if dec == "defer" else st_r,
+                        "receipt_id": _extract_receipt_from_markdown(res.answer_markdown, pid_k),
+                        "message": _extract_stale_reason_from_markdown(res.answer_markdown, pid_k)
                         or res.answer_markdown.splitlines()[0],
                     }
-            # Fallback if resume reported no-op message
-            if not res.proposals:
-                for pid_k in decisions:
+                else:
                     outcomes[pid_k] = {
-                        "status": "deferred" if decisions[pid_k] == "defer" else decisions[pid_k],
+                        "status": "deferred" if dec == "defer" else dec,
                         "message": res.answer_markdown,
                     }
+
             st.session_state["last_resume_outcomes"] = outcomes
             cached_thread_turns.clear()
             bump_thread_list_version()
 
         for idx, (prop, eff_status, receipt_id, detail_msg) in enumerate(enriched):
             pid = str(prop.get("proposal_id") or f"prop_{idx}")
-            tool_label = plain_tool_name(str(prop.get("tool_name") or ""))
+            tool_label = humanize_tool_name(str(prop.get("tool_name") or ""))
             target_id = str(prop.get("target_id") or "")
             host = hostname_map.get(target_id)
             target_display = (
@@ -182,17 +274,20 @@ def render_proposal_cards(
             )
             raw_args = prop.get("arguments")
             args: dict[str, Any] = raw_args if isinstance(raw_args, dict) else {}
+            rationale = str(prop.get("rationale") or "").strip()
             verdict = _match_verdict(prop, verdicts)
             checks = list((verdict or {}).get("checks") or [])
             expires_text = fmt_expires_in(prop.get("expires_at"))
 
             with st.container(border=True):
-                top_cols = (
-                    st.columns([0.45, 3.65, 2.3]) if multi_pending else st.columns([4.0, 2.4])
-                )
-                if multi_pending:
-                    with top_cols[0]:
-                        if eff_status == "pending_approval":
+                with st.container(
+                    horizontal=True,
+                    horizontal_alignment="distribute",
+                    vertical_alignment="center",
+                    gap="small",
+                ):
+                    with st.container(horizontal=True, vertical_alignment="center", gap="small"):
+                        if multi_pending and eff_status == "pending_approval":
                             checked = st.checkbox(
                                 f"Select {pid}",
                                 value=True,
@@ -201,43 +296,24 @@ def render_proposal_cards(
                             )
                             if checked:
                                 selected_for_batch.append(pid)
-                    hdr_col, right_col = top_cols[1], top_cols[2]
-                else:
-                    hdr_col, right_col = top_cols[0], top_cols[1]
+                        st.markdown(f"**{tool_label}** · {target_display}")
+                    with st.container(horizontal=True, vertical_alignment="center", gap="small"):
+                        render_proposal_status_badge(eff_status)
+                        if eff_status == "pending_approval" and expires_text:
+                            st.caption(f":material/schedule: {expires_text}")
 
-                with hdr_col:
-                    st.markdown(f"**{tool_label}** · {target_display}")
-                    arg_summary = _summarize_args(args)
-                    if arg_summary:
-                        st.caption(arg_summary)
-                with right_col:
-                    render_proposal_status_badge(eff_status)
-                    if eff_status == "pending_approval" and expires_text:
-                        st.caption(f":material/schedule: {expires_text}")
+                arg_summary = summarize_proposal_args(args, rationale=rationale)
+                if arg_summary:
+                    st.caption(arg_summary)
+                if rationale:
+                    st.markdown(rationale)
 
-                if prop.get("rationale"):
-                    st.markdown(str(prop["rationale"]))
+                render_policy_checklist(
+                    checks,
+                    expanded=eff_status == "pending_approval" and len(enriched) <= 2,
+                )
 
-                # Policy checklist (✓ / ✗ with observed vs threshold and source)
-                if checks:
-                    passed_n = sum(1 for c in checks if c.get("passed", True))
-                    with st.expander(
-                        f"Policy checklist ({passed_n}/{len(checks)} passed)",
-                        expanded=eff_status == "pending_approval" and len(enriched) <= 2,
-                        icon=":material/verified_user:",
-                    ):
-                        for chk in checks:
-                            ok_flag = bool(chk.get("passed", True))
-                            icon = ":material/check_circle:" if ok_flag else ":material/cancel:"
-                            mark = "Pass" if ok_flag else "Fail"
-                            st.markdown(
-                                f"{icon} **{chk.get('name')}** ({mark}) — "
-                                f"observed `{chk.get('observed')}` vs "
-                                f"threshold `{chk.get('threshold')}` "
-                                f"(source: `{chk.get('source')}`)"
-                            )
-
-                # Decision buttons (it_admin ONLY) OR outcome summary
+                # Decision buttons (it_admin ONLY, not read_only) OR outcome summary
                 if eff_status == "pending_approval":
                     if is_admin and not multi_pending:
                         b1, b2, b3 = st.columns(3, gap="small")
@@ -271,22 +347,28 @@ def render_proposal_cards(
                                 on_click=_apply_decisions,
                                 args=({pid: "defer"},),
                             )
-                    elif not is_admin:
+                    elif not is_admin and not read_only:
                         st.info(
                             "Ask an IT admin to approve this proposed action.",
                             icon=":material/visibility:",
                         )
                 else:
-                    if eff_status == "executed":
+                    outcome_rec = resume_outcomes.get(pid) or {}
+                    if outcome_rec.get("already_decided") and detail_msg:
+                        st.info(detail_msg, icon=":material/info:")
+                    elif eff_status == "executed":
                         rcpt_str = f" · Receipt `{receipt_id}`" if receipt_id else ""
                         st.success(f"Executed{rcpt_str}", icon=":material/check_circle:")
-                        if st.button(
-                            "View in Approvals & Activity",
-                            key=f"outbox_link_{turn_id}_{pid}",
-                            type="tertiary",
-                            icon=":material/open_in_new:",
-                        ):
-                            switch_to_page("approvals")
+                        if not read_only:
+                            if st.button(
+                                "View in Approvals & Activity",
+                                key=f"outbox_link_{turn_id}_{pid}",
+                                type="tertiary",
+                                icon=":material/open_in_new:",
+                            ):
+                                if receipt_id:
+                                    st.session_state["approvals_outbox_receipt"] = receipt_id
+                                switch_to_page("approvals")
                     elif eff_status == "stale_blocked":
                         reason = detail_msg or "Telemetry changed before execution."
                         st.warning(

@@ -9,6 +9,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from fleet_copilot.domain.models import DeviceState, PolicyValue, TenantContext
+from fleet_copilot.interfaces.ui.humanize import humanize_policy
 from fleet_copilot.repositories.telemetry import TelemetryRepository
 from fleet_copilot.services.fleet import get_fleet_overview
 from fleet_copilot.services.policy import PolicyService
@@ -85,7 +86,7 @@ def _policy_note(policies: dict[str, PolicyValue], key: str, default: Any) -> st
     pv = policies.get(key)
     val = pv.value if pv is not None else default
     src = pv.source if pv is not None else "global"
-    return f"{key}={val} ({src})"
+    return humanize_policy(key, val, src)
 
 
 def _a_or_an(word: str) -> str:
@@ -210,7 +211,7 @@ def _build_category_item(
         title = f"{n} {plural} drifted into compliance failure ({', '.join(checks)})"
         explanation = (
             f"{n} {company_name} {plural} ({', '.join(hostnames)}) transitioned from pass to fail "
-            f"on {', '.join(checks)} within the 30-day window (compliance_drift analyzer, global)."
+            f"on {', '.join(checks)} within the 30-day window (Compliance drift · default policy)."
         )
         prompt = (
             f"Which {company_name} devices drifted into compliance failure in the last 30 days?"
@@ -224,7 +225,7 @@ def _build_category_item(
         title = f"{n} {plural} with chronic compliance failures ({', '.join(checks)})"
         explanation = (
             f"{n} {company_name} {plural} ({', '.join(hostnames)}) failed {', '.join(checks)} "
-            "on every snapshot in the 30-day window (compliance_chronic analyzer, global)."
+            "on every snapshot in the 30-day window (Chronic compliance · default policy)."
         )
         prompt = f"Which {company_name} devices have chronic compliance check failures?"
         action_prompt = _ticket_action_prompt(lead_check, hostnames) if is_admin else None

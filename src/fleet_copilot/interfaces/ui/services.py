@@ -51,6 +51,7 @@ def set_ui_container_override(container: UIContainer | None) -> None:
     _CONTAINER_OVERRIDE = container
     cached_telemetry_as_of.clear()
     cached_briefing_dict.clear()
+    cached_resolved_policies.clear()
     cached_hostname_map.clear()
     cached_thread_list.clear()
     cached_thread_turns.clear()
@@ -165,6 +166,34 @@ def get_cached_briefing(
         )
     data = cached_briefing_dict(company_id, telemetry_as_of, role, actor_id)
     return Briefing.model_validate(data)
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def cached_resolved_policies(company_id: str, telemetry_as_of: str) -> dict[str, Any]:
+    """Resolve effective policy thresholds for `company_id`, keyed by `(company_id, as_of)`."""
+    _ = telemetry_as_of
+    container = get_ui_container()
+    ctx = TenantContext(
+        company_id=company_id,
+        actor_id="ui:policy_reader",
+        role="viewer",
+        trace_id=f"ui-pol-{company_id}",
+    )
+    resolved = container.policy_svc.resolve(ctx)
+    return {k: v.value for k, v in resolved.items()}
+
+
+def get_resolved_policies(company_id: str, telemetry_as_of: str) -> dict[str, Any]:
+    """Return `{metric_key: value}` using cache in production or live container in tests."""
+    if _CONTAINER_OVERRIDE is not None:
+        ctx = TenantContext(
+            company_id=company_id,
+            actor_id="ui:policy_reader",
+            role="viewer",
+            trace_id=f"ui-pol-{company_id}",
+        )
+        return {k: v.value for k, v in _CONTAINER_OVERRIDE.policy_svc.resolve(ctx).items()}
+    return cached_resolved_policies(company_id, telemetry_as_of)
 
 
 @st.cache_data(ttl=60, show_spinner=False)

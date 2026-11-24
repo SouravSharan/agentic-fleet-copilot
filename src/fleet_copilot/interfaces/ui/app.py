@@ -21,7 +21,7 @@ from fleet_copilot.interfaces.ui.theme import inject_base_css
 
 
 def run_app() -> None:
-    """Configure page chrome, register all 6 navigation pages, and execute the active route."""
+    """Configure page chrome, register navigation pages (hiding Sign in after auth), and run."""
     st.set_page_config(
         page_title="Fleet Copilot",
         page_icon=":material/devices:",
@@ -75,18 +75,22 @@ def run_app() -> None:
     }
     register_pages(pages)
 
-    ordered_pages = [
-        pages["sign_in"],
-        pages["home"],
-        pages["copilot"],
-        pages["approvals"],
-        pages["fleet"],
-        pages["how_it_works"],
-    ]
+    if signed_in:
+        ordered_pages = [
+            pages["home"],
+            pages["copilot"],
+            pages["approvals"],
+            pages["fleet"],
+            pages["how_it_works"],
+        ]
+        nav_position = "sidebar"
+    else:
+        ordered_pages = [pages["sign_in"]]
+        nav_position = "hidden"
 
-    nav_position = "sidebar" if signed_in else "hidden"
     active_page = st.navigation(ordered_pages, position=nav_position)
-    render_sidebar()
+    active_slug = next((slug for slug, pg in pages.items() if pg == active_page), "")
+    render_sidebar(active_slug=active_slug)
     active_page.run()
 
 

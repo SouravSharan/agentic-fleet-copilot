@@ -7,6 +7,8 @@ from typing import Any, Literal
 
 import streamlit as st
 
+from fleet_copilot.interfaces.ui.humanize import humanize_tool_name
+
 BadgeColor = Literal[
     "red", "orange", "yellow", "blue", "green", "violet", "gray", "grey", "primary"
 ]
@@ -110,6 +112,21 @@ _BASE_CSS = """
     margin-bottom: 0.5rem;
     font-size: 0.86rem;
 }
+.st-key-copilot_centered_wrap {
+    max-width: 820px;
+    margin-left: auto;
+    margin-right: auto;
+}
+[class*="st-key-cite_"] button {
+    padding: 0.08rem 0.42rem !important;
+    min-height: 1.55rem !important;
+    font-size: 0.78rem !important;
+    line-height: 1.2 !important;
+}
+[class*="st-key-cites_row_"] {
+    margin-top: -0.35rem;
+    margin-bottom: 0.25rem;
+}
 </style>
 """
 
@@ -141,7 +158,7 @@ def render_proposal_status_badge(status: str) -> None:
 
 def plain_tool_name(tool_name: str) -> str:
     """Convert an internal action tool identifier into plain English."""
-    return _TOOL_PLAIN_NAMES.get(tool_name, tool_name.replace("_", " ").capitalize())
+    return humanize_tool_name(tool_name)
 
 
 def plain_warning(raw: str) -> str:

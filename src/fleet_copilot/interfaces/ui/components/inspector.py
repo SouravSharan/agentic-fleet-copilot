@@ -1,4 +1,4 @@
-"""Technical Inspector drawer (`@st.fragment`) exposing Plan, Steps, Evidence, Grounding, Usage."""
+"""Technical Inspector drawer exposing raw Plan, Tools, Evidence, Verify, and Usage."""
 
 from __future__ import annotations
 
@@ -56,11 +56,10 @@ def _grounding_summary(resp: dict[str, Any]) -> dict[str, Any]:
 
 
 def render_inspector_panel() -> None:
-    """Render the toggleable right-hand Inspector inside its own `@st.fragment`."""
+    """Render the open right-hand technical Inspector panel (mounted only when open)."""
 
     @st.fragment(key="copilot_inspector")
     def _inspector_fragment() -> None:
-        is_open = bool(st.session_state.get("inspector_open", False))
         turns_by_id: dict[str, dict[str, Any]] = dict(
             st.session_state.get("_active_turns_by_id") or {}
         )
@@ -78,30 +77,15 @@ def render_inspector_panel() -> None:
                 gap="small",
             ):
                 st.markdown("#### :material/search_insights: Inspector")
-                toggle_label = "Close" if is_open else "Open"
-                toggle_icon = ":material/close:" if is_open else ":material/open_in_full:"
-
-                def _on_toggle_inspector() -> None:
-                    perf_mark_start("toggle_inspector")
-                    st.session_state["inspector_open"] = not bool(
-                        st.session_state.get("inspector_open", False)
-                    )
-
-                st.button(
-                    toggle_label,
-                    key="inspector_toggle_btn",
-                    icon=toggle_icon,
+                if st.button(
+                    "Close",
+                    key="inspector_close_btn",
+                    icon=":material/close:",
                     width="content",
-                    on_click=_on_toggle_inspector,
-                )
-
-            if not is_open:
-                st.caption(
-                    "Open the Inspector to inspect the agent Plan, tool timeline, "
-                    "evidence ledger, grounding check, and token usage."
-                )
-                perf_finish_if_active()
-                return
+                ):
+                    perf_mark_start("toggle_inspector")
+                    st.session_state["inspector_open"] = False
+                    st.rerun(scope="app")
 
             if selected_turn is None:
                 st.info(
@@ -116,8 +100,9 @@ def render_inspector_panel() -> None:
             turn_id = str(resp.get("turn_id") or selected_turn.get("turn_id") or "")
             st.caption(f"Turn `{turn_id}` · status `{resp.get('status', 'completed')}`")
 
-            tab_plan, tab_steps, tab_ev, tab_ground, tab_usage = st.tabs(
-                ["Plan", "Steps", "Evidence", "Grounding", "Usage"]
+            # Short labels avoid horizontal tab overflow on desktop widths (U9)
+            tab_plan, tab_tools, tab_ev, tab_verify, tab_usage = st.tabs(
+                ["Plan", "Tools", "Evidence", "Verify", "Usage"]
             )
 
             with tab_plan:
@@ -145,7 +130,17 @@ def render_inspector_panel() -> None:
                     else:
                         st.caption("No tool steps planned.")
 
-            with tab_steps:
+                # Inspector preserves raw unmodified caveats from the model (U3)
+                raw_ans = resp.get("answer")
+                raw_caveats = (
+                    list(raw_ans.get("caveats") or []) if isinstance(raw_ans, dict) else []
+                )
+                if raw_caveats:
+                    with st.expander("Raw answer caveats", expanded=False):
+                        for c in raw_caveats:
+                            st.text(str(c))
+
+            with tab_tools:
                 trace = list(resp.get("tool_trace") or [])
                 if not trace:
                     st.caption("No tool calls executed in this turn.")
@@ -159,7 +154,8 @@ def render_inspector_panel() -> None:
                         with st.container(border=True):
                             st.markdown(f"**{idx}. `{tool_name}`**")
                             render_status_badge(
-                                "ok" if ok_flag else "blocked", "ok" if ok_flag else "failed"
+                                "ok" if ok_flag else "blocked",
+                                "ok" if ok_flag else "failed",
                             )
                             ratio = (
                                 f"matched {matched}/{evaluated}"
@@ -168,7 +164,7 @@ def render_inspector_panel() -> None:
                             )
                             st.caption(f"{dur} ms" + (f" · {ratio}" if ratio else ""))
                             if step.get("summary"):
-                                st.caption(str(step["summary"]))
+                                st.text(str(step["summary"]))
                             safe_args = _redact_args(step.get("args") or {})
                             st.code(json.dumps(safe_args, indent=2, default=str), language="json")
 
@@ -191,7 +187,7 @@ def render_inspector_panel() -> None:
                     ]
                     st.dataframe(rows, width="stretch", hide_index=True)
 
-            with tab_ground:
+            with tab_verify:
                 g = _grounding_summary(resp)
                 res_kind = (
                     "ok"

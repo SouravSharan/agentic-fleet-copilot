@@ -351,6 +351,44 @@ def test_copilot_examples_only_mode_disables_chat_input() -> None:
         container.turn_jobs.shutdown(wait=False)
 
 
+def test_u11_answer_card_inspector_button_opens_inspector_with_plan_tab(
+    offline_ui_container: UIContainer,
+) -> None:
+    """Clicking the answer-card Inspector button opens the Inspector showing the Plan tab."""
+    session = _demo_session_for("acme_admin")
+    tid = _seed_rich_copilot_thread(offline_ui_container, session)
+
+    def _run_copilot() -> None:
+        from fleet_copilot.interfaces.ui.pages.copilot import render_copilot_page
+
+        render_copilot_page()
+
+    at = AppTest.from_function(_run_copilot, default_timeout=15)
+    at.session_state["demo_session"] = session
+    at.session_state["active_thread_id"] = tid
+    at.run()
+    assert not at.exception
+    assert not bool(at.session_state.get("inspector_open", False))
+
+    # Click Inspector button on an older turn (turn_smoke_chart)
+    at.button(key="inspect_btn_turn_smoke_chart").click().run()
+    assert not at.exception
+    assert at.session_state["inspector_open"] is True
+    assert at.session_state["selected_turn_id"] == "turn_smoke_chart"
+    tab_labels = [t.label for t in at.tabs]
+    assert tab_labels == ["Plan", "Tools", "Evidence", "Verify", "Usage"]
+
+    # Clicking Inspector on a different turn updates selected_turn_id without error
+    at.button(key="inspect_btn_turn_smoke_refuse").click().run()
+    assert not at.exception
+    assert at.session_state["selected_turn_id"] == "turn_smoke_refuse"
+
+    # Clicking Close collapses Inspector cleanly
+    at.button(key="inspector_close_btn").click().run()
+    assert not at.exception
+    assert at.session_state["inspector_open"] is False
+
+
 def test_unauthenticated_home_and_copilot_require_session(
     offline_ui_container: UIContainer,
 ) -> None:
