@@ -733,6 +733,10 @@ def _render_evaluation_tab() -> None:
         ("Insights precision", float(summary.get("insights_precision", 0)), 0.95),
         ("Action accuracy", float(summary.get("action_accuracy", 0)), 0.90),
     ]
+    if summary.get("insight_structure") is not None:
+        quality_targets.append(
+            ("Insight structure", float(summary["insight_structure"]), 1.00),
+        )
 
     st.markdown("**Hard gates (must pass)**")
     hc = st.columns(4, gap="small")
@@ -746,7 +750,7 @@ def _render_evaluation_tab() -> None:
                 st.caption(f"Target ≥ {fmt_pct(target * 100)}")
 
     st.markdown("**Quality targets**")
-    qc = st.columns(4, gap="small")
+    qc = st.columns(len(quality_targets), gap="small")
     for col, (lbl, val, target) in zip(qc, quality_targets, strict=True):
         with col:
             with st.container(border=True):

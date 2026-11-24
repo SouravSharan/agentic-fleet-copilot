@@ -10,6 +10,7 @@ from evals.metrics import (
     grade_citation_coverage,
     grade_citation_validity,
     grade_correctness,
+    grade_insight_structure,
     grade_numeric_faithfulness,
     grade_safety,
     grade_trajectory,
@@ -813,3 +814,36 @@ def test_eval_exit_codes_hard_gates_regression_quality_target_and_cost_cap(
     assert resolve_eval_out_prefix(mode="live", out=None, write_baseline=False) == Path(
         "evals/reports/latest"
     )
+
+
+def test_grade_insight_structure_requires_finding_explanation_and_traceable_evidence() -> None:
+    """Insights need finding, explanation and anchored evidence; used insights must be cited."""
+    cited = [{"handle": "E1", "snapshot_id": "snap_a"}, {"handle": "E2", "snapshot_id": "snap_b"}]
+    base = {
+        "finding": "Battery end-of-life risk on acme-macbook-1.",
+        "explanation": "Cycles moved 1017 -> 1049 over 30 days.",
+        "evidence": [
+            {"snapshot_id": "snap_a", "metric": "battery_window_first"},
+            {"snapshot_id": "snap_b", "metric": "battery_latest"},
+        ],
+    }
+    used_cited = {**base, "insight_id": "battery:A"}
+    used_uncited = {
+        **base,
+        "insight_id": "battery:B",
+        "evidence": [{"snapshot_id": "snap_x", "metric": "battery_latest"}],
+    }
+    side_uncited = {**used_uncited, "insight_id": "battery:C"}  # surfaced, not used by the answer
+    no_explanation = {**base, "insight_id": "battery:D", "explanation": "  "}
+    no_evidence = {**base, "insight_id": "battery:E", "evidence": []}
+
+    resp = _make_resp(
+        citations=cited,
+        insights=[used_cited, used_uncited, side_uncited, no_explanation, no_evidence],
+    )
+    assert resp.answer is not None
+    answer = resp.answer.model_copy(update={"insight_refs": ["battery:A", "battery:B"]})
+    resp = resp.model_copy(update={"answer": answer})
+    # used_cited and side_uncited pass; used_uncited, no_explanation, no_evidence fail
+    assert grade_insight_structure(resp) == 0.4
+    assert grade_insight_structure(_make_resp(citations=cited, insights=[])) is None

@@ -1,9 +1,9 @@
 # Fleet Copilot Evaluation Report (PASS)
 
-- **Date (UTC):** `2026-11-24T10:04:24.196107+00:00`
+- **Date (UTC):** `2026-11-24T11:09:28.018808+00:00`
 - **Model:** `google_genai:gemini-3.8-flash`
 - **Mode:** `replay` · **Repeats:** `1`
-- **Git SHA:** `6f44ba2` · **Cassette hash:** `9fd547d163f52e2b`
+- **Git SHA:** `3a84828` · **Cassette hash:** `9fd547d163f52e2b`
 
 ## CI Gates
 
@@ -16,6 +16,7 @@
 | qa_correctness | 1.0000 | >= 0.95 | PASS |
 | insights_recall | 1.0000 | >= 1.00 | PASS |
 | insights_precision | 1.0000 | >= 0.95 | PASS |
+| insight_structure | 1.0000 | >= 1.00 | PASS |
 | action_accuracy | 1.0000 | >= 0.90 | PASS |
 
 ## Summary Metrics
@@ -37,7 +38,7 @@
 | Trajectory pass rate | 1.0000 |
 | Total tokens (in / out) | 1,083,059 / 46,718 |
 | Recorded LLM cost (`recorded_cost`, USD) | $0.9875 |
-| Mean latency (ms) | 617.6 |
+| Mean latency (ms) | 624.0 |
 
 ## Failures
 

@@ -113,6 +113,10 @@ def aggregate_results(
         if r["correctness"].get("precision") is not None
     ]
 
+    structure_scores = [
+        float(r["insight_structure"]) for r in ins_runs if r.get("insight_structure") is not None
+    ]
+
     summary: dict[str, Any] = {
         "total_cases": len(by_case),
         "total_runs": len(case_runs),
@@ -139,6 +143,7 @@ def aggregate_results(
         "insights_count": len(ins_runs),
         "insights_recall": _mean(ins_recalls),
         "insights_precision": _mean(ins_precisions),
+        "insight_structure": _mean(structure_scores) if structure_scores else None,
         "actions_count": len(act_runs),
         "action_accuracy": _mean([float(r["actions"]["score"]) for r in act_runs]),
         "multiturn_count": len(mt_runs),

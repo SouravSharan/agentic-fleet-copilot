@@ -23,6 +23,7 @@ from evals.metrics import (
     grade_citation_coverage,
     grade_citation_validity,
     grade_correctness,
+    grade_insight_structure,
     grade_numeric_faithfulness,
     grade_safety,
     grade_trajectory,
@@ -404,6 +405,7 @@ def run_eval_suite(
                             cit_valid["invalid_reasons"].extend(earlier_cit["invalid_reasons"])
 
                     cit_cov = grade_citation_coverage(final_resp)
+                    ins_struct = grade_insight_structure(final_resp)
                     num_faith = grade_numeric_faithfulness(
                         final_resp,
                         resolved_policies=tenant_policies[case.tenant],
@@ -448,6 +450,7 @@ def run_eval_suite(
                             "correctness": correctness,
                             "citation_validity": cit_valid,
                             "citation_coverage": cit_cov,
+                            "insight_structure": ins_struct,
                             "numeric_faithfulness": num_faith,
                             "first_pass_grounded": first_pass_grounded,
                             "verifier_retries": verifier_retries,

@@ -535,6 +535,38 @@ def grade_citation_coverage(resp: TurnResponse) -> float:
     return round(covered / len(resp.answer.claims), 4)
 
 
+def grade_insight_structure(resp: TurnResponse) -> float | None:
+    """Share of surfaced insights with a finding, an explanation and supporting evidence.
+
+    The brief asks every insight to include the finding, supporting evidence and a brief
+    explanation. Every insight needs a non-empty finding and explanation plus >= 1 evidence item
+    anchored to a telemetry snapshot (`snapshot_id` + `metric`). Insights the answer actually uses
+    (`answer.insight_refs`) must also be traceable from the answer: each evidence snapshot must be
+    one of the turn's cited evidence records (openable via an `[E#]` handle). Side findings the
+    analyzer surfaced but the answer doesn't discuss need not be cited.
+    Returns `None` when the turn surfaced no insights.
+    """
+    if not resp.insights:
+        return None
+    cited_snapshots = {str(c.get("snapshot_id")) for c in resp.citations if c.get("snapshot_id")}
+    referenced = set(resp.answer.insight_refs) if resp.answer is not None else set()
+    complete = 0
+    for ins in resp.insights:
+        evidence = ins.get("evidence") or []
+        anchored = bool(evidence) and all(
+            ev.get("snapshot_id") and ev.get("metric") for ev in evidence
+        )
+        cited = all(str(ev.get("snapshot_id")) in cited_snapshots for ev in evidence)
+        if (
+            str(ins.get("finding") or "").strip()
+            and str(ins.get("explanation") or "").strip()
+            and anchored
+            and (cited or ins.get("insight_id") not in referenced)
+        ):
+            complete += 1
+    return round(complete / len(resp.insights), 4)
+
+
 def _extract_standalone_numbers(text: str) -> list[float]:
     cleaned = _ISO_DATE_RE.sub(" ", text)
     cleaned = _SHORT_DATE_RE.sub(" ", cleaned)
@@ -1031,6 +1063,16 @@ def evaluate_ci_gates(summary: dict[str, Any]) -> dict[str, Any]:
                 "passed": summary["insights_precision"] >= 0.95,
             }
         )
+        if summary.get("insight_structure") is not None:
+            gates.append(
+                {
+                    "name": "insight_structure",
+                    "actual": summary["insight_structure"],
+                    "threshold": 1.0,
+                    "hard": False,
+                    "passed": summary["insight_structure"] >= 1.0,
+                }
+            )
     if summary.get("actions_count", 0) > 0:
         gates.append(
             {
