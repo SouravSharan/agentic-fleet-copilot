@@ -1,4 +1,4 @@
-"""Comprehensive LangGraph workflow tests covering all 18 required Step 5 scenarios."""
+"""Comprehensive LangGraph workflow tests covering routing, grounding, HITL, and safety."""
 
 from __future__ import annotations
 
@@ -902,12 +902,12 @@ def test_checkpoint_roundtrip_encrypted_with_signatures(
 
 
 # ---------------------------------------------------------------------------
-# Midpoint Audit (09) Regression Tests: H3, M1, M2, M4, L1
+# Regression Tests: Digest Follow-Ups, Parse Retry, Failure Truthfulness, Proposal IDs
 # ---------------------------------------------------------------------------
 
 
 def test_budget_exhaustion_leaves_no_dangling_tool_calls_across_two_turns() -> None:
-    """M1: Every AIMessage tool_call ID must have a ToolMessage before Turn 2's LLM call."""
+    """Every AIMessage tool_call ID must have a ToolMessage before Turn 2's LLM call."""
     from langchain_core.messages import ToolMessage
 
     base_rt = get_runtime_config()
@@ -991,7 +991,7 @@ def test_budget_exhaustion_leaves_no_dangling_tool_calls_across_two_turns() -> N
 
 
 def test_conversation_digest_passed_to_planner_and_synthesizer_on_followup() -> None:
-    """H3: Turn 2 planner & synthesizer receive Turn 1 user msg, summary, and result_device_ids."""
+    """Turn 2 planner & synthesizer receive Turn 1 user msg, summary, and result_device_ids."""
     planner = ScriptedChatModel(
         script=[
             Plan(intent="qa", steps=[PlanStep(goal="Low disk", tool_hint="find_devices")]),
@@ -1066,7 +1066,7 @@ def test_conversation_digest_passed_to_planner_and_synthesizer_on_followup() -> 
 
 
 def test_structured_output_parse_failure_retries_once_and_recovers() -> None:
-    """M2: Planner/synthesizer retries once on structured-output parse failure."""
+    """Planner/synthesizer retries once on structured-output parse failure."""
     bad_parse = {
         "raw": AIMessage(content=[{"type": "text", "text": "not json"}]),
         "parsed": None,
@@ -1116,7 +1116,7 @@ def test_structured_output_parse_failure_retries_once_and_recovers() -> None:
 
 
 def test_llm_exception_and_double_parse_failure_mark_turn_failed_and_audit() -> None:
-    """M2: Unrecoverable LLM error or parse failure marks turn failed, audits, returns failed."""
+    """Unrecoverable LLM error or parse failure marks turn failed, audits, returns failed."""
     planner = ScriptedChatModel(script=[RuntimeError("Gemini 503 unavailable")])
     investigator = ScriptedChatModel(script=["unused"])
     synthesizer = ScriptedChatModel(script=[Answer(summary="unused")])
@@ -1154,7 +1154,7 @@ def test_llm_exception_and_double_parse_failure_mark_turn_failed_and_audit() -> 
 
 
 def test_turn_timeout_returns_failed_response_and_audits() -> None:
-    """N1: Cooperative turn_deadline stops before downstream nodes and stages/executes nothing."""
+    """Cooperative turn_deadline stops before downstream nodes and stages/executes nothing."""
     import time
 
     base_rt = get_runtime_config()
@@ -1201,7 +1201,7 @@ def test_turn_timeout_returns_failed_response_and_audits() -> None:
 
 
 def test_per_tool_cap_rejections_count_toward_budget_and_route_via_flag() -> None:
-    """N3: Capped tool calls count toward step_count and exit via `budget_exhausted` flag."""
+    """Capped tool calls count toward step_count and exit via `budget_exhausted` flag."""
     base_rt = get_runtime_config()
     capped_rt = base_rt.model_copy(
         update={
@@ -1252,7 +1252,7 @@ def test_per_tool_cap_rejections_count_toward_budget_and_route_via_flag() -> Non
 
 
 def test_tools_node_validates_args_and_sanitizes_errors() -> None:
-    """11 §1 #8: Invalid args return field names only; runtime errors return class name only."""
+    """Invalid args return field names only; runtime errors return class name only."""
     import json
 
     from langchain_core.messages import ToolMessage
@@ -1356,7 +1356,7 @@ def test_resume_failure_uses_real_turn_id_and_truthful_proposal_status(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """N1 + N2: Resume failure updates real paused turn_id and reports truthful proposal status."""
+    """Resume failure updates real paused turn_id and reports truthful proposal status."""
     svc, _, audit = _stage_screen_lock_copilot(db_manager)
     ctx = _ctx()
     paused = svc.run_turn(ctx, None, "Open a screen_lock remediation ticket for 1LYSSFD074BB")
@@ -1397,7 +1397,7 @@ def test_action_precheck_returns_single_final_proposal_id_no_draft_id(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """M4 + L1: Precheck tool returns final uuid5 proposal_id (no draft_id) and records latency."""
+    """Precheck tool returns final uuid5 proposal_id (no draft_id) and records latency."""
     import json
 
     svc, _, audit = _stage_screen_lock_copilot(db_manager)
@@ -1421,7 +1421,7 @@ def test_action_precheck_returns_single_final_proposal_id_no_draft_id(
     assert payload["proposal_id"] == final_pid
     assert "draft_id" not in payload
 
-    # L1: resume and confirm real non-zero latency_ms persisted in turn_completed audit
+    # Resume and confirm real non-zero latency_ms persisted in turn_completed audit
     resumed = svc.resume(ctx, resp.thread_id, {final_pid: "approve"})
     assert resumed.status == "completed"
     assert resumed.usage.latency_ms >= 0
@@ -1435,7 +1435,7 @@ def test_action_precheck_returns_single_final_proposal_id_no_draft_id(
 
 
 def test_indirect_injection_withheld_from_tool_messages_and_synth_but_kept_in_citations() -> None:
-    """Audit/13 §3 H2: Raw injection string never enters ToolMessage, synth prompt, or markdown."""
+    """Raw injection string never enters ToolMessage, synth prompt, or answer markdown."""
     import json
 
     from langchain_core.messages import ToolMessage

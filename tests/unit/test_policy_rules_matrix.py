@@ -1,4 +1,4 @@
-"""Unit tests covering every row of the 05 §3.6 action policy rules matrix with synthetic facts."""
+"""Unit tests covering every row of the action policy rules matrix with synthetic facts."""
 
 from __future__ import annotations
 

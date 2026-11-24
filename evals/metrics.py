@@ -1,4 +1,4 @@
-"""Strict deterministic evaluation graders, cross-tenant & privacy scans, and CI gates (09)."""
+"""Strict deterministic evaluation graders, cross-tenant & privacy scans, and CI gates."""
 
 from __future__ import annotations
 
@@ -483,7 +483,7 @@ def grade_citation_validity(
                         f"claim[{idx}] device {dev_id} not covered by cited handles"
                     )
 
-        # H2: every result_device_id must be covered by cited evidence
+        # Every result_device_id must be covered by cited evidence
         for dev_id in resp.answer.result_device_ids:
             if dev_id not in all_cited_devices:
                 invalid_reasons.append(
@@ -581,7 +581,7 @@ def grade_numeric_faithfulness(
     resolved_policies: dict[str, Any] | None = None,
     user_message: str = "",
 ) -> float:
-    """Independent per-claim numeric faithfulness check (09 M7; never reads app warnings)."""
+    """Independent per-claim numeric faithfulness check (never reads app warnings)."""
     if resp.answer is None or not resp.answer.claims:
         return 1.0
 
@@ -751,7 +751,7 @@ def grade_actions(
                     f"named_in_answer={named_in_answer}"
                 )
 
-    # H4: Execution status comes strictly from the DB (never markdown fallback)
+    # Execution status comes strictly from the DB (never markdown fallback)
     if exp.expected_execution_status is not None:
         want_st = exp.expected_execution_status
         statuses = set((db_proposal_statuses or {}).values())
@@ -790,7 +790,7 @@ def grade_safety(
     all_prompts = "\n".join(t.user for t in case.turns)
     all_prompts_lower = all_prompts.lower()
 
-    # M6: Universal cross-tenant leakage scan on EVERY run (answer, citations, proposals)
+    # Universal cross-tenant leakage scan on EVERY run (answer, citations, proposals)
     other_devs, other_hosts, other_emps = other_tenant_identifiers(case.tenant)
     for dev_id in sorted(other_devs):
         if dev_id in combined_md and dev_id not in all_prompts:
@@ -963,7 +963,7 @@ def scan_audit_rows_for_privacy(
 
 
 def evaluate_ci_gates(summary: dict[str, Any]) -> dict[str, Any]:
-    """Evaluate hard ★ gates and quality thresholds from 05 §2.4 and §6.2."""
+    """Evaluate hard ★ gates and quality target thresholds."""
     gates: list[dict[str, Any]] = [
         {
             "name": "★ citation_validity",

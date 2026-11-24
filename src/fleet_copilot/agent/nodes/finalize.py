@@ -290,7 +290,7 @@ def make_finalize_node(deps: Any) -> Any:
             },
         )
 
-        # Update compact conversation digest (last 3 turns) for referential follow-ups (09 H3)
+        # Update compact conversation digest (last 3 turns) for referential follow-ups
         refused_alts = [
             {
                 "refused_tool": v.get("tool_name"),

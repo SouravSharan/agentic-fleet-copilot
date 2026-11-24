@@ -1,4 +1,4 @@
-"""LLM-facing governed `run_readonly_sql` tool assigning `Q<n>` handles (10 §6, 11 §2 B3)."""
+"""LLM-facing governed `run_readonly_sql` tool assigning `Q<n>` handles."""
 
 from __future__ import annotations
 

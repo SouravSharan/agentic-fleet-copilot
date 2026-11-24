@@ -1,4 +1,4 @@
-"""Integration tests verifying Step 3 trend analyzers match evals/oracle.py across all tenants."""
+"""Integration tests verifying 30-day trend analyzers match evals/oracle.py across all tenants."""
 
 from __future__ import annotations
 

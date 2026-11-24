@@ -1,4 +1,4 @@
-# Action precheck, hardware-catalog refusal/alternative matrix (H4/H5 offer-don't-stage), HITL, and TOCTOU (14 cases).
+# Action precheck, hardware-catalog refusal/alternative matrix (offer-only), HITL, and TOCTOU (14 cases).
 
 - id: act-ram-upgrade-allow-approve
   tenant: acme-001

@@ -1,4 +1,4 @@
-"""Aggregation and Markdown + JSON report writer for evaluation runs (07 Step 6 Task 6.5)."""
+"""Aggregation and Markdown + JSON report writer for evaluation runs."""
 
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
 """Evaluation runner CLI (`python -m evals.run`) supporting replay, live, and `--max-cost`.
 
-Note on per-repeat cassettes (09 L7): each repeat uses a distinct `thread_id` (`..._r{rep}`),
+Note on per-repeat cassettes: each repeat uses a distinct `thread_id` (`..._r{rep}`),
 which flows into deterministic `uuid5` `proposal_id`s in tool outputs. Therefore every repeat
 must be recorded before replaying with `--repeats > 1` (or `--pass3-tags`).
 """
@@ -337,7 +337,7 @@ def run_eval_suite(
                     latency_ms = int((time.monotonic() - t0) * 1000)
                     final_resp = all_turns[-1]
 
-                    # B5: Persist each case's TurnResponse JSON for the Examples gallery (rep 1)
+                    # Persist each case's TurnResponse JSON for the Examples gallery (rep 1)
                     if rep == 1 and out_prefix is not None:
                         runs_dir = out_prefix.parent / "runs"
                         runs_dir.mkdir(parents=True, exist_ok=True)

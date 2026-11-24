@@ -21,7 +21,7 @@ Tenant isolation does **not** rely on LLM obedience or application `WHERE` claus
 3. **Fail-closed `current_tenant()`**: Every RLS policy checks `company_id = (SELECT <schema>.current_tenant())`. `current_tenant()` returns `NULL` (0 rows visible) unless **both** the per-transaction SHA-256 signature (`app.tenant_sig`, bound to `pg_backend_pid()` and `transaction_timestamp()`) **and** the matching granted advisory lock are present.
 4. **Pool hygiene**: Every connection returned to the pool runs `RESET ALL` and `SELECT pg_advisory_unlock_all()`.
 
-Proven by [`tests/integration/test_tenant_lock.py`](../tests/integration/test_tenant_lock.py) (31 tests covering `SET LOCAL`, session `SET`, `RESET`, re-lock, forged MAC, stale timestamp, secret-table read denial) and `audit/scripts/probe_set_config_spoof.py` (**16/16 BLOCKED**).
+Proven by [`tests/integration/test_tenant_lock.py`](../tests/integration/test_tenant_lock.py) (31 tests covering `SET LOCAL`, session `SET`, `RESET`, re-lock, forged MAC, stale timestamp, secret-table read denial) and [`scripts/security_probe.py`](../scripts/security_probe.py) (`make security-probe`, **16/16 BLOCKED**).
 
 ## 3. Governed Read-Only SQL (`run_readonly_sql`)
 
@@ -50,6 +50,6 @@ Untrusted telemetry fields (installed software names, publishers, hostnames, SQL
 - `synthesizer`'s `ledger_digest` ([`nodes/synthesizer.py`](../src/fleet_copilot/agent/nodes/synthesizer.py)), and
 - rendered `answer_markdown` evidence footnotes ([`nodes/finalize.py`](../src/fleet_copilot/agent/nodes/finalize.py)).
 
-Suspicious values are replaced with `[untrusted text withheld, see evidence <E#|Q#>]` and `suspicious_text: true` (clean telemetry is 100% unchanged; benign names like `"System Preferences"` and `"Approve.app"` are never withheld). **Deliberate design choice**: we never echo injected instructions into `answer_markdown`, because chat history (B1) feeds past assistant answers back into subsequent turns as the assistant's own words. The raw original string stays untouched in `state["evidence"]` / `TurnResponse.citations` so human operators can inspect it in the UI evidence panel.
+Suspicious values are replaced with `[untrusted text withheld, see evidence <E#|Q#>]` and `suspicious_text: true` (clean telemetry is 100% unchanged; benign names like `"System Preferences"` and `"Approve.app"` are never withheld). **Deliberate design choice**: we never echo injected instructions into `answer_markdown`, because multi-turn chat history feeds past assistant answers back into subsequent turns as the assistant's own words. The raw original string stays untouched in `state["evidence"]` / `TurnResponse.citations` so human operators can inspect it in the UI evidence panel.
 
 Because pattern matching is **best-effort defense in depth** (an attacker could paraphrase around regexes), **it is never the sole security boundary**: unauthorized actions remain impossible due to deterministic policy gating, LangGraph `interrupt()` human approval, RBAC, and DB-level RLS. Proven by [`tests/unit/test_sanitize.py`](../tests/unit/test_sanitize.py) and [`tests/graph/test_agent_graph.py`](../tests/graph/test_agent_graph.py).

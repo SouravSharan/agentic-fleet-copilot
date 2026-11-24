@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-# Case-insensitive patterns matching prompt-injection / instruction-like text (audit/13 §3.1).
+# Case-insensitive patterns matching prompt-injection / instruction-like telemetry text.
 # Benign names such as "System Preferences", "Approve.app", "Microsoft Teams", "Docker Desktop"
 # do NOT match any of these patterns.
 SUSPICIOUS_TEXT_PATTERNS: tuple[re.Pattern[str], ...] = (

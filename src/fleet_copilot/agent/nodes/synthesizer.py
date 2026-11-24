@@ -1,4 +1,4 @@
-"""`synthesizer` node: fresh-prompt structured `Answer` generation with parse-retry (05 §3.11)."""
+"""`synthesizer` node: fresh-prompt structured `Answer` generation with parse-retry."""
 
 from __future__ import annotations
 
@@ -77,7 +77,7 @@ def _invoke_answer_with_retry(
 def make_synthesizer_node(deps: Any) -> Any:
     """Build the `synthesizer` node closed over `AgentDeps`.
 
-    Gemini 3 rule #3 (05 §3.11): receives a fresh prompt containing question, plan, ledger digest,
+    Receives a fresh prompt containing question, plan, ledger digest,
     conversation digest, and compact tool summaries — NEVER tool-call AIMessage history.
     """
 

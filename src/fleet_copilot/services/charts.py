@@ -34,7 +34,7 @@ from fleet_copilot.services.policy import PolicyService
 VEGA_LITE_V5_SCHEMA = "https://vega.github.io/schema/vega-lite/v5.json"
 _CHART_ID_NAMESPACE = uuid.UUID("7d2b40e1-93c4-4f6a-9b81-52b917c4e019")
 
-# Unified status / series palette (10 §9)
+# Unified chart status / series palette
 CHART_PALETTE: tuple[str, ...] = (
     "#2563EB",  # accent blue
     "#D97706",  # amber

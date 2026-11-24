@@ -111,7 +111,7 @@ def analyze_fleet_trends(
     )
     all_artifacts.append({"type": "device_signal_rollup", "rows": rollup_rows})
 
-    # Auto-attach validated Vega-Lite series charts to each trend insight (11 §2 B2)
+    # Auto-attach validated Vega-Lite series charts to each trend insight
     if all_insights:
         from fleet_copilot.services.charts import build_insight_chart
 

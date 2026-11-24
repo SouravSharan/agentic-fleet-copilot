@@ -1,4 +1,4 @@
-"""LLM-facing read and analytics tools wrapping Step 2-3 services via `ToolRuntime`."""
+"""LLM-facing read and analytics tools wrapping fleet and trend services via `ToolRuntime`."""
 
 from __future__ import annotations
 

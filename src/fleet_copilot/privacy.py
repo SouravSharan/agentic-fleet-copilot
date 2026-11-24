@@ -44,7 +44,7 @@ def subject_ref(
 ) -> str:
     """Compute a tenant-scoped pseudonymous subject reference for audit logs.
 
-    Formula (05 §3.9.5):
+    Pseudonymization formula:
         `"subj_" + hex(HMAC-SHA256(HKDF-SHA256(key, info=company_id), f"{kind}:{value}"))[:16]`
     """
     raw_key = key

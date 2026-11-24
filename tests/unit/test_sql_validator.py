@@ -1,4 +1,4 @@
-"""Unit tests for B3 sqlglot read-only SQL validator (allowlist, blocklist, LIMIT clamping)."""
+"""Unit tests for sqlglot read-only SQL validator (allowlist, blocklist, LIMIT clamping)."""
 
 from __future__ import annotations
 
@@ -139,7 +139,7 @@ def test_validator_accepts_safe_selects_and_injects_or_clamps_limit() -> None:
             "SELECT device_id FROM telemetry.v_latest_device_state l "
             "JOIN telemetry.v_disk_volumes d ON l.snapshot_id = d.snapshot_id"
         ),
-        # Whole-row reference attacks (audit/13 §2 H1)
+        # Whole-row reference attacks
         "SELECT l AS x FROM telemetry.v_latest_device_state l LIMIT 1",
         "SELECT concat(l) AS x FROM telemetry.v_latest_device_state l LIMIT 1",
         "SELECT concat(s) AS x FROM telemetry.v_snapshots_deduped s LIMIT 1",
@@ -206,7 +206,7 @@ def test_result_side_pii_guard_detects_ip_mac_uuid_and_allows_benign_telemetry()
 
 
 def test_run_readonly_sql_tool_returns_pii_in_result_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Audit/13 §2.4: Result-side PII guard returns {"ok":false,"error":"pii_in_result"}."""
+    """Result-side PII guard returns {"ok":false,"error":"pii_in_result"}."""
     import json
     from types import SimpleNamespace
 

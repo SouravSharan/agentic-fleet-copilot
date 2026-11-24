@@ -133,7 +133,7 @@ def test_sanitize_value_sets_truncated_flag_when_nested_list_clipped() -> None:
 
 
 def test_b4_thirteen_tools_caps_and_prompt_v2() -> None:
-    """11 §2 B4: 13 tools registered, create_chart/run_readonly_sql caps=3, prompt v2."""
+    """13 tools registered, create_chart/run_readonly_sql caps=3, prompt v2."""
     from fleet_copilot.agent.prompts import load_prompt, prompt_bundle_version
     from fleet_copilot.clock import FixedClock
     from fleet_copilot.tools.registry import ToolDeps, build_all_tool_specs

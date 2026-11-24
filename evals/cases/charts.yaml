@@ -1,4 +1,4 @@
-# Chart generation evaluation cases (3 core cases; 11 §2 B5 & §4).
+# Chart generation evaluation cases (3 core cases).
 
 - id: chart-acme-low-disk-30d
   tenant: acme-001

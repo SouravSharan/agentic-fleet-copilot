@@ -1,4 +1,4 @@
-"""Integration tests for Step 2 read services against Postgres test DB and evals/oracle.py."""
+"""Integration tests for read services against Postgres test DB and evals/oracle.py."""
 
 from __future__ import annotations
 

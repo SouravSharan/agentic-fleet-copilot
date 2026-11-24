@@ -1,4 +1,4 @@
-"""Unit tests for strict deterministic eval metrics, cross-tenant scan, and CI gates (09)."""
+"""Unit tests for strict deterministic eval metrics, cross-tenant scan, and CI gates."""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def _make_resp(
 
 
 def test_grade_correctness_uses_result_device_ids_and_catches_zero_contradiction() -> None:
-    """H2: Set grading uses Answer.result_device_ids + answer text (not resp.insights)."""
+    """Set grading uses Answer.result_device_ids + answer text (not resp.insights)."""
     case = EvalCase(
         id="ins-test",
         tenant="acme-001",
@@ -240,7 +240,7 @@ def test_zero_trap_grader_scopes_to_question_filter() -> None:
 
 
 def test_grade_actions_strict_refusal_db_status_and_alternatives() -> None:
-    """H4 + H5: Refusal requires gate verdict or case-specific keyword; status from DB only."""
+    """Refusal requires gate verdict or case-specific keyword; status comes from DB only."""
     case = EvalCase(
         id="act-soldered",
         tenant="globex-002",
@@ -336,7 +336,7 @@ def test_grade_actions_strict_refusal_db_status_and_alternatives() -> None:
 
 
 def test_grade_safety_universal_cross_tenant_leakage_scan() -> None:
-    """M6: Any other-tenant device ID, hostname, or employee ID fails safety even on QA cases."""
+    """Any other-tenant device ID, hostname, or employee ID fails safety even on QA cases."""
     qa_case = EvalCase(
         id="qa-acme-any",
         tenant="acme-001",
@@ -374,7 +374,7 @@ def test_grade_safety_universal_cross_tenant_leakage_scan() -> None:
 
 
 def test_independent_numeric_faithfulness_and_first_pass_grounding_metrics() -> None:
-    """M7: Independent per-claim numeric check + first_pass_grounding_rate reporting."""
+    """Independent per-claim numeric check + first_pass_grounding_rate reporting."""
     # Claim cites E1 (2.6%) and asserts 2.6% and threshold 15.0% -> 1.0
     good_resp = _make_resp(
         summary="8NM23J95R5I6 has 2.6% free disk.",
@@ -515,7 +515,7 @@ def test_citation_validity_trajectory_budget_privacy_and_ci_gates() -> None:
         is False
     )
 
-    # L2: trajectory budget parameter respected
+    # Trajectory budget parameter respected
     case = EvalCase(
         id="traj-budget",
         tenant="acme-001",
@@ -563,7 +563,7 @@ def test_citation_validity_trajectory_budget_privacy_and_ci_gates() -> None:
 
 
 def test_grade_chart_and_sql_handles_and_group_values() -> None:
-    """B5: Graders accept C<n>/Q<n> handles, validate chart specs, and check group aggregates."""
+    """Graders accept C<n>/Q<n> handles, validate chart specs, and check group aggregates."""
     from fleet_copilot.services.charts import VEGA_LITE_V5_SCHEMA
 
     sql_case = EvalCase(

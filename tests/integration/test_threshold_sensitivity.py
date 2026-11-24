@@ -1,4 +1,4 @@
-"""Integration tests verifying threshold sensitivity bands match 05 §3.5 and 07 Step 3."""
+"""Integration tests verifying threshold sensitivity bands on the sample dataset."""
 
 from __future__ import annotations
 

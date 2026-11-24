@@ -132,7 +132,7 @@ def make_tools_node(deps: Any) -> Any:
 
             tool_cap = deps.runtime_cfg.budgets.cap_for(tool_name)
             if per_tool_counts.get(tool_name, 0) >= tool_cap:
-                # N3: Capped rejections count toward the step budget so the model cannot loop.
+                # Capped rejections count toward the step budget so the model cannot loop.
                 step_count += 1
                 if step_count >= max_calls:
                     budget_exhausted = True
@@ -194,7 +194,7 @@ def make_tools_node(deps: Any) -> Any:
                 store=None,
             )
 
-            # 11 §1 #8: Strip stray company_id and validate args against tool_call_schema
+            # Strip any stray company_id and validate args against tool_call_schema
             clean_args = {k: v for k, v in raw_args.items() if k != "company_id"}
             validated_args, bad_fields = _validate_tool_args(spec.tool, clean_args)
 

@@ -1,4 +1,4 @@
-"""Pure deterministic policy gate for Fleet Copilot actions (05 §3.6, zero DB I/O)."""
+"""Pure deterministic policy gate for Fleet Copilot actions (zero DB I/O)."""
 
 from __future__ import annotations
 
@@ -155,7 +155,7 @@ def dedupe_key(
     draft: ProposalDraft,
     facts: DeviceFacts | EmployeeFacts | None = None,  # noqa: ARG001
 ) -> str:
-    """Compute the canonical deduplication key per 05 §3.6 (independent of free text)."""
+    """Compute the canonical deduplication key (independent of free text)."""
     if draft.tool_name == "create_upgrade_order":
         component = str(draft.arguments.get("component", "")).strip().lower()
         return f"upgrade:{draft.target_id}:{component}"
@@ -264,7 +264,7 @@ def evaluate(
     valid_evidence: bool = True,
     _evaluating_alternative: bool = False,
 ) -> PolicyVerdict:
-    """Evaluate all common and tool-specific policy rules (05 §3.6) deterministically."""
+    """Evaluate all common and tool-specific action policy rules deterministically."""
     checks: list[PolicyCheck] = []
     reasons: list[str] = []
     warnings: list[str] = []

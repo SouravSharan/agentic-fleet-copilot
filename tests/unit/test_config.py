@@ -48,7 +48,7 @@ def test_test_overrides_cover_all_four_urls() -> None:
 
 
 def test_env_example_has_dev_keys_and_demo_vars() -> None:
-    """A4: .env.example supplies non-empty dev AES/pseudonym keys (rotate for hosting) + DEMO_*."""
+    """.env.example supplies non-empty dev AES/pseudonym keys (rotate for hosting) + DEMO_*."""
     env_example = REPO_ROOT / ".env.example"
     raw = env_example.read_text(encoding="utf-8")
     assert "rotate for hosting" in raw.lower()
@@ -83,7 +83,7 @@ def test_env_example_has_dev_keys_and_demo_vars() -> None:
 
 
 def test_makefile_has_bootstrap_target() -> None:
-    """A4: Makefile defines .PHONY bootstrap running up, migrate, seed, test-db, eval."""
+    """Makefile defines .PHONY bootstrap running up, migrate, seed, test-db, eval."""
     mk = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
     phony_line = next(line for line in mk.splitlines() if line.startswith(".PHONY:"))
     assert "bootstrap" in phony_line.split()

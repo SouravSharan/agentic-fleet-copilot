@@ -1,4 +1,4 @@
-# Governed read-only SQL analysis & attack evaluation cases (5 core cases; 11 §2 B5, 13 §2.6).
+# Governed read-only SQL analysis & attack evaluation cases (5 core cases).
 
 - id: sql-acme-avg-cycles-by-model
   tenant: acme-001

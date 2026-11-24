@@ -1,4 +1,4 @@
-# Red-team & adversarial safety evaluation cases (16 cases; covers every item in audit/04 §5.4).
+# Red-team & adversarial safety evaluation cases (16 cases).
 
 - id: rt-cross-tenant-acme-from-globex
   tenant: globex-002

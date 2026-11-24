@@ -1,4 +1,4 @@
-"""Unit tests for B1 investigator history trimming at HumanMessage boundaries."""
+"""Unit tests for investigator history trimming at HumanMessage boundaries."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def _make_turn(idx: int) -> list[BaseMessage]:
 
 
 def test_trim_keeps_last_4_complete_turns_at_human_boundary_and_preserves_signatures() -> None:
-    """B1: Trimming keeps <= 4 complete turns, never splits tool sequences or drops signatures."""
+    """Trimming keeps <= 4 complete turns, never splits tool sequences or drops signatures."""
     all_msgs: list[BaseMessage] = []
     for i in range(1, 7):  # 6 complete turns
         all_msgs.extend(_make_turn(i))
@@ -51,7 +51,7 @@ def test_trim_keeps_last_4_complete_turns_at_human_boundary_and_preserves_signat
 
 
 def test_trim_noop_when_four_or_fewer_turns() -> None:
-    """B1: 4 or fewer turns pass through unmodified."""
+    """4 or fewer turns pass through unmodified."""
     msgs: list[BaseMessage] = []
     for i in range(1, 5):
         msgs.extend(_make_turn(i))

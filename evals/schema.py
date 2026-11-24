@@ -1,4 +1,4 @@
-"""Pydantic v2 schema and YAML loader for oracle-backed evaluation cases (07 Step 6 Task 6.1)."""
+"""Pydantic v2 schema and YAML loader for oracle-backed evaluation cases."""
 
 from __future__ import annotations
 

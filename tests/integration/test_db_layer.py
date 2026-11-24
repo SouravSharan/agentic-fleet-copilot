@@ -751,7 +751,7 @@ def test_copilot_audit_logs_are_append_only_and_tenant_isolated(
 def test_copilot_policies_and_tool_configs_global_protection(
     db_manager: DatabaseManager,
 ) -> None:
-    # 1) Global '*' policies & exact 12 default tool configs from 05 §3.3 are readable
+    # 1) Global '*' policies & default tool configs are readable
     with db_manager.copilot_cursor("acme-001") as cur:
         cur.execute(
             "SELECT metric_key, value_json FROM copilot.tenant_policies WHERE company_id = '*'"

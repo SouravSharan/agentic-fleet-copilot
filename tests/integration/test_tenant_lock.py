@@ -199,7 +199,7 @@ def test_lock_is_transaction_scoped(db_manager: DatabaseManager) -> None:
 
 
 def test_spoof_probe_is_blocked(db_manager: DatabaseManager) -> None:
-    """Mirrors audit/scripts/probe_set_config_spoof.py: mid-tx set_config() spoof fails."""
+    """Mirrors scripts/security_probe.py: mid-tx set_config() spoof fails."""
     with pytest.raises(errors.InsufficientPrivilege):
         with db_manager.telemetry_ro_cursor("acme-001") as cur:
             cur.execute("SELECT set_config('app.current_tenant', 'globex-002', true)")
@@ -211,7 +211,7 @@ def test_spoof_probe_is_blocked(db_manager: DatabaseManager) -> None:
 
 @pytest.mark.parametrize("schema", ["telemetry", "copilot"])
 def test_set_local_spoof_is_blocked(db_manager: DatabaseManager, schema: str) -> None:
-    """11 §2 A2: `SET LOCAL app.current_tenant` invalidates the signature and fails closed."""
+    """`SET LOCAL app.current_tenant` invalidates the signature and fails closed."""
     if schema == "telemetry":
         with db_manager.telemetry_ro_cursor("acme-001") as cur:
             cur.execute("SET LOCAL app.current_tenant = 'globex-002'")
@@ -234,7 +234,7 @@ def test_set_local_spoof_is_blocked(db_manager: DatabaseManager, schema: str) ->
 
 @pytest.mark.parametrize("schema", ["telemetry", "copilot"])
 def test_session_set_spoof_is_blocked(db_manager: DatabaseManager, schema: str) -> None:
-    """11 §2 A2: Session-level `SET app.current_tenant` without valid signature fails closed."""
+    """Session-level `SET app.current_tenant` without valid signature fails closed."""
     settings = get_settings()
     issued_at, mac = sign_tenant_lock("acme-001")
     if schema == "telemetry":
@@ -280,7 +280,7 @@ def test_session_set_spoof_is_blocked(db_manager: DatabaseManager, schema: str) 
 
 
 def test_reset_spoof_is_blocked(db_manager: DatabaseManager) -> None:
-    """11 §2 A2: `RESET app.current_tenant` fails closed."""
+    """`RESET app.current_tenant` fails closed."""
     with db_manager.telemetry_ro_cursor("acme-001") as cur:
         cur.execute("RESET app.current_tenant")
         cur.execute("SELECT telemetry.current_tenant() AS t")
@@ -302,7 +302,7 @@ def test_reset_spoof_is_blocked(db_manager: DatabaseManager) -> None:
 
 @pytest.mark.parametrize("schema", ["telemetry", "copilot"])
 def test_relock_after_reset_is_blocked(db_manager: DatabaseManager, schema: str) -> None:
-    """12 §3.4: RESET app.tenant_locked + app.tenant_sig cannot clear the advisory xact marker."""
+    """RESET app.tenant_locked + app.tenant_sig cannot clear the advisory xact marker."""
     issued_at, mac = sign_tenant_lock("globex-002")
     cursor_fn = (
         db_manager.telemetry_ro_cursor if schema == "telemetry" else db_manager.copilot_cursor
@@ -321,7 +321,7 @@ def test_relock_after_reset_is_blocked(db_manager: DatabaseManager, schema: str)
 
 @pytest.mark.parametrize("schema", ["telemetry", "copilot"])
 def test_lock_requires_valid_mac(db_manager: DatabaseManager, schema: str) -> None:
-    """12 §3.4: 1-arg dropped; missing/forged/other-tenant/stale (60s) MACs all raise."""
+    """1-arg lock_tenant dropped; missing/forged/other-tenant/stale (60s) MACs all raise."""
     settings = get_settings()
     dsn = (
         settings.telemetry_ro_database_url
@@ -361,7 +361,7 @@ def test_lock_requires_valid_mac(db_manager: DatabaseManager, schema: str) -> No
 
 
 def test_savepoint_rollback_cannot_release_lock(db_manager: DatabaseManager) -> None:
-    """12 §3.4: Rolling back to a SAVEPOINT cannot release a top-level lock or allow re-lock."""
+    """Rolling back to a SAVEPOINT cannot release a top-level lock or allow re-lock."""
     globex_ts, globex_mac = sign_tenant_lock("globex-002")
 
     with db_manager.telemetry_ro_cursor("acme-001") as cur:
@@ -413,7 +413,7 @@ def test_savepoint_rollback_cannot_release_lock(db_manager: DatabaseManager) -> 
 
 
 def test_pool_connection_is_reset_on_return() -> None:
-    """11 §2 A2: Pooled connections run `RESET ALL` on return, clearing session-level SETs."""
+    """Pooled connections run `RESET ALL` on return, clearing session-level SETs."""
     settings = get_settings()
     with DatabaseManager(
         telemetry_ro_dsn=settings.telemetry_ro_database_url,
@@ -451,7 +451,7 @@ def test_pool_connection_is_reset_on_return() -> None:
 
 
 def test_tenant_lock_key_not_readable_by_app_roles(db_manager: DatabaseManager) -> None:
-    """12 §3.4: No application role may read telemetry/copilot tenant_lock_secret tables."""
+    """No application role may read telemetry/copilot tenant_lock_secret tables."""
     settings = get_settings()
     dsns = [
         settings.telemetry_ro_database_url,

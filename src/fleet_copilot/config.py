@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     test_db_name: str = Field(default="fleet_copilot_test")
     fleet_as_of: datetime | None = Field(default=None)
 
-    # LLM & replay configuration (used from Step 5 onward)
+    # LLM & cassette replay configuration
     llm_model: str = Field(default="google_genai:gemini-3.8-flash")
     gemini_api_key: SecretStr | None = Field(default=None)
     llm_replay_mode: str = Field(default="off")
@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     log_format: str = Field(default="json")
     log_level: str = Field(default="INFO")
 
-    # Demo API / UI auth & budgets (Step 7+)
+    # Demo API / UI auth & budgets
     session_signing_key: SecretStr | None = Field(default=None)
     demo_access_codes: str = Field(default="demo-code:rev_01")
     demo_admin_token: SecretStr | None = Field(default=None)

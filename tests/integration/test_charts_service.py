@@ -1,4 +1,4 @@
-"""Integration tests for B2: ChartService, personal RLS charts, refresh in place, insight charts."""
+"""Integration tests for ChartService, personal RLS charts, refresh in place, insight charts."""
 
 from __future__ import annotations
 

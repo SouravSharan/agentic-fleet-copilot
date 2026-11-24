@@ -1,4 +1,4 @@
-"""Verify independent evals/oracle.py matches every verified ground-truth fact in audit/03."""
+"""Verify independent evals/oracle.py matches dataset ground-truth metrics and anomalies."""
 
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ def test_oracle_low_disk_and_high_severity_and_macos() -> None:
     }
 
 
-def test_oracle_planted_trends_match_audit03() -> None:
+def test_oracle_planted_trends_match_ground_truth() -> None:
     all_battery = (
         oracle.battery_eol("acme-001")
         | oracle.battery_eol("globex-002")

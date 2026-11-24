@@ -1,4 +1,4 @@
-"""LangGraph workflow assembly matching the exact 05 §3.2 node & edge topology."""
+"""LangGraph workflow assembly for the Fleet Copilot orchestration graph."""
 
 from __future__ import annotations
 

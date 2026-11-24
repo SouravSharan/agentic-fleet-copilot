@@ -1,4 +1,4 @@
-"""Unit tests for hardened full-answer grounding verifier (audit/09 H1 and H2)."""
+"""Unit tests for hardened full-answer grounding verifier."""
 
 from __future__ import annotations
 

@@ -50,7 +50,7 @@ def make_chat_model(
 ) -> BaseChatModel:
     """Construct a per-node `ReplayableChatGoogleGenerativeAI` configured from `runtime.yaml`.
 
-    Gemini 3 rules (05 §3.11):
+    Gemini 3 configuration rules:
     - `temperature` is left unset (`None`) so Gemini 3 uses its default sampling.
     - `thinking_config={"thinking_level": ...}` is set per node from `config/runtime.yaml`.
     - `disable_streaming=True` in `record` / `replay` modes.

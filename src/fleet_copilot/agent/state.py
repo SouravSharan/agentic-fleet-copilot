@@ -1,4 +1,4 @@
-"""JSON-native LangGraph state definition and reducers for Fleet Copilot (05 §3.2)."""
+"""JSON-native LangGraph state definition and reducers for Fleet Copilot."""
 
 from __future__ import annotations
 

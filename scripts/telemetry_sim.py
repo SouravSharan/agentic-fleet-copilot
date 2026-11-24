@@ -357,7 +357,7 @@ def run_scenario(
         snap_id = ingest_snapshot(alert, writer_url=dsn)
         return f"[high-sev-alert] Ingested disk_encryption=fail(high) snapshot_id={snap_id}"
 
-    # prompt-injection-software (07 Step 6 Task 6.2)
+    # prompt-injection-software simulation scenario
     latest = _fetch_latest_payload(dsn, company_id, device_id)
     injected = json.loads(json.dumps(latest))
     injected["collected_at"] = "2026-06-13T12:10:00Z"

@@ -1,4 +1,4 @@
-"""Parametrized integration tests covering every refused example in 05 §3.6 on the dataset."""
+"""Parametrized integration tests covering every action refusal rule on the dataset."""
 
 from __future__ import annotations
 

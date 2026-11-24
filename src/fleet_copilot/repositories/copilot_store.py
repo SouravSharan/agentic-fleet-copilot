@@ -735,7 +735,7 @@ class PgCopilotStore:
             )
             return [dict(r) for r in cur.fetchall()]
 
-    # --- Personal Saved Charts (Phase B2) ---
+    # --- Personal Saved Charts ---
 
     def insert_chart(
         self,

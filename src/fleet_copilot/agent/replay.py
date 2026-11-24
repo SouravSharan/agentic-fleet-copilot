@@ -1,4 +1,4 @@
-"""Record/replay wrapper over `ChatGoogleGenerativeAI` preserving thought signatures (05 §6.2)."""
+"""Record/replay wrapper over `ChatGoogleGenerativeAI` preserving thought signatures."""
 
 from __future__ import annotations
 
@@ -114,7 +114,7 @@ def canonical_replay_key(
     seed: int | None = None,
     temperature: float | None = None,
 ) -> str:
-    """Compute SHA-256 cassette key per 05 §6.2."""
+    """Compute deterministic SHA-256 cassette key for an LLM request."""
     payload = {
         "model": model,
         "messages": _encode_value(_strip_volatile_message_ids(messages_to_dict(messages))),

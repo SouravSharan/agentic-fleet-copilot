@@ -1,4 +1,4 @@
-"""Governed read-only SQL validator (sqlglot) and tenant-locked executor (10 §6, 11 §2 B3)."""
+"""Governed read-only SQL validator (sqlglot) and tenant-locked executor."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ ALLOWED_TELEMETRY_VIEWS: frozenset[str] = frozenset(
 )
 
 # Positive per-view column allowlist: every view column EXCEPT serial_number, hardware_uuid,
-# payload, and id (audit/13 §2.1). Verified against live information_schema in integration tests.
+# payload, and id. Verified against live information_schema in integration tests.
 _SNAPSHOT_BASE_COLS: frozenset[str] = frozenset(
     {
         "snapshot_id",
@@ -793,7 +793,7 @@ def execute_readonly_sql(
             dev_ids.add(str(row_dict["device_id"]))
         rows.append(row_dict)
 
-    # Result-side PII guard (audit/13 §2.4): drop entire result if any value matches PII patterns.
+    # Result-side PII guard: drop entire result if any value matches PII patterns.
     if contains_pii_value(rows):
         raise SqlPiiInResultError(
             "Query result contained restricted PII patterns (IP/MAC/UUID) and was blocked."

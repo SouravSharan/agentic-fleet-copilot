@@ -1,4 +1,4 @@
-"""Typer + Rich CLI (`fleet-copilot`) for chat, ask, proposals, decide, and audit (05 §7)."""
+"""Typer + Rich CLI (`fleet-copilot`) for chat, ask, proposals, decide, and audit."""
 
 from __future__ import annotations
 

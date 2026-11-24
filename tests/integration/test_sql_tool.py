@@ -1,4 +1,4 @@
-"""Integration tests for B3: execute_readonly_sql, oracle checks, RLS bypass proof, Q->C chart."""
+"""Integration tests for execute_readonly_sql, oracle checks, RLS bypass proof, Q->C chart."""
 
 from __future__ import annotations
 
@@ -110,7 +110,7 @@ def test_execute_readonly_sql_devices_per_employee_matches_oracle(
 
 @pytest.mark.integration
 def test_rls_holds_even_when_validator_is_bypassed(db_manager: DatabaseManager) -> None:
-    """10 §6 & 11 §2 B3: Bypassing the SQL validator still cannot read another tenant or mutate."""
+    """Bypassing the SQL validator still cannot read another tenant or mutate data."""
     ctx = _ctx("acme-001", role="viewer")
 
     # Direct cross-tenant query with validator bypassed returns 0 rows under RLS
@@ -145,7 +145,7 @@ def test_rls_holds_even_when_validator_is_bypassed(db_manager: DatabaseManager) 
 
 @pytest.mark.integration
 def test_statement_timeout_is_enforced(db_manager: DatabaseManager) -> None:
-    """11 §2 B3: statement_timeout is enforced inside the read-only transaction."""
+    """statement_timeout is enforced inside the read-only SQL transaction."""
     ctx = _ctx("acme-001", role="viewer")
     with pytest.raises(errors.QueryCanceled):
         execute_readonly_sql(
@@ -162,7 +162,7 @@ def test_from_query_chart_plots_q_handle_rows(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """B2 + B3: ChartService `from_query` builds a validated Vega-Lite chart from a `Q1` query."""
+    """ChartService `from_query` builds a validated Vega-Lite chart from a `Q1` query."""
     ctx = _ctx("acme-001", role="viewer")
     q_res = execute_readonly_sql(
         ctx,
@@ -208,7 +208,7 @@ def test_from_query_chart_plots_q_handle_rows(
 
 @pytest.mark.integration
 def test_sql_allowed_columns_matches_live_view_schemas(db_manager: DatabaseManager) -> None:
-    """Audit/13 §2.1: SQL_ALLOWED_COLUMNS equals live view columns minus restricted 4."""
+    """SQL_ALLOWED_COLUMNS equals live view columns minus the 4 restricted columns."""
     excluded = {"serial_number", "hardware_uuid", "payload", "id"}
     settings = get_settings()
     with psycopg.connect(settings.admin_database_url) as conn:
@@ -230,7 +230,7 @@ def test_sql_allowed_columns_matches_live_view_schemas(db_manager: DatabaseManag
 def test_whole_row_attacks_blocked_and_result_pii_guard_catches_bypass(
     db_manager: DatabaseManager,
 ) -> None:
-    """Audit/13 §2: Whole-row attacks fail validation; result guard catches PII even on bypass."""
+    """Whole-row attacks fail validation; result guard catches PII even on bypass."""
     ctx = _ctx("acme-001", role="it_admin")
     for attack in (
         "SELECT l AS x FROM telemetry.v_latest_device_state l LIMIT 1",

@@ -549,7 +549,7 @@ class CopilotService:
             }
 
             try:
-                # Pending-interrupt rule (05 §3.2): auto-defer undecided proposals before new msg
+                # Pending-interrupt rule: auto-defer undecided proposals before processing a new message
                 pending_packet = self._pending_interrupt_packet(config)
                 if pending_packet is not None:
                     pending_ids = [

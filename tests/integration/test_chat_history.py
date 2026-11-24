@@ -1,4 +1,4 @@
-"""Integration tests for B1: response_json, titles/hidden, 30-turn cap, restart & redaction."""
+"""Integration tests for response_json, titles/hidden, 30-turn cap, restart & redaction."""
 
 from __future__ import annotations
 
@@ -106,7 +106,7 @@ def test_thread_title_from_first_question_rename_hide_and_response_json(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """B1: First question sets title (<=60 chars), response_json stored, rename/hide work."""
+    """First question sets title (<=60 chars), response_json stored, rename/hide work."""
     clock = FixedClock(FIXED_NOW)
     svc, _ = _qa_copilot(db_manager, clock=clock)
     ctx_a = _ctx(actor="rev_01:acme_admin")
@@ -160,7 +160,7 @@ def test_continue_after_service_restart_and_missing_checkpoint_rebuilds_digest(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """B1: Continuing after checkpoint loss rebuilds conversation_digest from copilot.turns."""
+    """Continuing after checkpoint loss rebuilds conversation_digest from copilot.turns."""
     clock = FixedClock(FIXED_NOW)
     ctx = _ctx(actor="rev_01:acme_admin")
 
@@ -188,7 +188,7 @@ def test_max_30_turns_returns_start_new_chat_prompt(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """B1: Thread with 30 persisted turns refuses turn 31 with friendly start-new-chat message."""
+    """Thread with 30 persisted turns refuses turn 31 with friendly start-new-chat message."""
     clock = FixedClock(FIXED_NOW)
     planner = ScriptedChatModel(script=[Plan(intent="qa", steps=[])])
     svc, _ = _qa_copilot(db_manager, clock=clock, planner_model=planner)
@@ -219,7 +219,7 @@ def test_redact_turns_clears_real_response_json_column(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """B1 + A3: redact_expired_turns clears the real turns.response_json column."""
+    """redact_expired_turns clears the persisted turns.response_json column."""
     clock = FixedClock(FIXED_NOW)
     svc, _ = _qa_copilot(db_manager, clock=clock)
     ctx = _ctx(actor="rev_01:acme_admin")
@@ -261,7 +261,7 @@ def test_cli_threads_and_chat_thread_id_option(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """B1: CLI exposes `threads` command and `chat --thread-id` option."""
+    """CLI exposes `threads` command and `chat --thread-id` option."""
     runner = CliRunner()
     help_res = runner.invoke(cli_app, ["chat", "--help"])
     assert help_res.exit_code == 0

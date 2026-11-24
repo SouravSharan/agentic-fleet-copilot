@@ -36,7 +36,7 @@ def test_eval_suite_shape_and_unique_ids() -> None:
     assert {"qa", "insights", "actions", "multiturn", "redteam", "charts", "sql"}.issubset(
         tags_union
     )
-    # Every case must be tagged strictly `core` OR `extended` (11 §2 B5 & §4)
+    # Every case must be tagged strictly `core` OR `extended`
     core_cases = [c for c in cases if "core" in c.tags]
     ext_cases = [c for c in cases if "extended" in c.tags]
     assert 48 <= len(core_cases) <= 52, f"Expected ~49-50 core cases, got {len(core_cases)}"

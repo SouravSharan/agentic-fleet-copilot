@@ -1,4 +1,4 @@
-.PHONY: setup bootstrap up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck chat eval-verify-cases eval eval-regrade eval-live
+.PHONY: setup bootstrap up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck chat security-probe eval-verify-cases eval eval-regrade eval-live
 
 COMPANY ?= acme-001
 ROLE ?= it_admin
@@ -47,6 +47,9 @@ typecheck:
 
 chat:
 	uv run fleet-copilot chat --company $(COMPANY) --role $(ROLE)
+
+security-probe:
+	uv run python scripts/security_probe.py
 
 eval-verify-cases:
 	uv run pytest tests/eval -m eval

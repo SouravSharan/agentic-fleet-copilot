@@ -1,4 +1,4 @@
-"""Structured agent contracts: Plan, Answer, Claim, TurnUsage, and TurnResponse (05 §3.2, §7)."""
+"""Structured agent contracts: Plan, Answer, Claim, TurnUsage, and TurnResponse."""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ class TurnUsage(_AgentModel):
 
 
 class TurnResponse(_AgentModel):
-    """Public response returned by `CopilotService.run_turn` / `resume`, CLI, and API (05 §7)."""
+    """Public response returned by `CopilotService.run_turn` / `resume`, CLI, and API."""
 
     thread_id: str
     turn_id: str

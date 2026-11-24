@@ -1,4 +1,4 @@
-"""Strict audit event payload schemas and tamper-evident audit logging service (05 §3.9)."""
+"""Strict audit event payload schemas and tamper-evident audit logging service."""
 
 from __future__ import annotations
 

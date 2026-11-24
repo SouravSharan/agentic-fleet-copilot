@@ -1,4 +1,4 @@
-"""Unit tests for B2 chart spec validator, ledger C/Q handles, and chart grounding verifier."""
+"""Unit tests for chart spec validator, ledger C/Q handles, and chart grounding verifier."""
 
 from __future__ import annotations
 
@@ -266,7 +266,7 @@ def test_verifier_checks_claim_numbers_against_chart_data_rows() -> None:
 
 
 def test_chart_id_is_deterministic_for_thread_turn_replay() -> None:
-    """B6: Identical chart requests in the same (tenant, actor, thread, turn, call) match."""
+    """Identical chart requests in the same (tenant, actor, thread, turn, call) match."""
     from fleet_copilot.domain.models import TenantContext
     from fleet_copilot.services.charts import ChartService
     from fleet_copilot.services.policy import PolicyService
@@ -289,7 +289,7 @@ def test_chart_id_is_deterministic_for_thread_turn_replay() -> None:
 
 
 def test_emit_strips_insight_chart_from_llm_payload_but_preserves_sink() -> None:
-    """B6: Insight auto-attached Vega-Lite specs stay on sink.insights, not LLM ToolMessage."""
+    """Insight auto-attached Vega-Lite specs stay on sink.insights, not LLM ToolMessage."""
     import json
     from types import SimpleNamespace
 

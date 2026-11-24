@@ -1,4 +1,4 @@
-"""Integration tests for Phase A3: actor-owned threads, CAS run lease, and turn redaction."""
+"""Integration tests for actor-owned threads, CAS run lease, and turn redaction."""
 
 from __future__ import annotations
 
@@ -199,7 +199,7 @@ def test_same_company_other_actor_rejected_on_continue_resume_get_and_list(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """A3: Same company, different actor -> run_turn/resume/get_thread raise ThreadNotOwnedError."""
+    """Same company, different actor -> run_turn/resume/get_thread raise ThreadNotOwnedError."""
     svc, adapter, audit = _stage_screen_lock_copilot(db_manager)
     ctx_a = _ctx(company_id="acme-001", actor="rev_01:acme_admin")
     ctx_b = _ctx(company_id="acme-001", actor="rev_02:acme_admin")
@@ -251,7 +251,7 @@ def test_resume_nonexistent_thread_raises_thread_not_owned(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """A3: Resuming an unknown thread in the caller's company raises ThreadNotOwnedError (404)."""
+    """Resuming an unknown thread in the caller's company raises ThreadNotOwnedError (404)."""
     clock = FixedClock(FIXED_NOW)
     svc = _simple_qa_copilot(
         db_manager,
@@ -268,7 +268,7 @@ def test_run_lease_blocks_concurrent_run_with_thread_busy_and_releases_in_finall
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """A3: 90s CAS lease rejects concurrent turns with thread_busy and releases in finally."""
+    """90s CAS lease rejects concurrent turns with thread_busy and releases in finally."""
     clock = FixedClock(FIXED_NOW)
     entered_planner = threading.Event()
     release_planner = threading.Event()
@@ -360,7 +360,7 @@ def test_redact_turns_clears_text_and_json_columns_keeps_hashes(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """A3: redact_expired_turns clears text/JSON payloads, preserves hashes, sets redacted_at."""
+    """redact_expired_turns clears text/JSON payloads, preserves hashes, sets redacted_at."""
     clock = FixedClock(FIXED_NOW)
     svc = _simple_qa_copilot(
         db_manager,
@@ -439,7 +439,7 @@ def test_redact_turns_automatically_covers_future_json_columns(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
 ) -> None:
-    """A3: Redaction discovers & clears future JSONB payload columns (e.g. response_json)."""
+    """Redaction discovers & clears future JSONB payload columns (e.g. response_json)."""
     clock = FixedClock(FIXED_NOW)
     svc = _simple_qa_copilot(
         db_manager,

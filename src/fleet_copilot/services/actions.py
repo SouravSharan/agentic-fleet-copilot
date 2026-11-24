@@ -1,4 +1,4 @@
-"""Action orchestration service: precheck, stage, decide, execute, expire, recover (05 §3.6)."""
+"""Action orchestration service: precheck, stage, decide, execute, expire, recover."""
 
 from __future__ import annotations
 
@@ -886,7 +886,7 @@ class ActionService:
         )
 
     def execute(self, ctx: TenantContext, proposal_id: str, clock: Clock) -> ExecuteResult:
-        """Execute an approved proposal following the exact 6-step sequence in 05 §3.6."""
+        """Execute an approved proposal with hash check, CAS lock, TOCTOU re-check, and audit."""
         proposal = self._store.get_proposal(ctx.company_id, proposal_id)
         if proposal is None:
             return ExecuteResult(status="not_found", proposal=None, message="Proposal not found.")

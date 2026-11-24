@@ -1,4 +1,4 @@
-"""Cooperative monotonic turn deadline enforcement (audit/09 §5 N1)."""
+"""Cooperative monotonic turn deadline enforcement."""
 
 from __future__ import annotations
 

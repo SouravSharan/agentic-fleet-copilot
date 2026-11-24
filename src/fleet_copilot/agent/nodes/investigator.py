@@ -29,7 +29,7 @@ def trim_messages_to_last_turns(
     """Keep only the last `max_turns` complete turns, cutting strictly at `HumanMessage` boundaries.
 
     Never mutates or splits an `AIMessage(tool_calls=...)` / `ToolMessage` sequence, preserving
-    Gemini 3 thought signatures across multi-turn conversations (10 §5, 11 §2 B1).
+    Gemini 3 thought signatures across multi-turn conversations.
     """
     msg_list = list(messages)
     if max_turns <= 0 or not msg_list:
@@ -48,7 +48,7 @@ def _company_display_name(company_id: str) -> str:
 def make_investigator_node(deps: Any) -> Any:
     """Build the `investigator` node closed over `AgentDeps`.
 
-    Gemini 3 rule #2 (05 §3.11): NEVER edit, reorder, or split AIMessages that carry tool calls,
+    Invariant: NEVER edit, reorder, or split AIMessages that carry tool calls,
     so `__gemini_function_call_thought_signatures__` survive intact across tool loops and resumes.
     """
 
