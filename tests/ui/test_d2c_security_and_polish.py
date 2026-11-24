@@ -302,12 +302,38 @@ def test_w3_examples_gallery_defaults_to_showcase_and_shows_question_and_grade(
     assert at.session_state["examples_case_picker"] == "ins-acme-battery"
     assert any("Question asked:" in m.value for m in at.markdown)
 
-    # Switching to Q&A -> qa-acme-desktop-battery shows Missed badge and reason
+    # Switching to Q&A -> qa-acme-desktop-battery now shows Passed + Question asked
     at.selectbox(key="examples_group_picker").select("Q&A").run()
     assert not at.exception
     at.selectbox(key="examples_case_picker").select("qa-acme-desktop-battery").run()
     assert not at.exception
-    assert any("Strict device-ID set grader expected" in c.value for c in at.caption)
+    assert any("Passed correctness" in c.value for c in at.caption)
+    assert any("Question asked:" in m.value for m in at.markdown)
+
+    # Also verify Missed badge + concrete reason formatting via `_example_grade_info`
+    from fleet_copilot.interfaces.ui.pages.how_it_works import _example_grade_info
+
+    synthetic_report = {
+        "cases": [
+            {"case_id": "qa-synthetic-miss", "pass_k": False, "repeats": 1, "passed_repeats": 0}
+        ],
+        "runs": [
+            {
+                "case_id": "qa-synthetic-miss",
+                "case_passed": False,
+                "correctness": {
+                    "passed": False,
+                    "details": {
+                        "expected_devices": ["DLT35MHGTH2D"],
+                        "result_device_ids": [],
+                    },
+                },
+            }
+        ],
+    }
+    passed_flag, reason = _example_grade_info("qa-synthetic-miss", synthetic_report)
+    assert passed_flag is False
+    assert "Strict device-ID set grader expected" in reason
 
 
 def test_w4_home_mini_charts_software_table_and_compliance_heatmap() -> None:

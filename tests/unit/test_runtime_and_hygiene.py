@@ -143,10 +143,11 @@ def test_b4_thirteen_tools_caps_and_prompt_v2() -> None:
     assert rt.budgets.cap_for("create_chart") == 3
     assert rt.budgets.cap_for("run_readonly_sql") == 3
 
-    for name in ("planner", "investigator", "synthesizer"):
+    expected_versions = {"planner": "3", "investigator": "2", "synthesizer": "3"}
+    for name, want_ver in expected_versions.items():
         _, ver = load_prompt(name)
-        assert ver == "2", f"Expected {name}.md version == '2', got {ver!r}"
-    assert "2" in prompt_bundle_version()
+        assert ver == want_ver, f"Expected {name}.md version == {want_ver!r}, got {ver!r}"
+    assert "3" in prompt_bundle_version()
 
     dummy_deps = ToolDeps(
         telemetry_repo=None,  # type: ignore[arg-type]
