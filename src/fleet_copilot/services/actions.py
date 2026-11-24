@@ -22,6 +22,7 @@ from fleet_copilot.domain.policy_rules import (
     DeviceFacts,
     EmployeeFacts,
     HardwareCatalogRow,
+    PolicyCheck,
     PolicyVerdict,
     ProposalDraft,
     evaluate,
@@ -342,6 +343,45 @@ class ActionService:
             valid_evidence=valid_evidence,
         )
 
+        # Server-side cap on LLM-written free-text arguments (intentionally kept out of
+        # @tool signatures so the LLM-facing tool schema stays frozen).
+        oversized: dict[str, int] = {}
+        for key in ("spec", "note", "reason", "rationale"):
+            val = draft_in.arguments.get(key)
+            if isinstance(val, str) and len(val) > self._MAX_FREE_TEXT_CHARS:
+                oversized[key] = len(val)
+        if (
+            isinstance(draft_in.rationale, str)
+            and len(draft_in.rationale) > self._MAX_FREE_TEXT_CHARS
+            and "rationale" not in oversized
+        ):
+            oversized["rationale"] = len(draft_in.rationale)
+        if oversized:
+            detail = ", ".join(f"{k}={n}" for k, n in sorted(oversized.items()))
+            verdict = verdict.model_copy(
+                update={
+                    "decision": "refuse",
+                    "checks": [
+                        *verdict.checks,
+                        PolicyCheck(
+                            name="argument_too_long",
+                            observed=oversized,
+                            threshold=self._MAX_FREE_TEXT_CHARS,
+                            source="validation",
+                            passed=False,
+                        ),
+                    ],
+                    "reasons": [
+                        *verdict.reasons,
+                        (
+                            f"argument_too_long: free-text action argument(s) exceed "
+                            f"{self._MAX_FREE_TEXT_CHARS} characters ({detail})."
+                        ),
+                    ],
+                    "alternatives": [],
+                }
+            )
+
         if verdict.decision == "refuse" and audit_refusal:
             failed = [c.name for c in verdict.checks if not c.passed]
             if facts is None:
@@ -501,6 +541,7 @@ class ActionService:
         )
 
     _EXPIRED_MESSAGE = "This proposal expired; ask the copilot again for a fresh one."
+    _MAX_FREE_TEXT_CHARS = 1000
 
     def _expire_if_due_in_tx(
         self,
