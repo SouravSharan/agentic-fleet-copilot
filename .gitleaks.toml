@@ -7,12 +7,12 @@ title = "fleet-copilot gitleaks config"
 useDefault = true
 
 [allowlist]
-description = "Public dev placeholder keys and eval content hashes"
-paths = [
-  '''^evals/cassettes/''',
-  '''^evals/reports/''',
-]
+description = "Public dev placeholder keys and eval cassette request hashes"
+# Match against the whole line so the cassette `"key": "<sha256>"` context can be required.
+regexTarget = "line"
 regexes = [
+  # cassette request keys are SHA-256 digests of the model input, not credentials
+  '''"key": "[0-9a-f]{64}"''',
   '''0123456789abcdef0123456789abcdef(0123456789abcdef0123456789abcdef)?''',
   '''fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210''',
   '''a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90''',

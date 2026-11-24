@@ -12,6 +12,9 @@ on:
         required: true
         default: "3"
 
+permissions:
+  contents: read
+
 jobs:
   live-eval:
     runs-on: ubuntu-latest
@@ -34,9 +37,11 @@ jobs:
       TELEMETRY_WRITER_DATABASE_URL: postgresql://telemetry_writer:telemetry_writer@localhost:5432/fleet_copilot
       TELEMETRY_RO_DATABASE_URL: postgresql://telemetry_ro:telemetry_ro@localhost:5432/fleet_copilot
       COPILOT_DATABASE_URL: postgresql://copilot_app:copilot_app@localhost:5432/fleet_copilot
+      DEMO_OPS_DATABASE_URL: postgresql://demo_ops:demo_ops@localhost:5432/fleet_copilot
       TELEMETRY_WRITER_PASSWORD: telemetry_writer
       TELEMETRY_RO_PASSWORD: telemetry_ro
       COPILOT_APP_PASSWORD: copilot_app
+      DEMO_OPS_PASSWORD: demo_ops
       TEST_DB_NAME: fleet_copilot_test
       PSEUDONYM_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       TENANT_LOCK_KEY: fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210
@@ -52,11 +57,14 @@ jobs:
       - run: uv python install 3.12
       - run: uv sync --frozen --group dev
       - run: make test-db
-      - run: >-
+      - env:
+          EVAL_MODEL: ${{ inputs.model }}
+          EVAL_REPEATS: ${{ inputs.repeats }}
+        run: >-
           uv run python -m evals.run
           --mode live
-          --model "${{ inputs.model }}"
-          --repeats "${{ inputs.repeats }}"
+          --model "$EVAL_MODEL"
+          --repeats "$EVAL_REPEATS"
           --yes
           --out "evals/reports/live-manual"
       - uses: actions/upload-artifact@v4
