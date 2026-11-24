@@ -41,9 +41,20 @@ _TENANT_SCOPED_KEYS: tuple[str, ...] = (
     "_active_turn_order",
     "expanded_thread_ids",
     "selected_device_id",
+    "fleet_device_picker",
+    "_fleet_last_table_rows",
+    "_active_device_summaries",
+    "confirm_delete_chart_id",
     "approvals_outbox_receipt",
     "how_it_works_default_tab",
     "queue_decision_outcomes",
+    "guardrail_active_job",
+    "guardrail_live_result",
+    "guardrail_selected_id",
+    "demo_inject_last",
+    "demo_reset_last_summary",
+    "tour_completed_steps",
+    "tour_used",
 )
 
 # Registry populated by app.py so any page can switch cleanly via `st.switch_page`

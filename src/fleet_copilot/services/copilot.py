@@ -664,6 +664,7 @@ class CopilotService:
         message: str,
         *,
         turn_id: str | None = None,
+        hidden: bool = False,
     ) -> Iterator[ProgressEvent]:
         """Stream user-friendly `ProgressEvent`s for one turn, ending with the `TurnResponse`."""
         with bind_trace_id(ctx.trace_id):
@@ -701,6 +702,7 @@ class CopilotService:
                 tid,
                 ctx.actor_id,
                 title=_title_from_message(message),
+                hidden=hidden,
             )
             now = self._clock.now()
             lease_until = now + timedelta(seconds=_RUN_LEASE_SECONDS)

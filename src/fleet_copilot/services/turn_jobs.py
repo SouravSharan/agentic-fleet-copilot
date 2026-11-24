@@ -109,10 +109,13 @@ class TurnJobs:
         ctx: TenantContext,
         thread_id: str | None,
         message: str,
+        *,
+        hidden: bool = False,
     ) -> str:
-        """Submit a background turn job; deduplicates active jobs per `(actor_id, thread_id)`."""
-        active_key = (ctx.actor_id, thread_id if thread_id is not None else "__new__")
+        """Submit a background turn job; deduplicates active jobs per `(actor_id, resolved_tid)`."""
+        # Resolve thread_id BEFORE computing active_key so two new threads never collide (S2).
         resolved_tid = thread_id or f"{ctx.company_id}:{uuid.uuid4().hex[:12]}"
+        active_key = (ctx.actor_id, resolved_tid)
 
         with self._lock:
             self._cleanup_locked()
@@ -134,7 +137,7 @@ class TurnJobs:
             self._jobs[job_id] = rec
             self._active_by_key[active_key] = job_id
 
-        self._executor.submit(self._run_worker, job_id, guarded, ctx, resolved_tid, message)
+        self._executor.submit(self._run_worker, job_id, guarded, ctx, resolved_tid, message, hidden)
         return job_id
 
     def _run_worker(
@@ -144,6 +147,7 @@ class TurnJobs:
         ctx: TenantContext,
         thread_id: str,
         message: str,
+        hidden: bool = False,
     ) -> None:
         with self._lock:
             rec = self._jobs.get(job_id)
@@ -153,7 +157,12 @@ class TurnJobs:
 
         final_resp: TurnResponse | None = None
         try:
-            for ev in guarded.run_turn_stream(ctx, thread_id, message):
+            stream = (
+                guarded.run_turn_stream(ctx, thread_id, message, hidden=True)
+                if hidden
+                else guarded.run_turn_stream(ctx, thread_id, message)
+            )
+            for ev in stream:
                 with self._lock:
                     rec = self._jobs.get(job_id)
                     if rec is not None:

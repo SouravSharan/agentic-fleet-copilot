@@ -134,16 +134,17 @@ class PgCopilotStore:
         actor_id: str,
         *,
         title: str | None = None,
+        hidden: bool = False,
     ) -> None:
         """Create a thread row idempotently inside `company_id`."""
         with self._db.copilot_cursor(company_id) as cur:
             cur.execute(
                 """
-                INSERT INTO copilot.threads (thread_id, company_id, actor_id, title)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO copilot.threads (thread_id, company_id, actor_id, title, hidden)
+                VALUES (%s, %s, %s, %s, %s)
                 ON CONFLICT (thread_id) DO NOTHING
                 """,
-                (thread_id, company_id, actor_id, title),
+                (thread_id, company_id, actor_id, title, hidden),
             )
 
     def get_thread(self, company_id: str, thread_id: str) -> dict[str, Any] | None:

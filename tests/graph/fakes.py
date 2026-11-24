@@ -374,7 +374,13 @@ class InMemoryCopilotStore:
         return {}
 
     def ensure_thread(
-        self, company_id: str, thread_id: str, actor_id: str, *, title: str | None = None
+        self,
+        company_id: str,
+        thread_id: str,
+        actor_id: str,
+        *,
+        title: str | None = None,
+        hidden: bool = False,
     ) -> None:
         self.threads.setdefault(
             thread_id,
@@ -384,7 +390,7 @@ class InMemoryCopilotStore:
                 "actor_id": actor_id,
                 "title": title,
                 "status": "active",
-                "hidden": False,
+                "hidden": hidden,
                 "run_lease_until": None,
             },
         )

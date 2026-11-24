@@ -723,7 +723,10 @@ def test_l2_w11_guardrails_uses_turn_jobs_guarded_and_company_aware_copy(
     # W11: Acme-aware explanation for cross-tenant recorded run
     assert any("You are signed in as **Acme**" in c.value for c in at.caption)
 
-    # L2: Selecting an Acme-eligible attack and clicking Run live submits via TurnJobs + Guarded
+    # L2 & S6: Selecting an Acme-eligible attack and clicking Run live submits via TurnJobs +
+    # GuardedCopilot with a pre-generated thread ID created hidden=True (never visible in list)
+    import time
+
     at.button(key="guardrail_pick_ignore_instructions").click().run()
     assert not at.exception
     at.button(key="guardrail_live_ignore_instructions").click().run()
@@ -731,6 +734,127 @@ def test_l2_w11_guardrails_uses_turn_jobs_guarded_and_company_aware_copy(
     job_meta = at.session_state.get("guardrail_active_job")
     assert isinstance(job_meta, dict)
     assert job_meta.get("attack_id") == "ignore_instructions"
-    # Wait briefly for offline ScriptedChatModel TurnJob to finish cleanly
+    gr_tid = str(job_meta.get("thread_id") or "")
+    assert gr_tid.startswith("acme-001:")
+
+    # Wait for background TurnJob to complete WITHOUT ever mounting/re-running the poller (S6)
+    deadline = time.monotonic() + 5.0
     snap = offline_container.turn_jobs.get(str(job_meta["job_id"]))
+    while snap is not None and snap.status in ("queued", "running") and time.monotonic() < deadline:
+        time.sleep(0.02)
+        snap = offline_container.turn_jobs.get(str(job_meta["job_id"]))
     assert snap is not None
+    assert snap.status == "done"
+    # L2: GuardedCopilot recorded the turn attempt in the spend ledger
+    assert len(offline_container.store.spend_ledger) >= 1
+    # S6: Thread was born hidden=True at submit/ensure_thread time, never exposed in visible chats
+    gr_row = offline_container.store.get_thread(session.company_id, gr_tid)
+    assert gr_row is not None and gr_row["hidden"] is True
+    visible_tids = {
+        t["thread_id"]
+        for t in offline_container.store.list_threads(
+            session.company_id, actor_id=session.actor_id, include_hidden=False
+        )
+    }
+    assert gr_tid not in visible_tids
+
+
+def test_s3_persona_switch_clears_guardrail_and_tenant_scoped_state() -> None:
+    """S3: Switching personas or signing out clears all guardrail and D2b/D2c tenant keys."""
+    acme = _demo_session_for("acme_admin")
+    globex = _demo_session_for("globex_admin")
+
+    def _run_switch(acme_s, globex_s):  # type: ignore[no-untyped-def]
+        import streamlit as st
+
+        from fleet_copilot.interfaces.ui.state import clear_session, set_session
+
+        set_session(acme_s)
+        st.session_state["guardrail_active_job"] = {"job_id": "job_acme", "attack_id": "x"}
+        st.session_state["guardrail_live_result"] = {"attack_id": "x", "summary": "Acme secret"}
+        st.session_state["guardrail_selected_id"] = "pii_exfiltration"
+        st.session_state["_active_device_summaries"] = {"DEV1": {"hostname": "acme-macbook-1"}}
+        st.session_state["fleet_device_picker"] = "DEV1"
+        st.session_state["_fleet_last_table_rows"] = [0]
+        st.session_state["confirm_delete_chart_id"] = "chart_acme"
+        st.session_state["demo_inject_last"] = {"scenario": "x"}
+        st.session_state["demo_reset_last_summary"] = {"deleted": 1}
+
+        # Switch to Globex -> all Acme tenant keys wiped
+        set_session(globex_s)
+        st.session_state["_after_switch"] = {
+            k: k in st.session_state
+            for k in (
+                "guardrail_active_job",
+                "guardrail_live_result",
+                "guardrail_selected_id",
+                "_active_device_summaries",
+                "fleet_device_picker",
+                "_fleet_last_table_rows",
+                "confirm_delete_chart_id",
+                "demo_inject_last",
+                "demo_reset_last_summary",
+            )
+        }
+        st.session_state["guardrail_live_result"] = {"summary": "Globex"}
+        clear_session()
+        st.session_state["_after_signout_has_gr"] = "guardrail_live_result" in st.session_state
+
+    at = AppTest.from_function(_run_switch, args=(acme, globex), default_timeout=15)
+    at.run()
+    assert not at.exception
+    after_switch = dict(at.session_state["_after_switch"])
+    assert all(present is False for present in after_switch.values()), after_switch
+    assert at.session_state["_after_signout_has_gr"] is False
+
+
+def test_s4_approval_bypass_guardrail_is_live_for_viewer_only(
+    offline_container: UIContainer,
+) -> None:
+    """S4: approval_bypass cannot run live as it_admin (avoids dangling proposals), only viewer."""
+    _ = offline_container
+
+    def _run_how() -> None:
+        from fleet_copilot.interfaces.ui.pages.how_it_works import render_how_it_works_page
+
+        render_how_it_works_page()
+
+    # it_admin: Run live button must NOT appear for approval_bypass
+    at_admin = AppTest.from_function(_run_how, default_timeout=20)
+    at_admin.session_state["demo_session"] = _demo_session_for("acme_admin")
+    at_admin.session_state["how_it_works_default_tab"] = "Guardrails"
+    at_admin.session_state["guardrail_selected_id"] = "approval_bypass"
+    at_admin.run()
+    assert not at_admin.exception
+    admin_keys = [getattr(b, "key", None) for b in at_admin.button]
+    assert "guardrail_live_approval_bypass" not in admin_keys
+
+    # viewer: Run live button IS allowed (server-side RBAC refuses the action)
+    at_viewer = AppTest.from_function(_run_how, default_timeout=20)
+    at_viewer.session_state["demo_session"] = _demo_session_for("acme_viewer")
+    at_viewer.session_state["how_it_works_default_tab"] = "Guardrails"
+    at_viewer.session_state["guardrail_selected_id"] = "approval_bypass"
+    at_viewer.run()
+    assert not at_viewer.exception
+    viewer_keys = [getattr(b, "key", None) for b in at_viewer.button]
+    assert "guardrail_live_approval_bypass" in viewer_keys
+
+
+def test_s7_is_dark_theme_detects_light_dark_and_missing_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """S7: `_is_dark_theme()` reads `st.context.theme.type` and fails safe to light."""
+    from types import SimpleNamespace
+
+    import streamlit as st
+
+    from fleet_copilot.interfaces.ui.pages.how_it_works import _is_dark_theme
+
+    monkeypatch.setattr(st, "context", SimpleNamespace(theme=SimpleNamespace(type="dark")))
+    assert _is_dark_theme() is True
+
+    monkeypatch.setattr(st, "context", SimpleNamespace(theme=SimpleNamespace(type="light")))
+    assert _is_dark_theme() is False
+
+    monkeypatch.setattr(st, "context", SimpleNamespace(theme=None))
+    assert _is_dark_theme() is False

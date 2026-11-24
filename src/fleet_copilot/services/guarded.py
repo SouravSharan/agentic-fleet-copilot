@@ -177,6 +177,7 @@ class GuardedCopilot:
         message: str,
         *,
         turn_id: str | None = None,
+        hidden: bool = False,
     ) -> Iterator[ProgressEvent]:
         """Check all demo limits, stream progress events, and record spend on completion/exit."""
         resolved_tid = thread_id or f"{ctx.company_id}:{uuid.uuid4().hex[:12]}"
@@ -198,7 +199,7 @@ class GuardedCopilot:
         graph_invoked = False
         try:
             for event in self._copilot.run_turn_stream(
-                ctx, resolved_tid, message, turn_id=resolved_turn_id
+                ctx, resolved_tid, message, turn_id=resolved_turn_id, hidden=hidden
             ):
                 if event.step != "failed" or event.detail not in (
                     "thread_turn_limit",
