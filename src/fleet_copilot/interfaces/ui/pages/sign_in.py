@@ -51,78 +51,81 @@ def render_sign_in_page() -> None:
             icon=":material/lock:",
         )
 
-    def _clear_signin_error() -> None:
-        st.session_state.pop("sign_in_error", None)
-        st.session_state.pop("sign_in_notice", None)
-
-    code = st.text_input(
-        "Access code",
-        type="password",
-        key="sign_in_access_code",
-        placeholder="Enter your demo access code",
-        disabled=locked,
-        on_change=_clear_signin_error,
-    )
-
-    last_err = st.session_state.get("sign_in_error")
-    if last_err and not locked:
-        st.error(str(last_err), icon=":material/error:")
-
-    st.markdown("#### Choose a demo persona")
-    st.caption(
-        "Each persona maps to an isolated company tenant and role. "
-        "Select a card to sign in and open that company's fleet briefing."
-    )
-
     personas = list(cached_personas().values())
     container = get_ui_container()
 
-    cols = st.columns(2, gap="medium")
-    for idx, spec in enumerate(personas):
-        with cols[idx % 2]:
-            with st.container(border=True):
-                head_left, head_right = st.columns([3, 1.4])
-                with head_left:
-                    st.markdown(f"**{spec.label}**")
-                with head_right:
-                    is_admin = spec.role == "it_admin"
-                    st.badge(
-                        fmt_role(spec.role),
-                        icon=(
-                            ":material/admin_panel_settings:"
-                            if is_admin
-                            else ":material/visibility:"
-                        ),
-                        color="blue" if is_admin else "gray",
-                    )
-                st.caption(spec.what_to_try)
-                btn_label = f"Sign in as {spec.label}"
-                if st.button(
-                    btn_label,
-                    key=f"persona_card_{spec.id}",
-                    type="primary" if idx == 0 else "secondary",
-                    icon=":material/login:",
-                    width="stretch",
-                    disabled=locked,
-                ):
-                    if not code.strip():
-                        st.session_state["sign_in_error"] = "Enter your access code first."
-                        st.rerun()
-                    try:
-                        session = sign_in(code, spec.id, settings=container.settings)
-                    except (DemoAuthError, Exception):  # noqa: BLE001
-                        new_attempts = attempts + 1
-                        st.session_state[AUTH_ATTEMPTS_KEY] = new_attempts
-                        if new_attempts >= MAX_AUTH_ATTEMPTS:
-                            st.session_state["sign_in_error"] = "Too many attempts."
-                        else:
-                            st.session_state["sign_in_error"] = _GENERIC_SIGNIN_ERROR
-                        st.rerun()
-                    else:
-                        st.session_state.pop("sign_in_error", None)
-                        set_session(session)
-                        switch_to_page("home")
-                        st.rerun()
+    # One form: typing never triggers a rerun on its own, and the clicked persona button
+    # submits the access code atomically (a plain text_input + st.button pair loses the
+    # first click when the input's blur-commit rerun and the click race).
+    with st.form("sign_in_form", border=False, enter_to_submit=False):
+        code = st.text_input(
+            "Access code",
+            type="password",
+            key="sign_in_access_code",
+            placeholder="Enter your demo access code",
+            disabled=locked,
+        )
+
+        last_err = st.session_state.get("sign_in_error")
+        if last_err and not locked:
+            st.error(str(last_err), icon=":material/error:")
+
+        st.markdown("#### Choose a demo persona")
+        st.caption(
+            "Each persona maps to an isolated company tenant and role. "
+            "Select a card to sign in and open that company's fleet briefing."
+        )
+
+        chosen: str | None = None
+        cols = st.columns(2, gap="medium")
+        for idx, spec in enumerate(personas):
+            with cols[idx % 2]:
+                with st.container(border=True):
+                    head_left, head_right = st.columns([3, 1.4])
+                    with head_left:
+                        st.markdown(f"**{spec.label}**")
+                    with head_right:
+                        is_admin = spec.role == "it_admin"
+                        st.badge(
+                            fmt_role(spec.role),
+                            icon=(
+                                ":material/admin_panel_settings:"
+                                if is_admin
+                                else ":material/visibility:"
+                            ),
+                            color="blue" if is_admin else "gray",
+                        )
+                    st.caption(spec.what_to_try)
+                    if st.form_submit_button(
+                        f"Sign in as {spec.label}",
+                        key=f"persona_card_{spec.id}",
+                        type="primary" if idx == 0 else "secondary",
+                        icon=":material/login:",
+                        width="stretch",
+                        disabled=locked,
+                    ):
+                        chosen = spec.id
+
+    if chosen is not None:
+        st.session_state.pop("sign_in_notice", None)
+        if not (code or "").strip():
+            st.session_state["sign_in_error"] = "Enter your access code first."
+            st.rerun()
+        try:
+            session = sign_in(code, chosen, settings=container.settings)
+        except (DemoAuthError, Exception):  # noqa: BLE001
+            new_attempts = attempts + 1
+            st.session_state[AUTH_ATTEMPTS_KEY] = new_attempts
+            if new_attempts >= MAX_AUTH_ATTEMPTS:
+                st.session_state["sign_in_error"] = "Too many attempts."
+            else:
+                st.session_state["sign_in_error"] = _GENERIC_SIGNIN_ERROR
+            st.rerun()
+        else:
+            st.session_state.pop("sign_in_error", None)
+            set_session(session)
+            switch_to_page("home")
+            st.rerun()
 
     st.caption(
         ":material/info: Demo environment: simulated sign-in, isolated per-company telemetry, "

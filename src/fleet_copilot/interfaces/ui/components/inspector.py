@@ -110,7 +110,7 @@ def render_inspector_panel() -> None:
                 f"`{safe_code(resp.get('status', 'completed')) or 'completed'}`"
             )
 
-            # Short labels avoid horizontal tab overflow on desktop widths (U9)
+            # Short labels avoid horizontal tab overflow on desktop widths
             tab_plan, tab_tools, tab_ev, tab_verify, tab_usage = st.tabs(
                 ["Plan", "Tools", "Evidence", "Verify", "Usage"]
             )
@@ -140,7 +140,7 @@ def render_inspector_panel() -> None:
                     else:
                         st.caption("No tool steps planned.")
 
-                # Inspector preserves raw unmodified caveats from the model (U3)
+                # Inspector preserves raw unmodified caveats from the model
                 raw_ans = resp.get("answer")
                 raw_caveats = (
                     list(raw_ans.get("caveats") or []) if isinstance(raw_ans, dict) else []

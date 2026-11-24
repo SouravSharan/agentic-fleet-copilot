@@ -73,7 +73,7 @@ def summarize_proposal_args(args: dict[str, Any], rationale: str = "") -> str:
         if k in skip or not v:
             continue
         val_str = str(v).strip()
-        # Avoid repeating identical rationale/note copy on the proposal card (U4)
+        # Avoid repeating identical rationale/note copy on the proposal card
         if k in ("note", "reason") and (
             val_str.lower() == rationale_norm
             or (rationale_norm and val_str.lower() in rationale_norm)

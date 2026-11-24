@@ -1,4 +1,4 @@
-"""Phase D2c UI security hygiene (H1, H2) and walkthrough polish AppTests."""
+"""UI security hygiene (untrusted text rendering) and UX polish AppTests."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from fleet_copilot.domain.models import SoftwareRecord
 from fleet_copilot.interfaces.ui.services import UIContainer, set_ui_container_override
 from fleet_copilot.services.briefing import BriefingItem
 from tests.graph.fakes import AS_OF
-from tests.ui.test_d2a_smoke import _demo_session_for, _make_offline_container
+from tests.ui.test_ui_core_smoke import _demo_session_for, _make_offline_container
 
 
 def _app_render_briefing_card(item_dict, is_admin):  # type: ignore[no-untyped-def]
@@ -213,7 +213,7 @@ def test_h1_telemetry_software_name_with_html_is_escaped_on_home(
 
 
 # ---------------------------------------------------------------------------
-# Phase D2c walkthrough polish tests (L2, L3, W1-W11)
+# UX polish tests
 # ---------------------------------------------------------------------------
 
 
@@ -474,7 +474,7 @@ def test_w8_viewer_empty_approvals_queue_uses_viewer_copy(
 def test_w9_sign_in_empty_code_does_not_count_toward_lockout_and_typing_clears_error(
     offline_container: UIContainer,
 ) -> None:
-    """W9: Empty access code prompts user without incrementing lockout; typing clears error."""
+    """W9: Empty access code prompts without incrementing lockout; next submit replaces it."""
     _ = offline_container
 
     def _run_sign_in() -> None:
@@ -492,10 +492,12 @@ def test_w9_sign_in_empty_code_does_not_count_toward_lockout_and_typing_clears_e
     assert any("Enter your access code first." in e.value for e in at.error)
     assert int(at.session_state.get("auth_failed_attempts", 0)) == 0
 
-    # Typing into Access code clears the error via on_change
-    at.text_input(key="sign_in_access_code").set_value("t").run()
+    # The form submits code + persona together: entering a code and submitting replaces the
+    # empty-code prompt (here with the generic error, since "t" is not a valid code).
+    at.text_input(key="sign_in_access_code").set_value("t")
+    at.button(key="persona_card_acme_admin").click().run()
     assert not at.exception
-    assert not at.error
+    assert not any("Enter your access code first." in e.value for e in at.error)
 
 
 def test_w10_outbox_email_word_boundary_ellipsis_hostname_subject_and_safe_md(
@@ -737,7 +739,7 @@ def test_l2_w11_guardrails_uses_turn_jobs_guarded_and_company_aware_copy(
     gr_tid = str(job_meta.get("thread_id") or "")
     assert gr_tid.startswith("acme-001:")
 
-    # Wait for background TurnJob to complete WITHOUT ever mounting/re-running the poller (S6)
+    # Wait for background TurnJob to complete WITHOUT ever mounting/re-running the poller
     deadline = time.monotonic() + 5.0
     snap = offline_container.turn_jobs.get(str(job_meta["job_id"]))
     while snap is not None and snap.status in ("queued", "running") and time.monotonic() < deadline:
@@ -760,7 +762,7 @@ def test_l2_w11_guardrails_uses_turn_jobs_guarded_and_company_aware_copy(
 
 
 def test_s3_persona_switch_clears_guardrail_and_tenant_scoped_state() -> None:
-    """S3: Switching personas or signing out clears all guardrail and D2b/D2c tenant keys."""
+    """S3: Switching personas or signing out clears all guardrail and tenant-scoped keys."""
     acme = _demo_session_for("acme_admin")
     globex = _demo_session_for("globex_admin")
 
@@ -877,7 +879,7 @@ def test_r1_signed_out_refresh_redirects_with_session_ended_notice(
     assert at.session_state["sign_in_notice"] == "Your session ended — please sign in again."
     assert any("Your session ended — please sign in again." in i.value for i in at.info)
 
-    # Rendering Sign in with that notice displays it cleanly; typing clears it
+    # Rendering Sign in with that notice displays it cleanly; the next submit clears it
     def _run_sign_in() -> None:
         from fleet_copilot.interfaces.ui.pages.sign_in import render_sign_in_page
 
@@ -888,7 +890,8 @@ def test_r1_signed_out_refresh_redirects_with_session_ended_notice(
     at_si.run()
     assert not at_si.exception
     assert any("Your session ended — please sign in again." in i.value for i in at_si.info)
-    at_si.text_input(key="sign_in_access_code").set_value("demo").run()
+    at_si.text_input(key="sign_in_access_code").set_value("demo")
+    at_si.button(key="persona_card_acme_admin").click().run()
     assert "sign_in_notice" not in at_si.session_state
 
     # Explicit sign-out via clear_session() does NOT set the session-ended notice
