@@ -238,6 +238,16 @@ def _tool_call_matches_zero_filter(case: EvalCase, trace_entry: dict[str, Any]) 
     return tname in ("query_compliance", "find_devices")
 
 
+# A summary "states zero" when it contains a standalone 0 (not part of 10, 0.5 or 2.0), "zero",
+# "none", or "no [up to two words] laptops/devices/failures/...". Word boundaries keep "10 devices"
+# or "none of the 3" style text from matching on substrings.
+_ZERO_RESULT_RE = re.compile(
+    r"(?<![\d.])0(?![\d.,])|\bzero\b|\bnone\b"
+    r"|\bno\s+(?:[a-z0-9-]+\s+){0,2}"
+    r"(?:laptop|notebook|device|machine|computer|endpoint|host|failure|violation)s?\b"
+)
+
+
 def grade_correctness(case: EvalCase, resp: TurnResponse) -> dict[str, Any]:
     """Grade set precision/recall/F1 strictly on `Answer.result_device_ids` + text."""
     exp = case.expect
@@ -269,16 +279,7 @@ def grade_correctness(case: EvalCase, resp: TurnResponse) -> dict[str, Any]:
             summary_text = (
                 resp.answer.summary if resp.answer is not None else resp.answer_markdown
             ).lower()
-            says_zero = any(
-                tok in summary_text
-                for tok in ("0 ", "0/", "no laptop", "no device", "none", "zero")
-            ) or bool(
-                re.search(
-                    r"\bno\s+(?:[a-z0-9-]+\s+){0,2}"
-                    r"(?:laptop|notebook|device|machine|computer|endpoint|host|failure|violation)s?\b",
-                    summary_text,
-                )
-            )
+            says_zero = bool(_ZERO_RESULT_RE.search(summary_text))
             filtered_calls = [t for t in resp.tool_trace if _tool_call_matches_zero_filter(case, t)]
             has_filtered_zero = len(filtered_calls) > 0 and all(
                 int(t.get("matched", 0) or 0) == 0 for t in filtered_calls

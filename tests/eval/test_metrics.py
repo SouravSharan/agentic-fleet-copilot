@@ -270,6 +270,24 @@ def test_zero_trap_grader_scopes_to_question_filter() -> None:
     )
     assert grade_correctness(zero_case, unrelated_no)["details"]["zero_result_ok"] is False
 
+    # (e) Numbers that merely contain a 0 ("10 laptops", "10.0%") are not a zero claim
+    for non_zero_summary in (
+        "10 Acme laptops are failing high-severity compliance checks.",
+        "Disk free is 10.0% on the affected laptops.",
+    ):
+        resp_bad = _make_resp(
+            summary=non_zero_summary,
+            result_device_ids=[],
+            tool_trace=[
+                {
+                    "tool_name": "query_compliance",
+                    "args": {"severity": "high", "status": "fail", "form_factor": "laptop"},
+                    "matched": 0,
+                }
+            ],
+        )
+        assert grade_correctness(zero_case, resp_bad)["details"]["zero_result_ok"] is False
+
 
 def test_grade_actions_strict_refusal_db_status_and_alternatives() -> None:
     """Refusal requires gate verdict or case-specific keyword; status comes from DB only."""
