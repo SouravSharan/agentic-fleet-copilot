@@ -13,12 +13,27 @@ _FORBIDDEN_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("\u00a7", re.compile("\u00a7")),
     ("audit" + "/", re.compile(r"(?<!/v1/)" + "audit" + "/")),
     ("session-" + "docs", re.compile("session-" + "docs")),
+    # Internal milestone or ticket labels (phase names, milestone ids, bracketed ticket codes).
+    ("phase label", re.compile(r"\b" + "Pha" + r"se [A-H]\d")),
+    ("milestone id", re.compile(r"\b" + "D2" + r"[abc]\b")),
+    ("ticket code", re.compile(r"\(" + r"[WHSRLUN]\d{1,2}(?:[,/&\s]+[WHSRLUN]\d{1,2})*" + r"\)")),
+)
+
+_SCANNED_DIRS = ("src", "docs", "tests", "scripts", "evals", "config", "db", ".github")
+_SCANNED_SUFFIXES = (".py", ".md", ".yaml", ".yml", ".sql", ".toml")
+_SCANNED_ROOT_FILES = (
+    "README.md",
+    ".env.example",
+    "Makefile",
+    "Dockerfile",
+    "docker-compose.yml",
+    "docker-compose.prod.yml",
 )
 
 
 def _iter_repo_text_files() -> list[Path]:
     files: list[Path] = []
-    for root_name in ("src", "docs", "tests", "scripts", "evals"):
+    for root_name in _SCANNED_DIRS:
         root = REPO_ROOT / root_name
         if not root.exists():
             continue
@@ -32,11 +47,12 @@ def _iter_repo_text_files() -> list[Path]:
                 or rel.startswith("evals/reports/")
             ):
                 continue
-            if path.suffix in (".py", ".md", ".yaml", ".yml", ".sql"):
+            if path.suffix in _SCANNED_SUFFIXES:
                 files.append(path)
-    readme = REPO_ROOT / "README.md"
-    if readme.exists():
-        files.append(readme)
+    for name in _SCANNED_ROOT_FILES:
+        candidate = REPO_ROOT / name
+        if candidate.exists():
+            files.append(candidate)
     return files
 
 
