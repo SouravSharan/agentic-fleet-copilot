@@ -262,27 +262,27 @@
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 3,
-      "duration_ms": 48,
+      "duration_ms": 41,
       "summary": "Device MT7PJB7N5LRE (acme-macbook-4): MacBook Pro running macOS 14.5, disk free 2.0%, RAM used 47.64%."
     },
     {
       "tool_call_id": "call_11497662757478291652",
       "tool_name": "create_upgrade_order",
       "args": {
+        "component": "storage",
+        "device_id": "MT7PJB7N5LRE",
         "evidence": [
           "E1",
           "E2"
         ],
-        "component": "storage",
-        "spec": "1 TB SSD",
-        "device_id": "MT7PJB7N5LRE",
-        "rationale": "Device has only 2% free disk space on a 512 GB drive; requesting 1 TB SSD upgrade to resolve low disk space per user request."
+        "rationale": "Device has only 2% free disk space on a 512 GB drive; requesting 1 TB SSD upgrade to resolve low disk space per user request.",
+        "spec": "1 TB SSD"
       },
       "ok": false,
       "evaluated": 1,
       "matched": 0,
       "evidence_count": 2,
-      "duration_ms": 493,
+      "duration_ms": 465,
       "summary": "create_upgrade_order(MT7PJB7N5LRE): refuse"
     }
   ],
@@ -292,7 +292,7 @@
     "output_tokens": 790,
     "total_tokens": 21730,
     "cost_usd_est": 0.018668,
-    "latency_ms": 25678
+    "latency_ms": 840
   },
   "warnings": []
 }

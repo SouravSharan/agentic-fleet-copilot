@@ -3768,7 +3768,7 @@
       "evaluated": 10,
       "matched": 10,
       "evidence_count": 33,
-      "duration_ms": 195,
+      "duration_ms": 167,
       "summary": "Analyzed 10 device(s) across compliance_drift as of 2026-06-12: 14 insight(s)."
     }
   ],
@@ -3778,7 +3778,7 @@
     "output_tokens": 1498,
     "total_tokens": 34931,
     "cost_usd_est": 0.030692,
-    "latency_ms": 21124
+    "latency_ms": 563
   },
   "warnings": []
 }

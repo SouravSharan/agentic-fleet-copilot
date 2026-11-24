@@ -126,7 +126,7 @@
       "evaluated": 3,
       "matched": 3,
       "evidence_count": 1,
-      "duration_ms": 11,
+      "duration_ms": 12,
       "summary": "SQL query [Q1] returned 3 row(s) (as of 2026-06-12)."
     }
   ],
@@ -136,7 +136,7 @@
     "output_tokens": 605,
     "total_tokens": 9748,
     "cost_usd_est": 0.009126,
-    "latency_ms": 279
+    "latency_ms": 311
   },
   "warnings": []
 }

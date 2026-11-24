@@ -117,7 +117,7 @@
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 3,
-      "duration_ms": 120,
+      "duration_ms": 88,
       "summary": "Device MT7PJB7N5LRE (acme-macbook-4): MacBook Pro running macOS 14.5, disk free 2.0%, RAM used 47.64%."
     }
   ],
@@ -127,7 +127,7 @@
     "output_tokens": 692,
     "total_tokens": 14380,
     "cost_usd_est": 0.012861,
-    "latency_ms": 16864
+    "latency_ms": 408
   },
   "warnings": []
 }

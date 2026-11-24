@@ -35,7 +35,7 @@
     "output_tokens": 55,
     "total_tokens": 1050,
     "cost_usd_est": 0.000953,
-    "latency_ms": 242
+    "latency_ms": 263
   },
   "warnings": []
 }

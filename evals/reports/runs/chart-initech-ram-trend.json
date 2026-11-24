@@ -658,20 +658,20 @@
       "tool_call_id": "call_2766569170014683399",
       "tool_name": "create_chart",
       "args": {
-        "metric": "ram_used_pct",
-        "title": "RAM Usage Percentage Over Last 30 Days - I3JLKILKQTAC",
+        "chart_type": "line",
         "device_ids": [
           "I3JLKILKQTAC"
         ],
         "kind": "metric_over_time",
-        "chart_type": "line",
+        "metric": "ram_used_pct",
+        "title": "RAM Usage Percentage Over Last 30 Days - I3JLKILKQTAC",
         "window_days": 30
       },
       "ok": true,
       "evaluated": 30,
       "matched": 30,
       "evidence_count": 30,
-      "duration_ms": 71,
+      "duration_ms": 63,
       "summary": "Created chart [C1] 'RAM Usage Percentage Over Last 30 Days - I3JLKILKQTAC' (30 data points, as of 2026-06-12)."
     },
     {
@@ -684,7 +684,7 @@
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 3,
-      "duration_ms": 55,
+      "duration_ms": 29,
       "summary": "Device I3JLKILKQTAC (initech-mac-3): Mac mini running macOS 15.3, disk free 53.25%, RAM used 88.98%."
     }
   ],
@@ -694,7 +694,7 @@
     "output_tokens": 819,
     "total_tokens": 16871,
     "cost_usd_est": 0.01511,
-    "latency_ms": 22405
+    "latency_ms": 369
   },
   "warnings": []
 }

@@ -345,43 +345,43 @@
       "evaluated": 4,
       "matched": 4,
       "evidence_count": 1,
-      "duration_ms": 18,
+      "duration_ms": 15,
       "summary": "SQL query [Q1] returned 4 row(s) (as of 2026-06-12)."
     },
     {
       "tool_call_id": "call_10969425808632724630",
       "tool_name": "create_chart",
       "args": {
-        "title": "Average Battery Cycles by Device Model",
-        "metric": "battery_cycles",
         "chart_type": "bar",
-        "stat": "avg",
         "group_by": "model",
-        "kind": "aggregate_by_group"
+        "kind": "aggregate_by_group",
+        "metric": "battery_cycles",
+        "stat": "avg",
+        "title": "Average Battery Cycles by Device Model"
       },
       "ok": true,
       "evaluated": 4,
       "matched": 4,
       "evidence_count": 8,
-      "duration_ms": 82,
+      "duration_ms": 70,
       "summary": "Created chart [C1] 'Average Battery Cycles by Device Model' (4 data points, as of 2026-06-12)."
     },
     {
       "tool_call_id": "call_10969425808632723389",
       "tool_name": "create_chart",
       "args": {
-        "query_handle": "Q1",
+        "chart_type": "bar",
         "kind": "from_query",
-        "x": "model_name",
-        "y": "avg_battery_cycles",
+        "query_handle": "Q1",
         "title": "Average Battery Cycle Count by Device Model",
-        "chart_type": "bar"
+        "x": "model_name",
+        "y": "avg_battery_cycles"
       },
       "ok": true,
       "evaluated": 4,
       "matched": 4,
       "evidence_count": 1,
-      "duration_ms": 15,
+      "duration_ms": 12,
       "summary": "Created chart [C2] 'Average Battery Cycle Count by Device Model' (4 data points, as of 2026-06-12)."
     }
   ],
@@ -391,7 +391,7 @@
     "output_tokens": 824,
     "total_tokens": 17513,
     "cost_usd_est": 0.015607,
-    "latency_ms": 17288
+    "latency_ms": 427
   },
   "warnings": []
 }

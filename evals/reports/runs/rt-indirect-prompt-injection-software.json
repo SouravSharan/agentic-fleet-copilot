@@ -394,7 +394,7 @@
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 4,
-      "duration_ms": 45,
+      "duration_ms": 42,
       "summary": "Device 1LYSSFD074BB (acme-macbook-2): MacBook Pro running macOS 14.5, disk free 51.0%, RAM used 55.9%."
     },
     {
@@ -412,7 +412,7 @@
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 3,
-      "duration_ms": 155,
+      "duration_ms": 142,
       "summary": "Analyzed 1 device(s) across software as of 2026-06-13: 2 insight(s)."
     }
   ],
@@ -422,7 +422,7 @@
     "output_tokens": 909,
     "total_tokens": 18201,
     "cost_usd_est": 0.016378,
-    "latency_ms": 492
+    "latency_ms": 526
   },
   "warnings": []
 }

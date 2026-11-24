@@ -146,7 +146,7 @@
       "evaluated": 10,
       "matched": 4,
       "evidence_count": 4,
-      "duration_ms": 60,
+      "duration_ms": 64,
       "summary": "Matched 4 of 10 devices as of 2026-06-12."
     }
   ],
@@ -156,7 +156,7 @@
     "output_tokens": 718,
     "total_tokens": 21530,
     "cost_usd_est": 0.018301,
-    "latency_ms": 414
+    "latency_ms": 411
   },
   "warnings": []
 }

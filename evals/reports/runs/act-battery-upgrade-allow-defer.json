@@ -245,27 +245,27 @@
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 4,
-      "duration_ms": 67,
+      "duration_ms": 53,
       "summary": "Device 7VP16KHV88LM (acme-macbook-1): MacBook Pro running macOS 13.6, disk free 31.45%, RAM used 57.59%."
     },
     {
       "tool_call_id": "call_12404949829750853212",
       "tool_name": "create_upgrade_order",
       "args": {
+        "component": "battery",
+        "device_id": "7VP16KHV88LM",
         "evidence": [
           "E1",
           "E4"
         ],
-        "device_id": "7VP16KHV88LM",
-        "component": "battery",
-        "spec": "Replacement battery for MacBook Pro (Mac14,5)",
-        "rationale": "Battery condition is Service Recommended with 1049 cycle count"
+        "rationale": "Battery condition is Service Recommended with 1049 cycle count",
+        "spec": "Replacement battery for MacBook Pro (Mac14,5)"
       },
       "ok": true,
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 2,
-      "duration_ms": 481,
+      "duration_ms": 488,
       "summary": "create_upgrade_order(7VP16KHV88LM): allow"
     }
   ],
@@ -275,7 +275,7 @@
     "output_tokens": 744,
     "total_tokens": 21971,
     "cost_usd_est": 0.01871,
-    "latency_ms": 97
+    "latency_ms": 106
   },
   "warnings": []
 }

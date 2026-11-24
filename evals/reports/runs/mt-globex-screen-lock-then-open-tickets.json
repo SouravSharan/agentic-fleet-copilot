@@ -368,35 +368,35 @@
       "tool_name": "open_remediation_ticket",
       "args": {
         "check_id": "screen_lock",
+        "device_id": "CUXW0BQSV1B7",
         "evidence": [
           "E1"
         ],
-        "note": "Remediate failing screen_lock compliance check on device CUXW0BQSV1B7 (globex-thinkpad-6).",
-        "device_id": "CUXW0BQSV1B7"
+        "note": "Remediate failing screen_lock compliance check on device CUXW0BQSV1B7 (globex-thinkpad-6)."
       },
       "ok": true,
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 1,
-      "duration_ms": 456,
+      "duration_ms": 409,
       "summary": "open_remediation_ticket(CUXW0BQSV1B7): allow"
     },
     {
       "tool_call_id": "call_6366459816675219311",
       "tool_name": "open_remediation_ticket",
       "args": {
-        "device_id": "JRZSGXVMKE6M",
-        "note": "Remediate failing screen_lock compliance check on device JRZSGXVMKE6M (globex-thinkpad-8).",
         "check_id": "screen_lock",
+        "device_id": "JRZSGXVMKE6M",
         "evidence": [
           "E2"
-        ]
+        ],
+        "note": "Remediate failing screen_lock compliance check on device JRZSGXVMKE6M (globex-thinkpad-8)."
       },
       "ok": true,
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 1,
-      "duration_ms": 457,
+      "duration_ms": 418,
       "summary": "open_remediation_ticket(JRZSGXVMKE6M): allow"
     }
   ],
@@ -406,7 +406,7 @@
     "output_tokens": 1260,
     "total_tokens": 16234,
     "cost_usd_est": 0.015956,
-    "latency_ms": 23103
+    "latency_ms": 1981
   },
   "warnings": []
 }

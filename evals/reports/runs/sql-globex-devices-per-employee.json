@@ -105,14 +105,14 @@
       "tool_call_id": "call_2283963334441686088",
       "tool_name": "run_readonly_sql",
       "args": {
-        "sql": "SELECT employee_id, COUNT(DISTINCT device_id) AS device_count FROM telemetry.v_latest_device_state GROUP BY employee_id ORDER BY device_count DESC, employee_id ASC LIMIT 200",
-        "purpose": "Count the number of devices assigned to each employee in the Globex fleet"
+        "purpose": "Count the number of devices assigned to each employee in the Globex fleet",
+        "sql": "SELECT employee_id, COUNT(DISTINCT device_id) AS device_count FROM telemetry.v_latest_device_state GROUP BY employee_id ORDER BY device_count DESC, employee_id ASC LIMIT 200"
       },
       "ok": true,
       "evaluated": 4,
       "matched": 4,
       "evidence_count": 1,
-      "duration_ms": 14,
+      "duration_ms": 6,
       "summary": "SQL query [Q1] returned 4 row(s) (as of 2026-06-12)."
     }
   ],
@@ -122,7 +122,7 @@
     "output_tokens": 480,
     "total_tokens": 11017,
     "cost_usd_est": 0.009703,
-    "latency_ms": 13678
+    "latency_ms": 365
   },
   "warnings": []
 }

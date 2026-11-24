@@ -1083,7 +1083,7 @@
       "evaluated": 8,
       "matched": 2,
       "evidence_count": 4,
-      "duration_ms": 154,
+      "duration_ms": 139,
       "summary": "Analyzed 8 device(s) across ram as of 2026-06-12: 2 insight(s)."
     }
   ],
@@ -1093,7 +1093,7 @@
     "output_tokens": 814,
     "total_tokens": 13859,
     "cost_usd_est": 0.012836,
-    "latency_ms": 18300
+    "latency_ms": 455
   },
   "warnings": []
 }

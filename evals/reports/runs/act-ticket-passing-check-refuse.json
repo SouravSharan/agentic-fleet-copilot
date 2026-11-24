@@ -223,7 +223,7 @@
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 4,
-      "duration_ms": 62,
+      "duration_ms": 44,
       "summary": "Device 1LYSSFD074BB (acme-macbook-2): MacBook Pro running macOS 14.5, disk free 51.0%, RAM used 55.9%."
     },
     {
@@ -231,17 +231,17 @@
       "tool_name": "open_remediation_ticket",
       "args": {
         "check_id": "disk_encryption",
-        "note": "Remediation ticket for disk_encryption on device 1LYSSFD074BB",
+        "device_id": "1LYSSFD074BB",
         "evidence": [
           "E1"
         ],
-        "device_id": "1LYSSFD074BB"
+        "note": "Remediation ticket for disk_encryption on device 1LYSSFD074BB"
       },
       "ok": false,
       "evaluated": 1,
       "matched": 0,
       "evidence_count": 1,
-      "duration_ms": 487,
+      "duration_ms": 475,
       "summary": "open_remediation_ticket(1LYSSFD074BB): refuse"
     }
   ],
@@ -251,7 +251,7 @@
     "output_tokens": 751,
     "total_tokens": 21541,
     "cost_usd_est": 0.018409,
-    "latency_ms": 18178
+    "latency_ms": 886
   },
   "warnings": []
 }
