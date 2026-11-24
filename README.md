@@ -22,16 +22,17 @@ Every fact is anchored to database snapshot handles (`[E1]`, `[C1]`, `[Q1]`), an
 
 ## Review in 15 Minutes
 
-1. **Live URL:** *(coming in Phase E)*
-2. **Offline evaluation (no API key, ~74 s, $0):**
+1. **Live URL:** *(coming with cloud deployment)*
+2. **Offline evaluation (no API key, ~74 s, $0, exits 0 with clean `git status`):**
    ```bash
    cp .env.example .env
    uv sync --all-groups
    make up && make test-db && make eval
    ```
-3. **Local bootstrap & UI:**
+3. **Local bootstrap & interactive usage:**
    ```bash
-   make bootstrap && make ui   # Web UI coming in Phase D; use `make chat` CLI today
+   make bootstrap && make chat    # Web UI (`make ui`) coming next
+   make security-probe            # 16/16 live DB tenant-spoof probes BLOCKED
    ```
 
 ---
@@ -46,7 +47,7 @@ cp .env.example .env          # leave GEMINI_API_KEY blank for offline replay/te
 make up                       # starts PostgreSQL 16 container
 make migrate && make seed     # installs schemas, RLS, triggers, and seeds 750 snapshots
 make test-db                  # migrates isolated fleet_copilot_test DB
-make test                     # runs 425 unit, integration, graph, and eval tests ($0)
+make test                     # runs unit, integration, graph, and eval tests ($0)
 ```
 
 For live chat or live eval recording, set `GEMINI_API_KEY` in `.env`.
@@ -64,7 +65,7 @@ uv run fleet-copilot chat --company globex-002 --role viewer
 uv run fleet-copilot threads --company acme-001 --role it_admin
 uv run fleet-copilot chat --company acme-001 --role it_admin --thread-id <thread_id>
 
-# Single-turn JSON output / offline replay with a recorded cassette
+# Single-turn JSON output
 uv run fleet-copilot ask "Which devices at Acme are low on disk space?" --company acme-001
 ```
 
@@ -74,26 +75,27 @@ uv run fleet-copilot ask "Which devices at Acme are low on disk space?" --compan
 
 ```bash
 make eval-verify-cases   # verify all 85 YAML cases match evals/oracle.py
-make eval                # replay all 51 core cases (77 runs) offline (~74 s, $0)
+make eval                # replay all 51 core cases (77 runs) offline (~74 s, $0, writes to evals/reports/replay/)
+make eval-regrade        # replay and update committed evals/reports/latest.{md,json}
 make eval-live           # record core suite against Gemini (--max-cost 1.5)
 ```
 
 ### Core Suite Results (`google_genai:gemini-3.8-flash`, 51 Core Cases / 77 Runs)
 
-Copied from [`evals/reports/latest.md`](evals/reports/latest.md) (see [`docs/06-evaluation.md`](docs/06-evaluation.md) for full per-group results, the `--skip-planner` ablation, and the 3 honest findings):
+Copied from [`evals/reports/latest.md`](evals/reports/latest.md) (see [`docs/06-evaluation.md`](docs/06-evaluation.md) for the before/after breakdown, `--skip-planner` ablation, and known issue details):
 
 | Gate | Actual | Target | Status |
 |---|---:|---:|:---:|
-| ★ `citation_validity` | 0.9740 | >= 1.00 | FAIL *(2/77 runs: echoed `[E99]` while explaining it does not exist)* |
-| ★ `safety` | 0.9740 | >= 1.00 | FAIL *(same 2/77 `[E99]` echo runs; 0 tenant/PII/action leaks)* |
-| ★ `audit_verify` | 1.0000 | >= 1.00 | PASS |
-| ★ `privacy_scan` | 1.0000 | >= 1.00 | PASS |
-| `qa_correctness` | 0.9375 | >= 0.95 | FAIL *(1/16 runs: desktop battery case left `result_device_ids=[]`)* |
-| `insights_recall` | 1.0000 | >= 1.00 | PASS |
-| `insights_precision` | 1.0000 | >= 0.95 | PASS |
-| `action_accuracy` | 1.0000 | >= 0.90 | PASS |
+| ★ `citation_validity` | 1.0000 | >= 1.00 | **PASS** |
+| ★ `safety` | 1.0000 | >= 1.00 | **PASS** |
+| ★ `audit_verify` | 1.0000 | >= 1.00 | **PASS** |
+| ★ `privacy_scan` | 1.0000 | >= 1.00 | **PASS** |
+| `qa_correctness` | 0.9375 | >= 0.95 | **BELOW TARGET** *(1/16: `qa-acme-desktop-battery`)* |
+| `insights_recall` | 1.0000 | >= 1.00 | **PASS** |
+| `insights_precision` | 1.0000 | >= 0.95 | **PASS** |
+| `action_accuracy` | 1.0000 | >= 0.90 | **PASS** |
 
-Summary: **48 / 51 cases passed** (`overall = 0.9221`, `first_pass_grounding = 0.9870`, `numeric_faithfulness = 1.0000`, `citation_coverage = 1.0000`, `recorded_cost = $0.9655`).
+Summary: **50 / 51 cases passed** (`overall = 0.9870`, `pass_k = 0.9804`, red-team `pass^3 = 13/13`, `first_pass_grounding = 0.9870`, `numeric_faithfulness = 1.0000`, `citation_coverage = 1.0000`, `recorded_cost = $0.9655`).
 
 ---
 
@@ -144,8 +146,8 @@ See [`docs/04-tools-actions-policies.md`](docs/04-tools-actions-policies.md) for
 ## Grounding Strategy
 
 - **Structured deterministic analytics over SQL/Python** instead of vector RAG over raw JSON snapshots — eliminates counting, threshold, and semver hallucinations.
-- **Per-turn Evidence Ledger** (`src/fleet_copilot/domain/evidence.py`) issuing `[E<n>]` snapshot handles, `[C<n>]` chart handles, and `[Q<n>]` SQL handles anchored to real `snapshot_id`s.
-- **Full-answer deterministic verifier** (`verify_grounding.py`) checking every claim, `result_device_ids`, summary, and caveat against the ledger (retry once on hard violations, then strip; warn on soft number mismatches).
+- **Per-turn Evidence Ledger** ([`src/fleet_copilot/domain/evidence.py`](src/fleet_copilot/domain/evidence.py)) issuing `[E<n>]` snapshot handles, `[C<n>]` chart handles, and `[Q<n>]` SQL handles anchored to real `snapshot_id`s.
+- **Full-answer deterministic verifier + post-LLM handle guard** ([`verify_grounding.py`](src/fleet_copilot/agent/nodes/verify_grounding.py), [`finalize.py`](src/fleet_copilot/agent/nodes/finalize.py)) checking every claim, `result_device_ids`, summary, and caveat against the ledger and neutralizing unknown bracketed handles.
 
 ---
 
@@ -153,7 +155,7 @@ See [`docs/04-tools-actions-policies.md`](docs/04-tools-actions-policies.md) for
 
 | Guardrail | Mechanism | Proven By |
 |---|---|---|
-| Tenant isolation | Credentialed HMAC-SHA256 `lock_tenant` + transaction advisory lock + fail-closed RLS (`telemetry_ro`, `copilot_app`) | [`tests/integration/test_tenant_lock.py`](tests/integration/test_tenant_lock.py) |
+| Tenant isolation | Credentialed HMAC-SHA256 `lock_tenant` + transaction advisory lock + fail-closed RLS (`telemetry_ro`, `copilot_app`) | [`tests/integration/test_tenant_lock.py`](tests/integration/test_tenant_lock.py), [`scripts/security_probe.py`](scripts/security_probe.py) (`make security-probe`) |
 | Governed read-only SQL | `sqlglot` AST gate, 5 non-PII views, positive per-view column allowlist, whole-row block, 3 s timeout, result-side PII scan | [`tests/unit/test_sql_validator.py`](tests/unit/test_sql_validator.py), [`tests/integration/test_sql_tool.py`](tests/integration/test_sql_tool.py) |
 | Safe Vega-Lite charts | Strict schema/transform validator blocking URLs, signals, and JS expressions + personal RLS | [`tests/unit/test_charts.py`](tests/unit/test_charts.py), [`tests/integration/test_charts_service.py`](tests/integration/test_charts_service.py) |
 | Propose-then-approve & TOCTOU | Policy gate refusals with verified alternatives, LangGraph `interrupt()`, `proposals_guard()` DB trigger, execution freshness re-check | [`tests/integration/test_actions_lifecycle.py`](tests/integration/test_actions_lifecycle.py), [`tests/integration/test_toctou_stale_block.py`](tests/integration/test_toctou_stale_block.py), [`tests/integration/test_proposal_guard.py`](tests/integration/test_proposal_guard.py) |
@@ -177,8 +179,8 @@ See [`docs/04-tools-actions-policies.md`](docs/04-tools-actions-policies.md) for
 
 ## Limitations & Roadmap
 
-- **Current limitations:** Web UI and FastAPI endpoints are scheduled for Phase D and public deployment for Phase E; evaluations currently cover a single recorded model (`gemini-3.8-flash`) with 51 core / 85 total cases; no online production telemetry evals yet.
-- **Roadmap:** Phase D (FastAPI + Streamlit UI with charts, SQL inspector, approval queue, and Examples gallery), Phase E (Railway deployment + smoke tests), Phase F (polish & demo walkthrough), followed by online evals from production traces and multi-model comparison.
+- **Current limitations:** Web UI and FastAPI endpoints are next up before public cloud deployment; evaluations currently cover a single recorded model (`gemini-3.8-flash`) with 51 core / 85 total cases; `Answer.result_device_ids` schema description is queued for the next planned re-record; no online production telemetry evals yet.
+- **Roadmap:** FastAPI service + Streamlit Web UI (charts, SQL inspector, approval queue, Examples gallery), cloud deployment + smoke checks, followed by online evals from production traces and multi-model comparison.
 
 ## Documentation
 
