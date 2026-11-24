@@ -21,7 +21,9 @@ from fleet_copilot.repositories.telemetry import PgTelemetryRepository
 from fleet_copilot.services.actions import ActionService
 from fleet_copilot.services.adapters.mock import MockAdapter
 from fleet_copilot.services.audit import AuditService
+from fleet_copilot.services.briefing import build_briefing
 from fleet_copilot.services.copilot import CopilotService
+from fleet_copilot.services.demo_auth import load_personas
 from fleet_copilot.services.guarded import GuardedCopilot
 from fleet_copilot.services.policy import PolicyService
 
@@ -251,6 +253,68 @@ def audit(
             str(r["payload_json"]),
         )
     console.print(table)
+
+
+@app.command()
+def brief(
+    persona: Annotated[
+        str,
+        typer.Option(
+            "--persona",
+            help="Persona from config/personas.yaml (e.g. acme_admin, globex_admin).",
+        ),
+    ] = "acme_admin",
+) -> None:
+    """Print the deterministic Fleet Briefing for a demo persona ($0, no LLM)."""
+    personas = load_personas()
+    spec = personas.get(persona)
+    if spec is None:
+        valid = ", ".join(sorted(personas.keys()))
+        raise typer.BadParameter(f"Unknown persona {persona!r}. Choose from: {valid}")
+
+    db = get_db_manager()
+    repo = PgTelemetryRepository(db)
+    store = PgCopilotStore(db)
+    policy_svc = PolicyService(store)
+    ctx = TenantContext(
+        company_id=spec.company_id,
+        actor_id=f"cli:{spec.id}",
+        role=spec.role,
+        trace_id=f"cli-brief-{uuid.uuid4().hex[:12]}",
+    )
+    briefing = build_briefing(ctx, repo, store, policy_svc)
+
+    k = briefing.kpis
+    console.print(
+        Panel.fit(
+            f"[bold]{briefing.company_name} Fleet Briefing[/bold] · persona={spec.id} "
+            f"({spec.role}) · as_of={briefing.as_of[:10]}\n"
+            f"Devices: [bold]{k.devices}[/bold] ({k.laptops} laptops) · "
+            f"Compliance pass: [bold]{k.compliance_pass_pct:.1f}%[/bold] · "
+            f"Open approvals: [bold]{k.open_approvals}[/bold] · "
+            f"Needing attention: [bold]{k.devices_needing_attention}[/bold]"
+        )
+    )
+    if not briefing.items:
+        console.print("No active fleet findings.")
+        return
+
+    table = Table(title="Prioritized Findings")
+    for col in ("Severity", "Category", "Title", "Devices", "Suggested prompt"):
+        table.add_column(col)
+    for item in briefing.items:
+        table.add_row(
+            item.severity.upper(),
+            item.category,
+            item.title,
+            ", ".join(item.hostnames),
+            item.suggested_prompt,
+        )
+    console.print(table)
+    for item in briefing.items:
+        console.print(f"- [{item.severity.upper()}] {item.explanation}")
+        if item.suggested_action_prompt:
+            console.print(f"  [dim]Action prompt:[/dim] {item.suggested_action_prompt}")
 
 
 if __name__ == "__main__":
