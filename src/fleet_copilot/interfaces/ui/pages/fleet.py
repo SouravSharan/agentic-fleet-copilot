@@ -11,6 +11,7 @@ import streamlit as st
 
 from fleet_copilot.interfaces.ui.charts_ui import prepare_chart_spec_for_render
 from fleet_copilot.interfaces.ui.humanize import humanize_tool_name
+from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.services import (
     cached_device_detail,
     cached_fleet_devices,
@@ -162,8 +163,8 @@ def _render_device_detail(
             vertical_alignment="center",
             gap="small",
         ):
-            # Telemetry hostname rendered as plain text (never unescaped markdown/HTML)
-            st.subheader(hostname)
+            # Telemetry hostname sanitized before subheader markdown rendering
+            st.subheader(safe_md(hostname))
             if st.button(
                 "Ask about this device",
                 key=f"ask_about_dev_{device_id}",
@@ -490,7 +491,7 @@ def _render_saved_charts_tab(
                     vertical_alignment="center",
                     gap="small",
                 ):
-                    st.markdown(f"#### {title}")
+                    st.markdown(f"#### {safe_md(title)}")
                     st.caption(f":material/schedule: Data as of {fmt_as_of_full(as_of)}")
 
                 if isinstance(raw_spec, dict):

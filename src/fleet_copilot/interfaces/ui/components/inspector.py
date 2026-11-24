@@ -7,6 +7,7 @@ from typing import Any
 
 import streamlit as st
 
+from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.state import perf_finish_if_active, perf_mark_start
 from fleet_copilot.interfaces.ui.theme import fmt_as_of_full, fmt_int, render_status_badge
 
@@ -118,7 +119,7 @@ def render_inspector_panel() -> None:
                     if plan.get("role_violation"):
                         flags.append("role_violation=true")
                     if plan.get("needs_clarification"):
-                        flags.append(f"needs_clarification={plan['needs_clarification']}")
+                        flags.append(f"needs_clarification={safe_md(plan['needs_clarification'])}")
                     if flags:
                         st.caption(" · ".join(flags))
                     steps = list(plan.get("steps") or [])
@@ -126,7 +127,7 @@ def render_inspector_panel() -> None:
                         for i, step in enumerate(steps, start=1):
                             hint = step.get("tool_hint")
                             hint_tag = f" (`{hint}`)" if hint else ""
-                            st.markdown(f"{i}. {step.get('goal', '')}{hint_tag}")
+                            st.markdown(f"{i}. {safe_md(step.get('goal', ''))}{hint_tag}")
                     else:
                         st.caption("No tool steps planned.")
 

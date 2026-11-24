@@ -13,6 +13,7 @@ from fleet_copilot.interfaces.ui.humanize import (
     humanize_source,
     humanize_tool_name,
 )
+from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.services import cached_thread_turns, get_ui_container
 from fleet_copilot.interfaces.ui.state import (
     bump_thread_list_version,
@@ -121,7 +122,7 @@ def render_policy_checklist(checks: list[dict[str, Any]], *, expanded: bool = Fa
                 f"{icon} **{chk_label}** ({mark}) — "
                 f"observed `{chk.get('observed')}` vs "
                 f"threshold `{chk.get('threshold')}` "
-                f"({src_label})"
+                f"({safe_md(src_label)})"
             )
 
 
@@ -270,7 +271,9 @@ def render_proposal_cards(
             target_id = str(prop.get("target_id") or "")
             host = hostname_map.get(target_id)
             target_display = (
-                f"{host} (`{target_id}`)" if host and host != target_id else f"`{target_id}`"
+                f"{safe_md(host)} (`{target_id}`)"
+                if host and host != target_id
+                else f"`{target_id}`"
             )
             raw_args = prop.get("arguments")
             args: dict[str, Any] = raw_args if isinstance(raw_args, dict) else {}
@@ -304,9 +307,9 @@ def render_proposal_cards(
 
                 arg_summary = summarize_proposal_args(args, rationale=rationale)
                 if arg_summary:
-                    st.caption(arg_summary)
+                    st.caption(safe_md(arg_summary))
                 if rationale:
-                    st.markdown(rationale)
+                    st.markdown(safe_md(rationale))
 
                 render_policy_checklist(
                     checks,
@@ -355,7 +358,7 @@ def render_proposal_cards(
                 else:
                     outcome_rec = resume_outcomes.get(pid) or {}
                     if outcome_rec.get("already_decided") and detail_msg:
-                        st.info(detail_msg, icon=":material/info:")
+                        st.info(safe_md(detail_msg), icon=":material/info:")
                     elif eff_status == "executed":
                         rcpt_str = f" · Receipt `{receipt_id}`" if receipt_id else ""
                         st.success(f"Executed{rcpt_str}", icon=":material/check_circle:")
@@ -372,11 +375,11 @@ def render_proposal_cards(
                     elif eff_status == "stale_blocked":
                         reason = detail_msg or "Telemetry changed before execution."
                         st.warning(
-                            f"Blocked by fresh data check: {reason}",
+                            f"Blocked by fresh data check: {safe_md(reason)}",
                             icon=":material/block:",
                         )
                     elif detail_msg:
-                        st.caption(detail_msg)
+                        st.caption(safe_md(detail_msg))
 
         # Batch controls for multiple pending proposals (it_admin ONLY)
         if multi_pending:

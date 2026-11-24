@@ -9,6 +9,7 @@ import streamlit as st
 from fleet_copilot.interfaces.ui.components.answer_card import render_answer_card
 from fleet_copilot.interfaces.ui.components.inspector import render_inspector_panel
 from fleet_copilot.interfaces.ui.components.proposal_card import render_proposal_cards
+from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.services import (
     cached_personas,
     cached_telemetry_as_of,
@@ -172,7 +173,7 @@ def _render_active_job_poller(session: DemoSession) -> None:
 
         if prompt_text:
             with st.chat_message("user", avatar=_USER_AVATAR):
-                st.markdown(prompt_text)
+                st.markdown(safe_md(prompt_text))
 
         if snap is None:
             st.session_state.pop("active_job_id", None)
@@ -359,7 +360,7 @@ def _render_transcript_zone(
                 user_msg = str(turn_row.get("user_message") or "").strip()
                 if user_msg:
                     with st.chat_message("user", avatar=_USER_AVATAR):
-                        st.markdown(user_msg)
+                        st.markdown(safe_md(user_msg))
 
                 resp_dict = _turn_to_response_dict(turn_row)
                 with st.chat_message("assistant", avatar=_ASSISTANT_AVATAR):

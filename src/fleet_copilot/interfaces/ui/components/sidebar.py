@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.services import (
     cached_telemetry_as_of,
     cached_thread_list,
@@ -71,13 +72,14 @@ def _render_copilot_history_in_sidebar(session: DemoSession) -> None:
 
         row_main, row_menu = st.columns([4.4, 1.2], gap="small")
         with row_main:
-            short = title if len(title) <= 28 else title[:27].rstrip() + "…"
+            clean_title = safe_md(title)
+            short = clean_title if len(clean_title) <= 28 else clean_title[:27].rstrip() + "…"
             btn_label = short + (f" · {rel_time}" if rel_time else "")
             st.button(
                 btn_label,
                 key=f"thread_select_{tid}",
                 type="primary" if is_active else "tertiary",
-                help=title,
+                help=clean_title,
                 width="stretch",
                 on_click=_on_select_thread,
                 args=(tid,),

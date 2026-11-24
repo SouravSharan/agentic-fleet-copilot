@@ -9,6 +9,7 @@ import streamlit as st
 
 from fleet_copilot.interfaces.ui.components.answer_card import render_answer_card
 from fleet_copilot.interfaces.ui.components.proposal_card import render_proposal_cards
+from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.services import (
     cached_eval_reports,
     cached_example_runs,
@@ -511,7 +512,7 @@ def _render_guardrails_tab(session: DemoSession) -> None:
             raw_ans = recorded.get("answer")
             ans: dict[str, Any] = raw_ans if isinstance(raw_ans, dict) else {}
             st.info(
-                str(ans.get("summary") or recorded.get("answer_markdown") or ""),
+                safe_md(ans.get("summary") or recorded.get("answer_markdown") or ""),
                 icon=":material/verified_user:",
             )
         else:
@@ -563,7 +564,7 @@ def _render_guardrails_tab(session: DemoSession) -> None:
         if isinstance(live_out, dict) and live_out.get("attack_id") == active["id"]:
             with st.container(border=True):
                 render_status_badge("ok", f"Live result · status: {live_out['status']}")
-                st.markdown(str(live_out["summary"]))
+                st.markdown(safe_md(live_out["summary"]))
                 tools_txt = ", ".join(live_out["tools"]) if live_out["tools"] else "None"
                 st.caption(
                     f"Tools called: {tools_txt} · Trace `{live_out['trace_id']}` · "

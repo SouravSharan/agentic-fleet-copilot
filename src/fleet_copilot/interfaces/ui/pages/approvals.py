@@ -16,6 +16,7 @@ from fleet_copilot.interfaces.ui.humanize import (
     humanize_audit_event,
     humanize_tool_name,
 )
+from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.services import (
     cached_telemetry_as_of,
     cached_thread_turns,
@@ -103,7 +104,7 @@ def _render_pending_tab(
                         )
                     elif st_out == "stale_blocked":
                         st.warning(
-                            f"`{pid_out[:8]}` blocked by fresh data check: {msg}",
+                            f"`{pid_out[:8]}` blocked by fresh data check: {safe_md(msg)}",
                             icon=":material/block:",
                         )
                     elif st_out == "rejected":
@@ -111,7 +112,7 @@ def _render_pending_tab(
                     elif st_out == "expired":
                         st.warning(f"`{pid_out[:8]}` expired.", icon=":material/timer_off:")
                     else:
-                        st.caption(f"`{pid_out[:8]}` -> {st_out}: {msg}")
+                        st.caption(f"`{pid_out[:8]}` -> {st_out}: {safe_md(msg)}")
 
         if not pending:
             st.info(
@@ -182,7 +183,9 @@ def _render_pending_tab(
             target_id = str(prop.get("target_id") or "")
             host = hostname_map.get(target_id)
             target_display = (
-                f"{host} (`{target_id}`)" if host and host != target_id else f"`{target_id}`"
+                f"{safe_md(host)} (`{target_id}`)"
+                if host and host != target_id
+                else f"`{target_id}`"
             )
             raw_args = prop.get("arguments_json") or prop.get("arguments")
             args: dict[str, Any] = raw_args if isinstance(raw_args, dict) else {}
@@ -218,9 +221,9 @@ def _render_pending_tab(
 
                 arg_summary = summarize_proposal_args(args, rationale=rationale)
                 if arg_summary:
-                    st.caption(arg_summary)
+                    st.caption(safe_md(arg_summary))
                 if rationale:
-                    st.markdown(rationale)
+                    st.markdown(safe_md(rationale))
 
                 # Evidence snapshot chips
                 if ev_snaps:
@@ -314,7 +317,7 @@ def _render_history_tab(
         target_id = str(prop.get("target_id") or "")
         host = hostname_map.get(target_id)
         target_display = (
-            f"{host} (`{target_id}`)" if host and host != target_id else f"`{target_id}`"
+            f"{safe_md(host)} (`{target_id}`)" if host and host != target_id else f"`{target_id}`"
         )
         reviewer = humanize_actor_label(prop.get("reviewer_id"))
         via = str(prop.get("decided_via") or "—")
@@ -333,7 +336,7 @@ def _render_history_tab(
                 render_proposal_status_badge(status)
 
             if prop.get("rationale"):
-                st.caption(str(prop["rationale"]))
+                st.caption(safe_md(prop["rationale"]))
 
             meta = (
                 f"Reviewer: **{reviewer}** · Via: `{via}` · "
@@ -493,7 +496,7 @@ def _render_outbox_card(row: dict[str, Any], hostname_map: dict[str, str]) -> No
             with p4:
                 st.caption("Ship-to employee")
                 st.text(str(payload.get("ship_to_employee_id") or "—"))
-            st.caption(f"Target device: {dev_host or dev_id} ({dev_id})")
+            st.caption(f"Target device: {safe_md(dev_host or dev_id)} ({dev_id})")
             if payload.get("justification"):
                 st.text(str(payload["justification"]))
 

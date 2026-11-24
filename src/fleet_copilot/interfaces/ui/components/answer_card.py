@@ -16,6 +16,7 @@ from fleet_copilot.interfaces.ui.humanize import (
     humanize_tool_name,
     split_and_humanize_caveats,
 )
+from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.services import get_ui_container
 from fleet_copilot.interfaces.ui.state import (
     make_tenant_context,
@@ -54,11 +55,11 @@ def _render_citation_popover(
     with st.popover(f"[{handle}]", type="tertiary", key=key):
         hostname = ev.get("hostname")
         device_id = str(ev.get("device_id") or "fleet")
-        dev_label = f"{hostname} (`{device_id}`)" if hostname else f"`{device_id}`"
+        dev_label = f"{safe_md(hostname)} (`{device_id}`)" if hostname else f"`{device_id}`"
         st.markdown(f"**Evidence `[{handle}]`**")
         st.markdown(f"**Device:** {dev_label}")
         st.markdown(f"**Metric:** `{ev.get('metric', '—')}`")
-        st.markdown(f"**Value:** {fmt_number(ev.get('value'), ev.get('unit'))}")
+        st.markdown(f"**Value:** {safe_md(fmt_number(ev.get('value'), ev.get('unit')))}")
         st.markdown(f"**Snapshot ID:** `{ev.get('snapshot_id', '—')}`")
         st.markdown(f"**Collected at:** {fmt_as_of_full(ev.get('collected_at'))}")
         if ev.get("label"):
@@ -103,7 +104,7 @@ def _render_chart_card(
             ):
                 handle = chart.get("handle")
                 handle_tag = f"`[{handle}]` " if handle else ""
-                st.markdown(f"**{handle_tag}{title}**")
+                st.markdown(f"**{handle_tag}{safe_md(title)}**")
                 if not read_only:
                     pinned_ids: set[str] = set(st.session_state.get("pinned_chart_ids") or ())
                     is_pinned = chart_id in pinned_ids or bool(chart.get("pinned"))
@@ -193,7 +194,7 @@ def _render_refusal_cards(
         target_id = str(verdict.get("target_id") or "")
         host = hostname_map.get(target_id)
         target_display = (
-            f"{host} (`{target_id}`)" if host and host != target_id else f"`{target_id}`"
+            f"{safe_md(host)} (`{target_id}`)" if host and host != target_id else f"`{target_id}`"
         )
 
         failed_checks = [c for c in (verdict.get("checks") or []) if not c.get("passed", True)]
@@ -206,9 +207,9 @@ def _render_refusal_cards(
             render_status_badge("blocked", "Action refused by policy")
             st.markdown(f"**{tool_label}** · Target: {target_display}")
             for reason in reasons:
-                st.markdown(f"- {reason}")
+                st.markdown(f"- {safe_md(reason)}")
             if sources:
-                st.caption(f"Source: {', '.join(sources)}")
+                st.caption(f"Source: {safe_md(', '.join(sources))}")
 
             if failed_checks:
                 with st.expander("Failed policy check details", expanded=False):
@@ -218,7 +219,7 @@ def _render_refusal_cards(
                         st.markdown(
                             f":material/cancel: **{chk_lbl}** — observed "
                             f"`{chk.get('observed')}`, required `{chk.get('threshold')}` "
-                            f"({src_lbl})"
+                            f"({safe_md(src_lbl)})"
                         )
 
             alternatives = list(verdict.get("alternatives") or [])
@@ -237,7 +238,7 @@ def _render_refusal_cards(
                         vertical_alignment="center",
                         gap="small",
                     ):
-                        detail = f" — {hint_reason}" if hint_reason else ""
+                        detail = f" — {safe_md(hint_reason)}" if hint_reason else ""
                         st.markdown(f":material/alt_route: **{alt_tool}**{detail}")
                         if is_admin:
                             prompt_text = _alternative_prompt(alt, host or target_id)
@@ -283,12 +284,12 @@ def render_answer_card(
         warnings = [plain_warning(str(w)) for w in (resp.get("warnings") or [])]
         with st.container(border=True):
             if status == "limited":
-                st.info(msg, icon=":material/info:")
+                st.info(safe_md(msg), icon=":material/info:")
             else:
-                st.warning(msg, icon=":material/warning:")
+                st.warning(safe_md(msg), icon=":material/warning:")
             for w in warnings:
                 if w and w not in msg:
-                    st.caption(w)
+                    st.caption(safe_md(w))
         return
 
     with st.container(border=True):
@@ -323,7 +324,7 @@ def render_answer_card(
         if answer is not None:
             summary = str(answer.get("summary") or "").strip()
             if summary:
-                st.markdown(summary)
+                st.markdown(safe_md(summary))
 
             claims = list(answer.get("claims") or [])
             for c_idx, claim in enumerate(claims):
@@ -332,7 +333,7 @@ def render_answer_card(
                 if clean_text.endswith(" ."):
                     clean_text = clean_text[:-2] + "."
                 handles = [str(h) for h in (claim.get("citations") or []) if str(h) in cite_map]
-                st.markdown(f"- {clean_text}")
+                st.markdown(f"- {safe_md(clean_text)}")
                 if handles:
                     with st.container(
                         horizontal=True,
@@ -349,7 +350,7 @@ def render_answer_card(
         else:
             md = str(resp.get("answer_markdown") or "").strip()
             if md:
-                st.markdown(md)
+                st.markdown(safe_md(md))
 
         # Charts (explicit C handles, plus auto-attached insight charts if no explicit chart exists)
         charts = list(resp.get("charts") or [])
@@ -388,16 +389,16 @@ def render_answer_card(
                 with st.container(border=True):
                     sev = str(ins.get("severity") or "low")
                     render_status_badge(sev)
-                    st.markdown(f"**{ins.get('finding', '')}**")
+                    st.markdown(f"**{safe_md(ins.get('finding', ''))}**")
                     if ins.get("explanation"):
-                        st.caption(str(ins["explanation"]))
+                        st.caption(safe_md(ins["explanation"]))
 
         # Read-only SQL query results (Q handles)
         queries = list(resp.get("queries") or [])
         for q_idx, q in enumerate(queries):
             q_handle = str(q.get("handle") or f"Q{q_idx + 1}")
             row_count = int(q.get("row_count") or len(q.get("rows") or []))
-            purpose = str(q.get("purpose") or "Read-only query")
+            purpose = safe_md(q.get("purpose") or "Read-only query")
             with st.expander(
                 f"Read-only query [{q_handle}] · {purpose} ({fmt_int(row_count)} rows)",
                 expanded=False,
@@ -418,7 +419,7 @@ def render_answer_card(
         warnings = [str(w) for w in (resp.get("warnings") or []) if w]
         if warnings:
             for w in warnings:
-                st.warning(plain_warning(w), icon=":material/warning:")
+                st.warning(safe_md(plain_warning(w)), icon=":material/warning:")
 
         # Humanized footer policy thresholds + collapsible Notes for other caveats
         caveats = list((answer or {}).get("caveats") or [])
@@ -429,13 +430,13 @@ def render_answer_card(
         footer_parts: list[str] = []
         if telemetry_as_of:
             footer_parts.append(f"As of {fmt_as_of_full(telemetry_as_of)}")
-        footer_parts.extend(policy_lines)
+        footer_parts.extend(safe_md(p) for p in policy_lines)
         if footer_parts:
             st.caption(" · ".join(footer_parts))
         if other_notes:
             with st.expander(f"Notes ({len(other_notes)})", expanded=False):
                 for note in other_notes:
-                    st.markdown(f"- {note}")
+                    st.markdown(f"- {safe_md(note)}")
 
     # Refusal cards (outside the main answer border for crisp visual separation)
     _render_refusal_cards(

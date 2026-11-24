@@ -7,6 +7,7 @@ from typing import Any
 import streamlit as st
 
 from fleet_copilot.interfaces.ui.charts_ui import prepare_chart_spec_for_render
+from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.services import (
     cached_personas,
     cached_telemetry_as_of,
@@ -156,13 +157,13 @@ def _render_briefing_card(
             if item.recency:
                 st.caption(f"Latest signal: {item.recency}")
 
-        st.markdown(f"<div class='fc-card-title'>{item.title}</div>", unsafe_allow_html=True)
-        st.markdown(item.explanation)
+        st.markdown(f"##### {safe_md(item.title)}")
+        st.markdown(safe_md(item.explanation))
 
         if item.hostnames:
             with st.container(horizontal=True, wrap=True, gap="small"):
                 for host in item.hostnames[:8]:
-                    st.badge(host, icon=":material/laptop_mac:", color="gray")
+                    st.badge(safe_md(host), icon=":material/laptop_mac:", color="gray")
                 if len(item.hostnames) > 8:
                     st.badge(f"+{len(item.hostnames) - 8} more", color="gray")
 
