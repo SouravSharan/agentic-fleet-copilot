@@ -71,10 +71,13 @@ def render_inspector_panel() -> None:
             selected_turn = turns_by_id.get(turn_order[-1])
 
         with st.container(border=True):
-            hdr_left, hdr_right = st.columns([3.5, 1.5])
-            with hdr_left:
+            with st.container(
+                horizontal=True,
+                horizontal_alignment="distribute",
+                vertical_alignment="center",
+                gap="small",
+            ):
                 st.markdown("#### :material/search_insights: Inspector")
-            with hdr_right:
                 toggle_label = "Close" if is_open else "Open"
                 toggle_icon = ":material/close:" if is_open else ":material/open_in_full:"
 
@@ -88,7 +91,7 @@ def render_inspector_panel() -> None:
                     toggle_label,
                     key="inspector_toggle_btn",
                     icon=toggle_icon,
-                    width="stretch",
+                    width="content",
                     on_click=_on_toggle_inspector,
                 )
 

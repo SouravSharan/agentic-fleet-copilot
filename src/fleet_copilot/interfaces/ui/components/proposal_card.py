@@ -187,7 +187,9 @@ def render_proposal_cards(
             expires_text = fmt_expires_in(prop.get("expires_at"))
 
             with st.container(border=True):
-                top_cols = st.columns([0.5, 4.0, 2.0]) if multi_pending else st.columns([4.5, 2.0])
+                top_cols = (
+                    st.columns([0.45, 3.65, 2.3]) if multi_pending else st.columns([4.0, 2.4])
+                )
                 if multi_pending:
                     with top_cols[0]:
                         if eff_status == "pending_approval":

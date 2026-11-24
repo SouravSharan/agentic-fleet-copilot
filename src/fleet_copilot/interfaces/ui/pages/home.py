@@ -345,21 +345,44 @@ def render_home_page() -> None:
     c1, c2, c3, c4 = st.columns(4, gap="small")
     with c1:
         with st.container(border=True):
-            st.metric(
-                "Devices",
-                fmt_int(k.devices),
-                delta=f"{fmt_int(k.laptops)} laptops",
-                delta_color="off",
-            )
+            st.metric("Devices", fmt_int(k.devices))
+            st.caption(f"{fmt_int(k.laptops)} laptops")
     with c2:
         with st.container(border=True):
             st.metric("Compliance pass rate", fmt_pct(k.compliance_pass_pct))
+            st.caption("Across latest fleet checks")
     with c3:
         with st.container(border=True):
             st.metric("Open approvals", fmt_int(k.open_approvals))
+            st.caption("Pending human review")
     with c4:
         with st.container(border=True):
             st.metric("Devices needing attention", fmt_int(k.devices_needing_attention))
+            st.caption("High or medium findings")
+
+    # Needs attention (HIGH and MEDIUM) right above the fold
+    high_med = [item for item in briefing.items if item.severity in ("high", "medium")]
+    low_items = [item for item in briefing.items if item.severity == "low"]
+
+    st.markdown(f"### Needs attention ({len(high_med)})")
+    if not high_med:
+        st.success(
+            "No high or medium-severity issues detected across the fleet as of "
+            f"{fmt_as_of_full(briefing.as_of)}.",
+            icon=":material/check_circle:",
+        )
+    else:
+        for item in high_med:
+            _render_briefing_card(item, is_admin=is_admin, key_prefix="attn")
+
+    if low_items:
+        with st.expander(
+            f"Also worth a look ({len(low_items)})",
+            expanded=False,
+            icon=":material/info:",
+        ):
+            for item in low_items:
+                _render_briefing_card(item, is_admin=is_admin, key_prefix="low")
 
     # Ask box + persona suggested prompts
     personas = cached_personas()
@@ -403,30 +426,6 @@ def render_home_page() -> None:
 
     # Guided tour checklist
     _render_guided_tour(company_id=session.company_id, is_admin=is_admin)
-
-    # Needs attention (HIGH and MEDIUM)
-    high_med = [item for item in briefing.items if item.severity in ("high", "medium")]
-    low_items = [item for item in briefing.items if item.severity == "low"]
-
-    st.markdown(f"### Needs attention ({len(high_med)})")
-    if not high_med:
-        st.success(
-            "No high or medium-severity issues detected across the fleet as of "
-            f"{fmt_as_of_full(briefing.as_of)}.",
-            icon=":material/check_circle:",
-        )
-    else:
-        for item in high_med:
-            _render_briefing_card(item, is_admin=is_admin, key_prefix="attn")
-
-    if low_items:
-        with st.expander(
-            f"Also worth a look ({len(low_items)})",
-            expanded=False,
-            icon=":material/info:",
-        ):
-            for item in low_items:
-                _render_briefing_card(item, is_admin=is_admin, key_prefix="low")
 
 
 def main() -> None:

@@ -94,12 +94,15 @@ def _render_chart_card(
     @st.fragment(key=frag_key)
     def _chart_fragment() -> None:
         with st.container(border=True):
-            hdr_left, hdr_right = st.columns([4.2, 1.8])
-            with hdr_left:
+            with st.container(
+                horizontal=True,
+                horizontal_alignment="distribute",
+                vertical_alignment="center",
+                gap="small",
+            ):
                 handle = chart.get("handle")
                 handle_tag = f"`[{handle}]` " if handle else ""
                 st.markdown(f"**{handle_tag}{title}**")
-            with hdr_right:
                 pinned_ids: set[str] = set(st.session_state.get("pinned_chart_ids") or ())
                 is_pinned = chart_id in pinned_ids or bool(chart.get("pinned"))
                 can_pin = bool(chart.get("chart_id")) and str(chart["chart_id"]).startswith(
@@ -112,7 +115,7 @@ def _render_chart_card(
                         "Pin to Saved charts",
                         key=f"pin_{turn_id}_{chart_idx}_{chart_id}",
                         icon=":material/push_pin:",
-                        width="stretch",
+                        width="content",
                     ):
                         container = get_ui_container()
                         ctx = make_tenant_context(session)
@@ -218,18 +221,21 @@ def _render_refusal_cards(
                     hint_reason = str(
                         hint.get("reason") or hint.get("note") or hint.get("check_id") or ""
                     )
-                    a_left, a_right = st.columns([4.2, 1.8])
-                    with a_left:
+                    with st.container(
+                        horizontal=True,
+                        horizontal_alignment="distribute",
+                        vertical_alignment="center",
+                        gap="small",
+                    ):
                         detail = f" — {hint_reason}" if hint_reason else ""
                         st.markdown(f":material/alt_route: **{alt_tool}**{detail}")
-                    with a_right:
                         if is_admin:
                             prompt_text = _alternative_prompt(alt, host or target_id)
                             if st.button(
                                 "Stage this instead",
                                 key=f"stage_alt_{turn_id}_{idx}_{a_idx}",
                                 icon=":material/send:",
-                                width="stretch",
+                                width="content",
                             ):
                                 queue_copilot_prompt(
                                     prompt_text,
@@ -274,18 +280,23 @@ def render_answer_card(
 
     with st.container(border=True):
         # Header row: status / timestamp / Inspect trigger
-        h_left, h_right = st.columns([4.6, 1.4])
-        with h_left:
+        with st.container(
+            horizontal=True,
+            horizontal_alignment="distribute",
+            vertical_alignment="center",
+            gap="small",
+        ):
             if telemetry_as_of:
                 st.caption(f":material/schedule: Data as of {fmt_as_of_full(telemetry_as_of)}")
-        with h_right:
+            else:
+                st.caption("Fleet Copilot")
             btn_type = "primary" if is_selected else "tertiary"
             if st.button(
                 "Inspector",
                 key=f"inspect_btn_{turn_id}",
                 icon=":material/search_insights:",
                 type=btn_type,
-                width="stretch",
+                width="content",
             ):
                 perf_mark_start("toggle_inspector")
                 if on_inspect_click is not None:
@@ -363,7 +374,7 @@ def render_answer_card(
             ):
                 sql_text = str(q.get("sql") or "")
                 if sql_text:
-                    st.code(sql_text, language="sql")
+                    st.code(sql_text, language="sql", wrap_lines=True)
                 rows = list(q.get("rows") or [])[:_MAX_SQL_DISPLAY_ROWS]
                 if rows:
                     st.dataframe(rows, width="stretch", hide_index=True)

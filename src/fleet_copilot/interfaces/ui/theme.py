@@ -78,7 +78,7 @@ _WARNING_PLAIN_TEXT: dict[str, str] = {
 _BASE_CSS = """
 <style>
 .block-container {
-    padding-top: 1.5rem;
+    padding-top: 3.25rem;
     padding-bottom: 2rem;
     max-width: 1480px;
 }
