@@ -17,6 +17,11 @@ from fleet_copilot.domain.models import (
 )
 from fleet_copilot.repositories.telemetry import TelemetryRepository
 from fleet_copilot.services.policy import PolicyService
+from fleet_copilot.services.staleness import (
+    resolve_stale_device_days,
+    stale_days_ago,
+    stale_devices_note,
+)
 from fleet_copilot.services.trends.base import Analyzer, AnalyzerOutput
 from fleet_copilot.services.trends.battery import BatteryAnalyzer
 from fleet_copilot.services.trends.compliance import ComplianceDriftAnalyzer
@@ -103,12 +108,26 @@ def analyze_fleet_trends(
         merged_policy.update(out.policy_applied)
         notes.extend(out.coverage.notes)
 
+    stale_days = resolve_stale_device_days(policies)
+    if (stale_note := stale_devices_note(devices, as_of, stale_days)) is not None:
+        notes.append(stale_note)
+
     rollup_rows = build_device_rollup(
         devices,
         all_insights,
         policies,
         catalog_by_model=catalog_by_model,
     )
+    stale_by_dev = {
+        d.device_id: days
+        for d in devices
+        if (days := stale_days_ago(d, as_of, stale_days)) is not None
+    }
+    if stale_by_dev:
+        for row in rollup_rows:
+            dev_id = str(row.get("device_id") or "")
+            if dev_id in stale_by_dev:
+                row["last_seen_days_ago"] = stale_by_dev[dev_id]
     all_artifacts.append({"type": "device_signal_rollup", "rows": rollup_rows})
 
     # Auto-attach validated Vega-Lite series charts to each trend insight

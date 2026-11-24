@@ -21,10 +21,25 @@ from fleet_copilot.domain.os_version import older_than, parse_os, parse_version_
 from fleet_copilot.domain.stats import percentile
 from fleet_copilot.repositories.telemetry import TelemetryRepository
 from fleet_copilot.services.policy import PolicyService
+from fleet_copilot.services.staleness import (
+    resolve_stale_device_days,
+    stale_days_ago,
+    stale_devices_note,
+)
 
 
-def _device_row_dict(d: DeviceState) -> dict[str, Any]:
-    return d.model_dump(mode="json")
+def _device_row_dict(
+    d: DeviceState,
+    *,
+    as_of: Any = None,
+    stale_days: int | None = None,
+) -> dict[str, Any]:
+    row = d.model_dump(mode="json")
+    if as_of is not None and stale_days is not None:
+        days = stale_days_ago(d, as_of, stale_days)
+        if days is not None:
+            row["last_seen_days_ago"] = days
+    return row
 
 
 def _evidence_for_device(
@@ -97,6 +112,11 @@ def get_fleet_overview(
         for d in sorted(devices, key=lambda x: (x.device_id, x.collected_at))
     ]
 
+    stale_days = resolve_stale_device_days(policies)
+    notes: list[str] = []
+    if (stale_note := stale_devices_note(devices, as_of, stale_days)) is not None:
+        notes.append(stale_note)
+
     summary = (
         f"Fleet overview as of {as_of.date().isoformat()}: {len(devices)} devices "
         f"({', '.join(f'{k}={v}' for k, v in sorted(ff_counts.items()))})."
@@ -111,7 +131,7 @@ def get_fleet_overview(
             telemetry_as_of=as_of,
             evaluated=len(devices),
             matched=len(devices),
-            notes=[],
+            notes=notes,
         ),
         policy_applied=policies,
     )
@@ -221,6 +241,10 @@ def find_devices(
         parts = [f"{cnt} {plat}" for plat, cnt in sorted(excluded_platforms.items())]
         notes.append(f"Excluded non-{filters.os_family} platforms: {', '.join(parts)}")
 
+    stale_days = resolve_stale_device_days(policy_svc.resolve(ctx))
+    if (stale_note := stale_devices_note(all_devices, as_of, stale_days)) is not None:
+        notes.append(stale_note)
+
     truncated = len(matched) > filters.limit
     page = matched[: filters.limit]
 
@@ -295,7 +319,7 @@ def find_devices(
         tool_name="find_devices",
         ok=True,
         summary=summary,
-        data=[_device_row_dict(d) for d in page],
+        data=[_device_row_dict(d, as_of=as_of, stale_days=stale_days) for d in page],
         evidence=evidence,
         coverage=Coverage(
             telemetry_as_of=as_of,
@@ -312,7 +336,7 @@ def query_compliance(
     ctx: TenantContext,
     query: ComplianceQuery,
     repo: TelemetryRepository,
-    policy_svc: PolicyService,  # noqa: ARG001 - consistent service signature
+    policy_svc: PolicyService,
 ) -> ToolResult:
     """Query compliance check results with explicit zero-match pass evidence and check inventory."""
     as_of = repo.tenant_as_of(ctx.company_id)
@@ -356,9 +380,22 @@ def query_compliance(
         f"{cid} ({sev})" for cid, sev in existing_pairs
     )
     notes = [pairs_note]
+    stale_days = resolve_stale_device_days(policy_svc.resolve(ctx))
+    if (stale_note := stale_devices_note(evaluated_devices, as_of, stale_days)) is not None:
+        notes.append(stale_note)
+    stale_by_dev = {
+        d.device_id: days
+        for d in evaluated_devices
+        if (days := stale_days_ago(d, as_of, stale_days)) is not None
+    }
 
     if matched_rows:
-        data = [c.model_dump(mode="json") for c in matched_rows]
+        data: list[dict[str, Any]] = []
+        for c in matched_rows:
+            row = c.model_dump(mode="json")
+            if c.device_id in stale_by_dev:
+                row["last_seen_days_ago"] = stale_by_dev[c.device_id]
+            data.append(row)
         evidence = [
             Evidence(
                 handle=None,
@@ -505,9 +542,14 @@ def get_device_details(
         if c.status in ("pass", "fail"):
             bucket[c.status] += 1
 
+    stale_days = resolve_stale_device_days(policies)
+    detail_notes: list[str] = []
+    if (stale_note := stale_devices_note([device], as_of, stale_days)) is not None:
+        detail_notes.append(stale_note)
+
     detail_record: dict[str, Any] = {
         "device_id": device.device_id,
-        "profile": _device_row_dict(device),
+        "profile": _device_row_dict(device, as_of=as_of, stale_days=stale_days),
         "stats_30d": stats_30d,
         "latest_compliance": [c.model_dump(mode="json") for c in latest_comp],
         "compliance_history_30d": dict(sorted(comp_history.items())),
@@ -573,7 +615,7 @@ def get_device_details(
             telemetry_as_of=as_of,
             evaluated=1,
             matched=1,
-            notes=[],
+            notes=detail_notes,
         ),
         policy_applied=policies,
     )
@@ -583,7 +625,7 @@ def get_employee_devices(
     ctx: TenantContext,
     employee_id: str,
     repo: TelemetryRepository,
-    policy_svc: PolicyService,  # noqa: ARG001 - consistent service signature
+    policy_svc: PolicyService,
 ) -> ToolResult:
     """Return all devices assigned to `employee_id` within the tenant."""
     as_of = repo.tenant_as_of(ctx.company_id)
@@ -619,10 +661,15 @@ def get_employee_devices(
         if c.status == "fail":
             failing_by_dev[c.device_id].append(c.check_id)
 
+    stale_days = resolve_stale_device_days(policy_svc.resolve(ctx))
+    emp_notes: list[str] = []
+    if (stale_note := stale_devices_note(devices, as_of, stale_days)) is not None:
+        emp_notes.append(stale_note)
+
     data: list[dict[str, Any]] = []
     evidence: list[Evidence] = []
     for d in devices:
-        row = _device_row_dict(d)
+        row = _device_row_dict(d, as_of=as_of, stale_days=stale_days)
         row["failing_checks"] = sorted(failing_by_dev.get(d.device_id, []))
         data.append(row)
         evidence.append(
@@ -648,6 +695,6 @@ def get_employee_devices(
             telemetry_as_of=as_of,
             evaluated=len(devices),
             matched=len(devices),
-            notes=[],
+            notes=emp_notes,
         ),
     )

@@ -293,3 +293,21 @@ def test_output_ordering_is_deterministic(
     assert c1.model_dump_json() == c2.model_dump_json()
     ev_keys = [(ev.device_id, ev.collected_at) for ev in c1.evidence]
     assert ev_keys == sorted(ev_keys)
+
+
+@pytest.mark.parametrize("company_id", TENANTS)
+def test_current_sample_dataset_has_no_stale_notes_or_last_seen_field(
+    repos: tuple[PgTelemetryRepository, PolicyService],
+    company_id: str,
+) -> None:
+    repo, policy_svc = repos
+    ctx = _ctx(company_id)
+
+    ov = get_fleet_overview(ctx, repo, policy_svc)
+    assert ov.coverage is not None and ov.coverage.notes == []
+
+    found = find_devices(ctx, DeviceFilters(), repo, policy_svc)
+    assert found.coverage is not None
+    assert not any("not seen for more than" in n for n in found.coverage.notes)
+    assert "stale_device_days" not in found.policy_applied
+    assert all("last_seen_days_ago" not in row for row in found.data)
