@@ -1,4 +1,4 @@
-.PHONY: setup bootstrap up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck chat security-probe eval-verify-cases eval eval-regrade eval-live
+.PHONY: setup bootstrap up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck chat api security-probe eval-verify-cases eval eval-regrade eval-live
 
 COMPANY ?= acme-001
 ROLE ?= it_admin
@@ -47,6 +47,9 @@ typecheck:
 
 chat:
 	uv run fleet-copilot chat --company $(COMPANY) --role $(ROLE)
+
+api:
+	uv run uvicorn fleet_copilot.interfaces.api.app:create_app --factory --host 127.0.0.1 --port 8000
 
 security-probe:
 	uv run python scripts/security_probe.py

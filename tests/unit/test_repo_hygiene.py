@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Forbidden markers built dynamically so this test file itself does not trigger them.
-_FORBIDDEN_PATTERNS: tuple[str, ...] = (
-    "\u00a7",
-    "audit" + "/",
-    "session-" + "docs",
+# Exclude the HTTP API path `/v1/audit/verify` while blocking any private planning-doc path.
+_FORBIDDEN_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("\u00a7", re.compile("\u00a7")),
+    ("audit" + "/", re.compile(r"(?<!/v1/)" + "audit" + "/")),
+    ("session-" + "docs", re.compile("session-" + "docs")),
 )
 
 # Frozen LLM schema docstring: Pydantic exports `Answer.__doc__` directly into Gemini's
@@ -64,7 +66,7 @@ def test_no_private_planning_doc_references_in_repo() -> None:
                 for allow_rel, allow_prefix in _FROZEN_SCHEMA_ALLOWLIST
             ):
                 continue
-            for pat in _FORBIDDEN_PATTERNS:
-                if pat in line:
-                    violations.append(f"{rel}:{lineno}: contains {pat!r} -> {line.strip()[:90]}")
+            for label, regex in _FORBIDDEN_PATTERNS:
+                if regex.search(line):
+                    violations.append(f"{rel}:{lineno}: contains {label!r} -> {line.strip()[:90]}")
     assert not violations, "Private planning-doc references found:\n" + "\n".join(violations)

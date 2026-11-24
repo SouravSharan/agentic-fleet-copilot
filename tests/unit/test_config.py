@@ -23,12 +23,13 @@ def test_with_database_swaps_only_dbname() -> None:
         assert swap_dict[key] == orig_dict[key]
 
 
-def test_test_overrides_cover_all_four_urls() -> None:
+def test_test_overrides_cover_all_five_urls() -> None:
     settings = Settings(
         admin_database_url="postgresql://postgres:p1@localhost:5432/fleet_copilot",
         telemetry_writer_database_url="postgresql://telemetry_writer:p2@localhost:5432/fleet_copilot",
         telemetry_ro_database_url="postgresql://telemetry_ro:p3@localhost:5432/fleet_copilot",
         copilot_database_url="postgresql://copilot_app:p4@localhost:5432/fleet_copilot",
+        demo_ops_database_url="postgresql://demo_ops:p5@localhost:5432/fleet_copilot",
         test_db_name="custom_test_db",
     )
     overrides = test_database_overrides(settings, "custom_test_db")
@@ -38,6 +39,7 @@ def test_test_overrides_cover_all_four_urls() -> None:
         "TELEMETRY_WRITER_DATABASE_URL",
         "TELEMETRY_RO_DATABASE_URL",
         "COPILOT_DATABASE_URL",
+        "DEMO_OPS_DATABASE_URL",
     }
     assert set(overrides.keys()) == expected_keys
     for env_key, conninfo in overrides.items():
@@ -48,7 +50,7 @@ def test_test_overrides_cover_all_four_urls() -> None:
 
 
 def test_env_example_has_dev_keys_and_demo_vars() -> None:
-    """.env.example supplies non-empty dev AES/pseudonym keys (rotate for hosting) + DEMO_*."""
+    """.env.example supplies non-empty dev AES/pseudonym/signing keys + DEMO_* vars."""
     env_example = REPO_ROOT / ".env.example"
     raw = env_example.read_text(encoding="utf-8")
     assert "rotate for hosting" in raw.lower()
@@ -64,22 +66,31 @@ def test_env_example_has_dev_keys_and_demo_vars() -> None:
     assert len(kv.get("LANGGRAPH_AES_KEY", "").encode("utf-8")) == 32
     assert len(kv.get("PSEUDONYM_KEY", "")) == 64
     assert len(kv.get("TENANT_LOCK_KEY", "")) == 64
-    assert float(kv.get("DEMO_SPEND_CAP_USD", "0")) > 0
-    assert int(kv.get("DEMO_TURNS_PER_ACCESS_CODE", "0")) > 0
+    assert len(kv.get("SESSION_SIGNING_KEY", "")) == 64
+    assert kv.get("APP_ENV") == "dev"
+    assert kv.get("DEMO_MODE") == "true"
+    assert kv.get("DEMO_OPS_DATABASE_URL", "").startswith("postgresql://demo_ops:")
+    assert float(kv.get("DEMO_SPEND_CAP_USD", "0")) == 2.0
+    assert int(kv.get("DEMO_TURNS_PER_CODE", "0")) == 25
+    assert int(kv.get("DEMO_TURNS_PER_HOUR", "0")) == 20
 
     parsed = Settings(
-        _env_file=None,
+        _env_file=None,  # type: ignore[call-arg]
         langgraph_aes_key=kv["LANGGRAPH_AES_KEY"],  # type: ignore[arg-type]
         pseudonym_key=kv["PSEUDONYM_KEY"],  # type: ignore[arg-type]
         tenant_lock_key=kv["TENANT_LOCK_KEY"],  # type: ignore[arg-type]
+        session_signing_key=kv["SESSION_SIGNING_KEY"],  # type: ignore[arg-type]
         demo_spend_cap_usd=float(kv["DEMO_SPEND_CAP_USD"]),
-        demo_turns_per_access_code=int(kv["DEMO_TURNS_PER_ACCESS_CODE"]),
+        demo_turns_per_code=int(kv["DEMO_TURNS_PER_CODE"]),  # type: ignore[call-arg]
+        demo_turns_per_hour=int(kv["DEMO_TURNS_PER_HOUR"]),  # type: ignore[call-arg]
     )
     assert parsed.langgraph_aes_key is not None
     assert parsed.pseudonym_key is not None
     assert parsed.tenant_lock_key is not None
-    assert parsed.demo_spend_cap_usd == 3.0
-    assert parsed.demo_turns_per_access_code == 25
+    assert parsed.session_signing_key is not None
+    assert parsed.demo_spend_cap_usd == 2.0
+    assert parsed.demo_turns_per_code == 25
+    assert parsed.demo_turns_per_hour == 20
 
 
 def test_makefile_has_bootstrap_target() -> None:
