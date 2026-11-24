@@ -96,26 +96,30 @@ def _compliance_timeline_spec(comp_rows: list[dict[str, Any]]) -> dict[str, Any]
     # Deduplicate to latest status per (date, check_id)
     dedup: dict[tuple[str, str], dict[str, Any]] = {}
     for r in comp_rows:
-        dedup[(str(r["date"]), str(r["check_id"]))] = {
-            "date": str(r["date"]),
+        iso_date = str(r["date"])
+        dedup[(iso_date, str(r["check_id"]))] = {
+            "date": iso_date[5:] if len(iso_date) == 10 else iso_date,
+            "full_date": iso_date,
             "check": str(r["check_id"]),
             "status": str(r["status"]),
         }
-    vals = list(dedup.values())
+    vals = sorted(dedup.values(), key=lambda x: x["full_date"])
+    n_checks = len({v["check"] for v in vals})
     return {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
         "width": "container",
-        "height": max(110, 28 * len({v["check"] for v in vals}) + 40),
+        "height": max(130, 34 * n_checks + 48),
         "data": {"values": vals},
-        "mark": {"type": "rect", "cornerRadius": 2},
+        "mark": {"type": "rect", "cornerRadius": 3, "stroke": "#FFFFFF", "strokeWidth": 1},
         "encoding": {
             "x": {
                 "field": "date",
                 "type": "ordinal",
+                "sort": None,
                 "title": None,
-                "axis": {"labelAngle": -45},
+                "axis": {"labelAngle": 0, "labelOverlap": True},
             },
-            "y": {"field": "check", "type": "nominal", "title": "Compliance check"},
+            "y": {"field": "check", "type": "nominal", "title": None},
             "color": {
                 "field": "status",
                 "type": "nominal",
@@ -124,10 +128,10 @@ def _compliance_timeline_spec(comp_rows: list[dict[str, Any]]) -> dict[str, Any]
                     "domain": ["pass", "fail"],
                     "range": [STATUS_HEX["ok"], STATUS_HEX["high"]],
                 },
-                "legend": {"orient": "bottom"},
+                "legend": {"orient": "right"},
             },
             "tooltip": [
-                {"field": "date", "type": "nominal", "title": "Date"},
+                {"field": "full_date", "type": "nominal", "title": "Date"},
                 {"field": "check", "type": "nominal", "title": "Check"},
                 {"field": "status", "type": "nominal", "title": "Status"},
             ],
@@ -365,8 +369,8 @@ def _render_devices_tab(
             for r in filtered
         ]
 
-        # Color disk progress red when any filtered device is under the policy threshold
-        disk_bar_color = "red" if any(r["disk_low"] for r in filtered) else "blue"
+        # Keep progress bars neutral blue so healthy rows aren't painted red; Disk column flags Low
+        disk_bar_color = "blue"
 
         event = st.dataframe(
             display_rows,
