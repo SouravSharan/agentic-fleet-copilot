@@ -12,7 +12,11 @@ from langchain_core.tools import tool
 from fleet_copilot.agent.state import CopilotState
 from fleet_copilot.domain.evidence import EvidenceLedger
 from fleet_copilot.domain.models import Evidence, TenantContext
-from fleet_copilot.services.sql_query import SqlValidationError, execute_readonly_sql
+from fleet_copilot.services.sql_query import (
+    SqlPiiInResultError,
+    SqlValidationError,
+    execute_readonly_sql,
+)
 from fleet_copilot.tools.registry import (
     ToolDeps,
     ToolSpec,
@@ -86,6 +90,18 @@ def build_sql_tool_spec(deps: ToolDeps) -> ToolSpec:
                     "summary": msg,
                 }
             return json.dumps({"ok": False, "error": "sql_validation_failed", "summary": msg})
+        except SqlPiiInResultError:
+            msg = "Query result blocked: restricted PII patterns (IP/MAC/UUID) detected."
+            if sink is not None:
+                tc_id = runtime.tool_call_id or "run_readonly_sql"
+                sink.call_meta[tc_id] = {
+                    "ok": False,
+                    "evaluated": 0,
+                    "matched": 0,
+                    "evidence_count": 0,
+                    "summary": msg,
+                }
+            return json.dumps({"ok": False, "error": "pii_in_result", "summary": msg})
 
         sql_hash = hashlib.sha256(res.sql.encode("utf-8")).hexdigest()[:12]
         anchor_snap = res.snapshot_ids[0] if res.snapshot_ids else f"query_{sql_hash}"

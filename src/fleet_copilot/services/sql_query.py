@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
@@ -29,18 +30,132 @@ ALLOWED_TELEMETRY_VIEWS: frozenset[str] = frozenset(
     }
 )
 
-# Defense-in-depth sensitive column blocklist (never selectable or returned via ad-hoc SQL).
+# Positive per-view column allowlist: every view column EXCEPT serial_number, hardware_uuid,
+# payload, and id (audit/13 §2.1). Verified against live information_schema in integration tests.
+_SNAPSHOT_BASE_COLS: frozenset[str] = frozenset(
+    {
+        "snapshot_id",
+        "company_id",
+        "device_id",
+        "employee_id",
+        "collected_at",
+        "agent_version",
+        "ingested_at",
+        "os_platform",
+        "os_product_name",
+        "os_product_version",
+        "os_build_version",
+        "os_architecture",
+        "os_hostname",
+        "model_name",
+        "model_identifier",
+        "processor",
+        "total_memory_label",
+        "ram_total_bytes",
+        "ram_used_bytes",
+        "ram_free_bytes",
+        "ram_used_pct",
+        "has_battery_block",
+        "battery_present",
+        "battery_charging_status",
+        "battery_percentage",
+        "battery_condition",
+        "battery_cycle_count",
+        "battery_full_charge_capacity",
+        "has_network_block",
+    }
+)
+
+SQL_ALLOWED_COLUMNS: dict[str, frozenset[str]] = {
+    "v_snapshots_deduped": _SNAPSHOT_BASE_COLS,
+    "v_latest_device_state": _SNAPSHOT_BASE_COLS
+    | frozenset(
+        {
+            "first_seen_at",
+            "last_seen_at",
+            "snapshot_count",
+            "ever_had_battery",
+            "form_factor",
+        }
+    ),
+    "v_disk_volumes": frozenset(
+        {
+            "snapshot_id",
+            "company_id",
+            "device_id",
+            "employee_id",
+            "collected_at",
+            "volume_name",
+            "file_system",
+            "mount_point",
+            "size_bytes",
+            "available_bytes",
+            "free_pct",
+            "encrypted",
+        }
+    ),
+    "v_compliance_results": frozenset(
+        {
+            "snapshot_id",
+            "company_id",
+            "device_id",
+            "employee_id",
+            "collected_at",
+            "check_id",
+            "status",
+            "severity",
+        }
+    ),
+    "v_installed_software": frozenset(
+        {
+            "snapshot_id",
+            "company_id",
+            "device_id",
+            "employee_id",
+            "collected_at",
+            "software_name",
+            "version",
+            "publisher",
+        }
+    ),
+}
+
+# Defense-in-depth sensitive column blocklist (second layer on top of SQL_ALLOWED_COLUMNS).
 FORBIDDEN_COLUMNS: frozenset[str] = frozenset(
     {
         "hardware_uuid",
         "serial_number",
         "payload",
+        "id",
         "secret",
         "mac",
         "address",
         "ip_address",
     }
 )
+
+# Result-side PII guard patterns (same MAC / IPv4 / IPv6 / UUID patterns as must_not_match_pii).
+_IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+_IPV6_RE = re.compile(
+    r"(?<![0-9a-fA-F:])(?:"
+    r"(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}"
+    r"|(?:[0-9a-fA-F]{1,4}:){1,7}:"
+    r"|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}"
+    r"|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}"
+    r"|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}"
+    r"|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}"
+    r"|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}"
+    r"|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}"
+    r"|:(?::[0-9a-fA-F]{1,4}){1,7}"
+    r"|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]+"
+    r")(?![0-9a-fA-F:])",
+    re.IGNORECASE,
+)
+_MAC_RE = re.compile(r"\b(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}\b")
+_UUID_RE = re.compile(
+    r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b"
+)
+_PII_PATTERNS: tuple[re.Pattern[str], ...] = (_IPV4_RE, _IPV6_RE, _MAC_RE, _UUID_RE)
 
 # Strict function allowlist for analytical queries (no set_config, pg_*, lock_tenant, version...).
 ALLOWED_SQL_FUNCTIONS: frozenset[str] = frozenset(
@@ -161,6 +276,10 @@ class SqlValidationError(ValueError):
     """Raised when an ad-hoc SQL query fails AST, table, column, function, or limit validation."""
 
 
+class SqlPiiInResultError(ValueError):
+    """Raised when executed SQL rows match restricted PII patterns (MAC / IPv4 / IPv6 / UUID)."""
+
+
 class SqlQueryResult(BaseModel):
     """Structured result of an executed read-only SQL query."""
 
@@ -177,6 +296,17 @@ class SqlQueryResult(BaseModel):
     telemetry_as_of: datetime | None = None
 
 
+def contains_pii_value(obj: Any) -> bool:
+    """Return True if any string anywhere inside `obj` matches MAC, IPv4, IPv6, or UUID."""
+    if isinstance(obj, str):
+        return any(pat.search(obj) is not None for pat in _PII_PATTERNS)
+    if isinstance(obj, dict):
+        return any(contains_pii_value(v) for v in obj.values())
+    if isinstance(obj, (list, tuple)):
+        return any(contains_pii_value(item) for item in obj)
+    return False
+
+
 def _normalize_func_name(node: exp.Func) -> str:
     if isinstance(node, exp.Anonymous):
         return str(node.name or "").strip().lower()
@@ -184,6 +314,336 @@ def _normalize_func_name(node: exp.Func) -> str:
     if sql_name:
         return sql_name.strip().lower()
     return type(node).__name__.lower()
+
+
+def _resolve_column(
+    col: exp.Column,
+    *,
+    sources: dict[str, frozenset[str]],
+    outer_scopes: list[dict[str, frozenset[str]]],
+    scope_entity_names: frozenset[str],
+    output_aliases: frozenset[str],
+    using_cols: frozenset[str],
+    allow_output_alias: bool,
+) -> None:
+    """Verify `col` is not a whole-row reference and resolves to an allowed column."""
+    if isinstance(col.this, exp.Star):
+        raise SqlValidationError("Wildcard `alias.*` is not allowed; specify explicit columns.")
+
+    tbl_qual = (col.table or "").strip().lower()
+    col_name = (col.name or "").strip().lower()
+    if not col_name:
+        raise SqlValidationError("Empty column reference is not permitted.")
+
+    # Second-layer blocklist
+    if col_name in FORBIDDEN_COLUMNS:
+        raise SqlValidationError(f"Column {col_name!r} is restricted and cannot be queried.")
+
+    # Explicit whole-row reference block: bare column matching any table, alias, or CTE in scope
+    if not tbl_qual and col_name in scope_entity_names:
+        raise SqlValidationError(
+            f"Whole-row reference {col_name!r} (matches table/alias/CTE in scope) is not permitted."
+        )
+
+    if tbl_qual:
+        allowed_cols: frozenset[str] | None = sources.get(tbl_qual)
+        if allowed_cols is None:
+            for scope in reversed(outer_scopes):
+                if tbl_qual in scope:
+                    allowed_cols = scope[tbl_qual]
+                    break
+        if allowed_cols is None:
+            raise SqlValidationError(f"Unknown table or alias qualifier {tbl_qual!r}.")
+        if col_name not in allowed_cols:
+            raise SqlValidationError(
+                f"Column '{tbl_qual}.{col_name}' is not in the allowed column list."
+            )
+        return
+
+    # Unqualified column: must resolve unambiguously to an allowed column in current scope
+    matches = [q for q, cols in sources.items() if col_name in cols]
+    if len(matches) == 1:
+        return
+    if len(matches) > 1:
+        if col_name in using_cols:
+            return
+        raise SqlValidationError(
+            f"Ambiguous unqualified column {col_name!r}; qualify it with its table alias."
+        )
+
+    # Output aliases are allowed ONLY in GROUP BY / ORDER BY
+    if allow_output_alias and col_name in output_aliases:
+        return
+
+    # Correlated subquery fallback: check enclosing scopes unambiguously
+    for scope in reversed(outer_scopes):
+        outer_matches = [q for q, cols in scope.items() if col_name in cols]
+        if len(outer_matches) == 1:
+            return
+        if len(outer_matches) > 1:
+            raise SqlValidationError(
+                f"Ambiguous outer column {col_name!r}; qualify it with its table alias."
+            )
+
+    raise SqlValidationError(
+        f"Column {col_name!r} is not in the allowed column list for the referenced view(s)."
+    )
+
+
+def _walk_expr_columns(
+    node: exp.Expr | None,
+    *,
+    sources: dict[str, frozenset[str]],
+    cte_columns: dict[str, frozenset[str]],
+    outer_scopes: list[dict[str, frozenset[str]]],
+    scope_entity_names: frozenset[str],
+    output_aliases: frozenset[str],
+    using_cols: frozenset[str],
+    allow_output_alias: bool,
+    real_table_counter: list[int],
+) -> None:
+    """Recursively validate all columns in `node`, recursing cleanly into nested SELECT scopes."""
+    if node is None:
+        return
+    if isinstance(node, exp.Select):
+        _validate_select_scope(
+            node,
+            cte_columns=cte_columns,
+            outer_scopes=[*outer_scopes, sources],
+            outer_entity_names=scope_entity_names,
+            real_table_counter=real_table_counter,
+        )
+        return
+    if isinstance(node, exp.Subquery):
+        if not isinstance(node.this, exp.Select):
+            raise SqlValidationError("Only SELECT subqueries are permitted.")
+        _validate_select_scope(
+            node.this,
+            cte_columns=cte_columns,
+            outer_scopes=[*outer_scopes, sources],
+            outer_entity_names=scope_entity_names,
+            real_table_counter=real_table_counter,
+        )
+        return
+    if isinstance(node, exp.Column):
+        _resolve_column(
+            node,
+            sources=sources,
+            outer_scopes=outer_scopes,
+            scope_entity_names=scope_entity_names,
+            output_aliases=output_aliases,
+            using_cols=using_cols,
+            allow_output_alias=allow_output_alias,
+        )
+        return
+    for child in node.iter_expressions():
+        _walk_expr_columns(
+            child,
+            sources=sources,
+            cte_columns=cte_columns,
+            outer_scopes=outer_scopes,
+            scope_entity_names=scope_entity_names,
+            output_aliases=output_aliases,
+            using_cols=using_cols,
+            allow_output_alias=allow_output_alias,
+            real_table_counter=real_table_counter,
+        )
+
+
+def _validate_select_scope(
+    select_node: exp.Select,
+    *,
+    cte_columns: dict[str, frozenset[str]],
+    outer_scopes: list[dict[str, frozenset[str]]],
+    outer_entity_names: frozenset[str],
+    real_table_counter: list[int],
+) -> frozenset[str]:
+    """Validate one SELECT scope (CTEs, FROM/JOIN sources, columns) and return exported columns."""
+    visible_ctes = dict(cte_columns)
+    with_clause = select_node.args.get("with_")
+    if with_clause is not None:
+        if with_clause.args.get("recursive"):
+            raise SqlValidationError("Recursive CTEs are not permitted.")
+        for cte in with_clause.expressions:
+            if not isinstance(cte, exp.CTE) or not isinstance(cte.this, exp.Select):
+                raise SqlValidationError("Only non-recursive SELECT CTEs are permitted.")
+            cte_name = (cte.alias_or_name or "").strip().lower()
+            if not cte_name:
+                raise SqlValidationError("CTE must have an explicit name.")
+            inferred = _validate_select_scope(
+                cte.this,
+                cte_columns=visible_ctes,
+                outer_scopes=outer_scopes,
+                outer_entity_names=outer_entity_names | frozenset(visible_ctes.keys()),
+                real_table_counter=real_table_counter,
+            )
+            alias_node = cte.args.get("alias")
+            explicit_cols: list[str] = []
+            if isinstance(alias_node, exp.TableAlias):
+                for col_ident in alias_node.args.get("columns") or []:
+                    cname = str(getattr(col_ident, "name", "") or "").strip().lower()
+                    if cname in FORBIDDEN_COLUMNS:
+                        raise SqlValidationError(f"CTE column alias {cname!r} is restricted.")
+                    if cname:
+                        explicit_cols.append(cname)
+            visible_ctes[cte_name] = frozenset(explicit_cols) if explicit_cols else inferred
+
+    # Validate FROM and JOIN sources for this SELECT only
+    sources: dict[str, frozenset[str]] = {}
+    entity_names: set[str] = set(outer_entity_names) | set(visible_ctes.keys())
+    using_cols: set[str] = set()
+
+    def _register_source(src: Any) -> None:
+        if isinstance(src, exp.Subquery):
+            if not isinstance(src.this, exp.Select):
+                raise SqlValidationError("Only SELECT subqueries are permitted in FROM/JOIN.")
+            sub_cols = _validate_select_scope(
+                src.this,
+                cte_columns=visible_ctes,
+                outer_scopes=outer_scopes,
+                outer_entity_names=frozenset(entity_names),
+                real_table_counter=real_table_counter,
+            )
+            sub_alias = (src.alias or "").strip().lower()
+            if not sub_alias:
+                raise SqlValidationError("Subqueries in FROM/JOIN must have an alias.")
+            entity_names.add(sub_alias)
+            sources[sub_alias] = sub_cols
+            return
+        if isinstance(src, exp.Table):
+            schema_name = (src.db or "").strip().lower()
+            table_name = (src.name or "").strip().lower()
+            alias_name = (src.alias or "").strip().lower()
+            if not schema_name and table_name in visible_ctes:
+                entity_names.add(table_name)
+                if alias_name:
+                    entity_names.add(alias_name)
+                sources[alias_name or table_name] = visible_ctes[table_name]
+                return
+            if schema_name == "telemetry" and table_name in SQL_ALLOWED_COLUMNS:
+                real_table_counter[0] += 1
+                entity_names.add(table_name)
+                if alias_name:
+                    entity_names.add(alias_name)
+                sources[alias_name or table_name] = SQL_ALLOWED_COLUMNS[table_name]
+                return
+            raise SqlValidationError(
+                f"Table {src.sql(dialect='postgres')!r} is not permitted; "
+                f"only telemetry.v_* views ({', '.join(sorted(ALLOWED_TELEMETRY_VIEWS))}) "
+                "are allowed."
+            )
+        raise SqlValidationError(f"Unsupported FROM/JOIN source: {type(src).__name__}")
+
+    from_clause = select_node.args.get("from_")
+    if from_clause is not None and from_clause.this is not None:
+        _register_source(from_clause.this)
+    joins = list(select_node.args.get("joins") or [])
+    for join in joins:
+        if join.this is not None:
+            _register_source(join.this)
+        for u_ident in join.args.get("using") or []:
+            u_name = str(getattr(u_ident, "name", "") or "").strip().lower()
+            if not u_name or u_name in FORBIDDEN_COLUMNS:
+                raise SqlValidationError(f"JOIN USING column {u_name!r} is restricted.")
+            if not all(u_name in cols for cols in sources.values() if u_name in cols) or not any(
+                u_name in cols for cols in sources.values()
+            ):
+                raise SqlValidationError(f"JOIN USING column {u_name!r} is not allowed.")
+            using_cols.add(u_name)
+
+    # Collect output aliases and exported column names for this SELECT
+    output_aliases: set[str] = set()
+    exported_cols: set[str] = set()
+    for proj in select_node.expressions:
+        if isinstance(proj, exp.Alias):
+            alias_name = (proj.alias or "").strip().lower()
+            if alias_name in FORBIDDEN_COLUMNS:
+                raise SqlValidationError(f"Output alias {alias_name!r} is restricted.")
+            if alias_name:
+                output_aliases.add(alias_name)
+                exported_cols.add(alias_name)
+        elif isinstance(proj, exp.Column) and not isinstance(proj.this, exp.Star):
+            cname = (proj.name or "").strip().lower()
+            if cname:
+                exported_cols.add(cname)
+
+    frozen_entities = frozenset(entity_names)
+    frozen_aliases = frozenset(output_aliases)
+    frozen_using = frozenset(using_cols)
+
+    # Validate projection, JOIN ON, DISTINCT, WHERE, HAVING, QUALIFY (no output aliases)
+    for proj in select_node.expressions:
+        target = proj.this if isinstance(proj, exp.Alias) else proj
+        _walk_expr_columns(
+            target,
+            sources=sources,
+            cte_columns=visible_ctes,
+            outer_scopes=outer_scopes,
+            scope_entity_names=frozen_entities,
+            output_aliases=frozen_aliases,
+            using_cols=frozen_using,
+            allow_output_alias=False,
+            real_table_counter=real_table_counter,
+        )
+
+    for join in joins:
+        _walk_expr_columns(
+            join.args.get("on"),
+            sources=sources,
+            cte_columns=visible_ctes,
+            outer_scopes=outer_scopes,
+            scope_entity_names=frozen_entities,
+            output_aliases=frozen_aliases,
+            using_cols=frozen_using,
+            allow_output_alias=False,
+            real_table_counter=real_table_counter,
+        )
+
+    for clause_key in ("distinct", "where", "having", "qualify", "windows"):
+        clause = select_node.args.get(clause_key)
+        if isinstance(clause, list):
+            for item in clause:
+                _walk_expr_columns(
+                    item,
+                    sources=sources,
+                    cte_columns=visible_ctes,
+                    outer_scopes=outer_scopes,
+                    scope_entity_names=frozen_entities,
+                    output_aliases=frozen_aliases,
+                    using_cols=frozen_using,
+                    allow_output_alias=False,
+                    real_table_counter=real_table_counter,
+                )
+        elif isinstance(clause, exp.Expr):
+            _walk_expr_columns(
+                clause,
+                sources=sources,
+                cte_columns=visible_ctes,
+                outer_scopes=outer_scopes,
+                scope_entity_names=frozen_entities,
+                output_aliases=frozen_aliases,
+                using_cols=frozen_using,
+                allow_output_alias=False,
+                real_table_counter=real_table_counter,
+            )
+
+    # Validate GROUP BY and ORDER BY (output aliases defined in this SELECT are permitted here)
+    for clause_key in ("group", "order"):
+        clause = select_node.args.get(clause_key)
+        if isinstance(clause, exp.Expr):
+            _walk_expr_columns(
+                clause,
+                sources=sources,
+                cte_columns=visible_ctes,
+                outer_scopes=outer_scopes,
+                scope_entity_names=frozen_entities,
+                output_aliases=frozen_aliases,
+                using_cols=frozen_using,
+                allow_output_alias=True,
+                real_table_counter=real_table_counter,
+            )
+
+    return frozenset(exported_cols)
 
 
 def validate_readonly_sql(raw_sql: str, *, max_limit: int = MAX_SQL_LIMIT) -> str:
@@ -223,50 +683,19 @@ def validate_readonly_sql(raw_sql: str, *, max_limit: int = MAX_SQL_LIMIT) -> st
     if stmt.args.get("locks"):
         raise SqlValidationError("Row-locking clauses (FOR UPDATE / FOR SHARE) are not allowed.")
 
-    # Collect CTE aliases defined in this statement so we don't confuse them with physical tables.
-    cte_names: set[str] = set()
-    for cte in stmt.find_all(exp.CTE):
-        alias = cte.alias_or_name
-        if alias:
-            cte_names.add(alias.lower())
-
-    # 1. Validate every referenced table is strictly `telemetry.<allowed_view>` (or a local CTE).
-    tables = list(stmt.find_all(exp.Table))
-    real_table_count = 0
-    for tbl in tables:
-        schema_name = (tbl.db or "").strip().lower()
-        table_name = (tbl.name or "").strip().lower()
-        if not schema_name and table_name in cte_names:
-            continue
-        if schema_name != "telemetry" or table_name not in ALLOWED_TELEMETRY_VIEWS:
-            raise SqlValidationError(
-                f"Table {tbl.sql(dialect='postgres')!r} is not permitted; "
-                f"only telemetry.v_* views ({', '.join(sorted(ALLOWED_TELEMETRY_VIEWS))}) "
-                "are allowed."
-            )
-        real_table_count += 1
-
-    if real_table_count == 0:
-        raise SqlValidationError("Query must select from at least one allowed telemetry.v_* view.")
-
-    # 2. Forbid `SELECT *` / `table.*` (allow `COUNT(*)` only) and forbid sensitive columns.
+    # 1. Forbid `SELECT *` / `alias.*` (allow `COUNT(*)` only) and any `exp.Dot` access.
     for star in stmt.find_all(exp.Star):
         if not isinstance(star.parent, exp.Count):
             raise SqlValidationError(
-                "Wildcard `SELECT *` is not allowed; specify explicit columns."
+                "Wildcard `SELECT *` or `alias.*` is not allowed; specify explicit columns."
             )
 
-    for col in stmt.find_all(exp.Column):
-        col_name = (col.name or "").strip().lower()
-        if col_name in FORBIDDEN_COLUMNS:
-            raise SqlValidationError(f"Column {col_name!r} is restricted and cannot be queried.")
+    for _dot in stmt.find_all(exp.Dot):
+        raise SqlValidationError(
+            "Dotted composite access and schema-qualified function calls are not permitted."
+        )
 
-    # 3. Reject schema-qualified function calls (e.g. pg_catalog.set_config, telemetry.lock_tenant)
-    for dot in stmt.find_all(exp.Dot):
-        if isinstance(dot.expression, exp.Func):
-            raise SqlValidationError("Schema-qualified function calls are not permitted.")
-
-    # 4. Enforce strict function allowlist across the entire AST.
+    # 2. Enforce strict function allowlist across the entire AST.
     for fn in stmt.find_all(exp.Func):
         if isinstance(fn, _SAFE_BINARY_OPS):
             continue
@@ -279,7 +708,19 @@ def validate_readonly_sql(raw_sql: str, *, max_limit: int = MAX_SQL_LIMIT) -> st
             if fname not in ALLOWED_SQL_FUNCTIONS:
                 raise SqlValidationError(f"SQL function {fname!r} is not in the allowlist.")
 
-    # 5. Enforce LIMIT <= max_limit (inject LIMIT 200 if absent; clamp if > max_limit).
+    # 3. Scope-aware table, positive column allowlist, whole-row reference, and blocklist check.
+    real_table_counter = [0]
+    _validate_select_scope(
+        stmt,
+        cte_columns={},
+        outer_scopes=[],
+        outer_entity_names=frozenset(),
+        real_table_counter=real_table_counter,
+    )
+    if real_table_counter[0] == 0:
+        raise SqlValidationError("Query must select from at least one allowed telemetry.v_* view.")
+
+    # 4. Enforce LIMIT <= max_limit (inject LIMIT 200 if absent; clamp if > max_limit).
     limit_node = stmt.args.get("limit")
     if limit_node is None:
         stmt = stmt.limit(max_limit)
@@ -351,6 +792,12 @@ def execute_readonly_sql(
         if row_dict.get("device_id"):
             dev_ids.add(str(row_dict["device_id"]))
         rows.append(row_dict)
+
+    # Result-side PII guard (audit/13 §2.4): drop entire result if any value matches PII patterns.
+    if contains_pii_value(rows):
+        raise SqlPiiInResultError(
+            "Query result contained restricted PII patterns (IP/MAC/UUID) and was blocked."
+        )
 
     return SqlQueryResult(
         sql=sql_to_run,

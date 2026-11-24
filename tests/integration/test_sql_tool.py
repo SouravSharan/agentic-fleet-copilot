@@ -16,7 +16,12 @@ from fleet_copilot.repositories.copilot_store import PgCopilotStore
 from fleet_copilot.repositories.telemetry import PgTelemetryRepository
 from fleet_copilot.services.charts import ChartRequest, ChartService, validate_vega_lite_spec
 from fleet_copilot.services.policy import PolicyService
-from fleet_copilot.services.sql_query import execute_readonly_sql
+from fleet_copilot.services.sql_query import (
+    SQL_ALLOWED_COLUMNS,
+    SqlPiiInResultError,
+    SqlValidationError,
+    execute_readonly_sql,
+)
 from scripts.db_setup import run_setup
 from scripts.telemetry_sim import reset_dataset
 
@@ -199,3 +204,59 @@ def test_from_query_chart_plots_q_handle_rows(
     validate_vega_lite_spec(art.vega_lite_spec)
     assert art.row_count == q_res.row_count
     assert art.data_rows[0]["model_name"] == q_res.rows[0]["model_name"]
+
+
+@pytest.mark.integration
+def test_sql_allowed_columns_matches_live_view_schemas(db_manager: DatabaseManager) -> None:
+    """Audit/13 §2.1: SQL_ALLOWED_COLUMNS equals live view columns minus restricted 4."""
+    excluded = {"serial_number", "hardware_uuid", "payload", "id"}
+    settings = get_settings()
+    with psycopg.connect(settings.admin_database_url) as conn:
+        with conn.cursor() as cur:
+            for view_name, expected_cols in SQL_ALLOWED_COLUMNS.items():
+                cur.execute(
+                    """
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'telemetry' AND table_name = %s
+                    """,
+                    (view_name,),
+                )
+                live_cols = {str(r[0]).lower() for r in cur.fetchall()} - excluded
+                assert expected_cols == live_cols, f"Mismatch on telemetry.{view_name}"
+
+
+@pytest.mark.integration
+def test_whole_row_attacks_blocked_and_result_pii_guard_catches_bypass(
+    db_manager: DatabaseManager,
+) -> None:
+    """Audit/13 §2: Whole-row attacks fail validation; result guard catches PII even on bypass."""
+    ctx = _ctx("acme-001", role="it_admin")
+    for attack in (
+        "SELECT l AS x FROM telemetry.v_latest_device_state l LIMIT 1",
+        "SELECT concat(l) AS x FROM telemetry.v_latest_device_state l LIMIT 1",
+        "SELECT concat(s) AS x FROM telemetry.v_snapshots_deduped s LIMIT 1",
+        "SELECT array_agg(l) FROM telemetry.v_latest_device_state l",
+        "SELECT row_to_json(l) FROM telemetry.v_latest_device_state l",
+        "SELECT l.* FROM telemetry.v_latest_device_state l LIMIT 1",
+        "WITH c AS (SELECT l AS row_val FROM telemetry.v_latest_device_state l) "
+        "SELECT row_val FROM c",
+    ):
+        with pytest.raises(SqlValidationError):
+            execute_readonly_sql(ctx, db_manager, attack)
+
+    # Even if validator is bypassed, result-side PII scan drops hardware_uuid / payload IP+MAC rows
+    with pytest.raises(SqlPiiInResultError):
+        execute_readonly_sql(
+            ctx,
+            db_manager,
+            "SELECT concat(l) AS x FROM telemetry.v_latest_device_state l LIMIT 1",
+            bypass_validator=True,
+        )
+    with pytest.raises(SqlPiiInResultError):
+        execute_readonly_sql(
+            ctx,
+            db_manager,
+            "SELECT concat(s) AS x FROM telemetry.v_snapshots_deduped s LIMIT 1",
+            bypass_validator=True,
+        )
