@@ -16,14 +16,14 @@ Built with Python 3.12, LangGraph, Gemini 3.8 Flash, PostgreSQL 16 (row-level se
 
 ### Example (abridged from [`evals/reports/runs/act-ram-upgrade-soldered-refuse-alt.json`](evals/reports/runs/act-ram-upgrade-soldered-refuse-alt.json))
 
-> **IT admin (Globex):** *"Order a 32GB RAM upgrade for globex-thinkpad-6."*
+> **IT admin (Globex):** *"Order a 32 GB RAM upgrade for CUXW0BQSV1B7 because of its sustained RAM pressure."*
 >
 > **Plan → tools:** `get_device_details` → `create_upgrade_order` → policy gate returns **refuse** (soldered RAM) + verified alternatives; nothing is staged.
 >
-> **Copilot:** The request to order a 32 GB RAM upgrade for globex-thinkpad-6 was refused because the RAM on the ThinkPad X1 Carbon Gen 11 (21CB) is soldered and not upgradable — even though memory use is elevated.
+> **Copilot:** The request to order a 32 GB RAM upgrade for globex-thinkpad-6 was refused because the RAM on ThinkPad X1 Carbon Gen 11 (21CB) is soldered and not upgradable. Although globex-thinkpad-6 is experiencing elevated memory utilization at 87.65% RAM used, hardware modifications are not supported for this model.
 > - globex-thinkpad-6 is a ThinkPad X1 Carbon laptop running Windows `[E1]`.
 > - globex-thinkpad-6 has an active RAM usage of 87.65% `[E3]`.
-> - *Verified alternatives:* reply "flag globex-thinkpad-6 for replacement" or "open remediation ticket for globex-thinkpad-6 on memory_pressure" to stage one for approval.
+> - *Caveats include the verified alternatives:* "Reply 'flag globex-thinkpad-6 for replacement' to stage it for approval" and "Reply 'open remediation ticket for globex-thinkpad-6 on memory_pressure' …"
 >
 > Every `[E#]` opens the exact snapshot (`snap_…`, timestamp, metric, value) it came from.
 
@@ -34,8 +34,8 @@ Built with Python 3.12, LangGraph, Gemini 3.8 Flash, PostgreSQL 16 (row-level se
 | Option | What you get | Needs |
 |---|---|---|
 | **Live demo** — https://rayda.bertslab.com | Full app: 4 demo personas, live AI turns (capped budget), approvals, audit chain | The access code from the submission email |
-| **Docker** — `cp .env.example .env && docker compose up --build`, then http://localhost:8501 (code `dev`) | Same app locally. Without an API key it runs in **examples mode**: all 51 recorded runs, guardrail demos, eval report, fleet pages — $0 | Docker |
-| **Offline evals** — `make bootstrap` | Migrates, seeds, and replays the full eval suite from recorded cassettes (≈75 s, $0, no key) | Docker + [uv](https://docs.astral.sh/uv/) |
+| **Docker** — `cp .env.example .env && docker compose up --build`, then http://localhost:8501 (code `dev`) | Same app locally. Without an API key it runs in **examples mode**: all 51 recorded cases (77 runs), guardrail demos, eval report, fleet pages — $0 | Docker |
+| **Offline evals** — `make bootstrap` | Migrates, seeds, and replays the full eval suite from recorded cassettes (about 80 s, $0, no key) | Docker + [uv](https://docs.astral.sh/uv/) |
 
 Suggested path: [`docs/reviewer-guide.md`](docs/reviewer-guide.md).
 
@@ -94,7 +94,7 @@ uv run fleet-copilot brief --persona acme_admin              # deterministic bri
 
 ```bash
 make eval-verify-cases   # check all 85 YAML cases against the deterministic oracle (evals/oracle.py)
-make eval                # replay 51 core cases / 77 runs offline from cassettes (~75 s, $0); exit 1 on a hard-gate failure
+make eval                # replay 51 core cases / 77 runs offline (~80 s, $0); exit 1 on a hard-gate failure or any case regressing vs the committed baseline
 make eval-regrade        # replay and rewrite the committed baseline (evals/reports/latest.{md,json})
 make eval-live           # re-record against Gemini (needs GEMINI_API_KEY; --max-cost 1.5)
 make security-probe      # 29 live-database attacks on tenant isolation and role privileges (all must be BLOCKED)
@@ -112,6 +112,9 @@ method and analysis in [`docs/06-evaluation.md`](docs/06-evaluation.md):
 | QA correctness | 1.0000 | 0.95 | PASS |
 | Insights recall / precision | 1.0000 / 1.0000 | 1.00 / 0.95 | PASS |
 | Action accuracy | 1.0000 | 0.90 | PASS |
+| Insight structure (finding + evidence + explanation) | 1.0000 | 1.00 | PASS |
+
+The suite defines 85 cases: 51 **core** cases are recorded and replayed in CI; 34 **extended** cases (more QA, insight, action, multi-turn and red-team variants) can be run live with `uv run python -m evals.run --mode live --tags extended` and are not part of the reported numbers.
 
 ★ = hard gate (CI fails). **51/51 cases, 77/77 runs**; red-team pass^3 13/13; recording cost $0.99 for the whole suite.
 As recorded, 49/51 passed: two correct zero-result answers ("No notebooks…", "No Acme laptops…") were rejected by a
@@ -178,6 +181,8 @@ flowchart LR
 | `flag_device_for_replacement` | Draft a replacement for end-of-life or multi-signal degraded hardware | it_admin | Action |
 | `notify_employee` | Draft a notification about devices that employee owns | it_admin | Action |
 
+The action tools keep the brief's signatures — `create_upgrade_order(device_id, component, spec)`, `open_remediation_ticket(device_id, check_id, note)`, `flag_device_for_replacement(device_id, reason)`, `notify_employee(employee_id, message)` — plus a required `evidence` list of `[E#]` handles (and a `rationale` for upgrades). The policy gate checks those handles, so an action can't be drafted without citing the telemetry that justifies it. `component` is limited to `ram`, `storage` or `battery`.
+
 ---
 
 ## Grounding strategy
@@ -197,7 +202,7 @@ Details: [`docs/05-grounding-and-guardrails.md`](docs/05-grounding-and-guardrail
 | Guardrail | Mechanism | Proven by |
 |---|---|---|
 | Tenant isolation | Signed tenant lock (HMAC-SHA256 + advisory lock) checked by fail-closed RLS on every table and view; app roles can't `SET` their way to another tenant | [`tests/integration/test_tenant_lock.py`](tests/integration/test_tenant_lock.py), `make security-probe` |
-| Cross-company requests | Planner refuses before any tool runs; tools are tenant-scoped; RLS is the backstop | red-team eval cases `rt-cross-tenant-*`, `rt-ignore-instructions-*` |
+| Cross-company requests | The planner's refusal is a fast path that avoids wasted tool calls; the guarantee is RLS — every tool runs inside the caller's signed tenant lock, so even a request the planner misses returns no other-company rows (shown by the `--skip-planner` ablation) | red-team eval cases `rt-cross-tenant-*`, `rt-ignore-instructions-*` |
 | Human approval | Action tools only draft; LangGraph `interrupt()`; `proposals_guard()` DB trigger enforces legal status transitions; approval hash; TOCTOU re-check before execution | [`tests/integration/test_actions_lifecycle.py`](tests/integration/test_actions_lifecycle.py), [`tests/integration/test_toctou_stale_block.py`](tests/integration/test_toctou_stale_block.py), [`tests/integration/test_proposal_guard.py`](tests/integration/test_proposal_guard.py) |
 | Refuse without evidence | Policy gate refuses unsupported actions (e.g. soldered RAM, passing check) and offers verified alternatives, never auto-staged | eval cases `act-*-refuse-*`, [`tests/unit/test_policy_rules_matrix.py`](tests/unit/test_policy_rules_matrix.py) |
 | Role enforcement | Viewers never receive action tools; the action service re-checks the role server-side | `rt-viewer-open-ticket`, UI viewer sweep tests |

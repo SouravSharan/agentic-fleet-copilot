@@ -6,7 +6,7 @@ Run from the repository root (`agentic-fleet-copilot/`):
 
 Each probe begins with an application-locked `acme-001` cursor (or a fresh unlocked
 connection), attempts a spoofing or re-locking attack targeting `globex-002`, and reads
-the effective visible tenant. All 16 checks must report `BLOCKED`. All transactions roll
+the effective visible tenant. All 29 checks must report `BLOCKED`. All transactions roll
 back cleanly without mutating data.
 """
 

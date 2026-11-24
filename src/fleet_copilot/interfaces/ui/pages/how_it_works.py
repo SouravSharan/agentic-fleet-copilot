@@ -280,7 +280,7 @@ _DECISIONS_TABLE: list[dict[str, str]] = [
     {
         "Decision": "Deterministic record/replay evals (no LLM-as-judge)",
         "Trade-off": (
-            "Zero-cost reproducible CI (~75 s); cassettes must be re-recorded whenever "
+            "Zero-cost reproducible CI (~80 s); cassettes must be re-recorded whenever "
             "prompts or tool schemas change"
         ),
     },
@@ -718,7 +718,7 @@ def _render_evaluation_tab() -> None:
         f"Overall pass rate: {fmt_pct(summary.get('overall_pass_rate', 0) * 100)} · "
         f"pass^k: {fmt_pct(summary.get('pass_k_rate', 0) * 100)} · "
         f"Recorded cost: ${float(summary.get('total_cost_usd_est') or 0.0):.4f} · "
-        "Reproduce offline: `make eval` ($0, ~75 s)"
+        "Reproduce offline: `make eval` ($0, ~80 s)"
     )
 
     hard_gates = [

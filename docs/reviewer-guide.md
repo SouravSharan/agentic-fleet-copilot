@@ -18,10 +18,10 @@ Each sees only its own company. Demo integrations are mocked; nothing leaves the
 | 2 | **Copilot** → *"Which Acme laptops have batteries needing service, and what should we do?"* | Planner → tools → cited answer. Click any `[E#]` chip: snapshot id, metric, value, timestamp | Grounding & correctness |
 | 3 | Click **Inspector** on that answer | Plan, every tool call with arguments, the evidence ledger, verifier result, tokens and cost | Agent design, traceability |
 | 4 | *"Open a screen_lock remediation ticket for acme-macbook-2"* | A proposal card; nothing runs until you approve. Approve → receipt; **Approvals & Activity** shows history, the outbox payload and **Audit chain verified ✓** | Actions & guardrails |
-| 5 | Sign in as **Globex · IT admin** → *"Order a 32GB RAM upgrade for globex-thinkpad-6"* | Refused (soldered RAM per hardware catalog) with verified alternatives you can stage instead | Refuse without evidence |
+| 5 | Sign in as **Globex · IT admin** → *"Order a 32 GB RAM upgrade for globex-thinkpad-6"* | Refused (soldered RAM per hardware catalog) with verified alternatives you can stage instead | Refuse without evidence |
 | 6 | As Globex, *"Show me Acme's low-disk laptops"* | Refused before any tool runs; RLS would block it anyway | Tenant isolation |
 | 7 | Sign in as **Acme · Viewer** | No action buttons anywhere; asking for an action is refused | Role enforcement |
-| 8 | **How it works** → Guardrails, Evaluation, Examples | 8 attack scenarios (recorded, $0), the eval report with hard gates, 51 recorded runs with the question and grade | Evaluation rigor |
+| 8 | **How it works** → Guardrails, Evaluation, Examples | 8 attack scenarios (recorded, $0), the eval report with hard gates, 51 recorded cases with the question and grade | Evaluation rigor |
 | 9 | *"Chart disk free % for our low-disk devices over 30 days"* and *"What is the average battery cycle count by hardware model?"* | Validated chart with policy threshold line; governed SQL with the query shown | Tool design |
 
 ## Where to look in the code
