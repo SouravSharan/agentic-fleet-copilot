@@ -500,6 +500,39 @@ class ActionService:
             refused=refused_verdicts,
         )
 
+    _EXPIRED_MESSAGE = "This proposal expired; ask the copilot again for a fresh one."
+
+    def _expire_if_due_in_tx(
+        self,
+        cur: Any,
+        ctx: TenantContext,
+        proposal: dict[str, Any],
+        now: datetime,
+    ) -> dict[str, Any] | None:
+        """If `proposal` is pending past `expires_at`, mark it expired + audit in the same tx."""
+        expires_at = proposal.get("expires_at")
+        if (
+            proposal.get("status") != "pending_approval"
+            or not isinstance(expires_at, datetime)
+            or expires_at > now
+        ):
+            return None
+        pid = str(proposal["proposal_id"])
+        expired = self._store.mark_expired(cur, pid)
+        if expired is not None:
+            self._audit.record(
+                cur,
+                ctx,
+                "proposal_expired",
+                ProposalExpiredPayload(proposal_id=pid),
+                thread_id=str(proposal["thread_id"]),
+            )
+            return expired
+        latest = self._store.get_proposal_in_tx(cur, pid)
+        if latest is not None and latest.get("status") == "expired":
+            return latest
+        return None
+
     def decide(
         self,
         ctx: TenantContext,
@@ -529,6 +562,7 @@ class ActionService:
             if "require_distinct_approver" in policies
             else False
         )
+        now = clock.now()
 
         with self._db.copilot_cursor(ctx.company_id) as cur:
             current = self._store.get_proposal_in_tx(cur, proposal_id)
@@ -536,6 +570,19 @@ class ActionService:
                 return DecideResult(applied=False, proposal=None, message="Proposal not found.")
 
             if decision == "defer":
+                expired_row = self._expire_if_due_in_tx(cur, ctx, current, now)
+                if expired_row is not None:
+                    return DecideResult(
+                        applied=False,
+                        proposal=expired_row,
+                        message=self._EXPIRED_MESSAGE,
+                    )
+                if current["status"] == "expired":
+                    return DecideResult(
+                        applied=False,
+                        proposal=current,
+                        message=self._EXPIRED_MESSAGE,
+                    )
                 if current["status"] != "pending_approval":
                     return DecideResult(
                         applied=False,
@@ -578,13 +625,27 @@ class ActionService:
                 new_status=new_status,
                 reviewer_id=ctx.actor_id,
                 via=via,
-                reviewed_at=clock.now(),
+                reviewed_at=now,
                 review_note=note,
+                now=now,
             )
             if updated is None:
                 latest = self._store.get_proposal_in_tx(cur, proposal_id)
                 if latest is None:
                     return DecideResult(applied=False, proposal=None, message="Proposal not found.")
+                expired_row = self._expire_if_due_in_tx(cur, ctx, latest, now)
+                if expired_row is not None:
+                    return DecideResult(
+                        applied=False,
+                        proposal=expired_row,
+                        message=self._EXPIRED_MESSAGE,
+                    )
+                if latest["status"] == "expired":
+                    return DecideResult(
+                        applied=False,
+                        proposal=latest,
+                        message=self._EXPIRED_MESSAGE,
+                    )
                 return DecideResult(
                     applied=False,
                     proposal=latest,

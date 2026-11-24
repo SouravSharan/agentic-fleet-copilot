@@ -568,8 +568,10 @@ class PgCopilotStore:
         via: str,
         reviewed_at: datetime,
         review_note: str | None,
+        now: datetime | None = None,
     ) -> dict[str, Any] | None:
-        """Compare-and-set transition `pending_approval -> approved | rejected`."""
+        """Compare-and-set transition `pending_approval -> approved | rejected` if unexpired."""
+        cutoff = now if now is not None else reviewed_at
         cur.execute(
             """
             UPDATE copilot.action_proposals
@@ -580,9 +582,10 @@ class PgCopilotStore:
                 review_note = %s
             WHERE proposal_id = %s
               AND status = 'pending_approval'
+              AND (expires_at IS NULL OR expires_at > %s)
             RETURNING *
             """,
-            (new_status, reviewer_id, via, reviewed_at, review_note, proposal_id),
+            (new_status, reviewer_id, via, reviewed_at, review_note, proposal_id, cutoff),
         )
         row = cur.fetchone()
         return dict(row) if row is not None else None
