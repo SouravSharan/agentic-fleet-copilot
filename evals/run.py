@@ -471,10 +471,11 @@ def run_eval_suite(
             passed_reps = sum(1 for r in slice_runs if r["case_passed"])
             c_cost = sum(float(r["cost_usd_est"]) for r in slice_runs)
             tag_mode = "reused" if case_mode != mode else mode
+            cost_label = "recorded_cost" if case_mode == "replay" else "cost"
             spend_str = f" running_live=${running_live_spend:.4f}" if mode == "live" else ""
             typer.echo(
                 f"[{c_idx}/{len(cases)}] {case.id} ({tag_mode}): "
-                f"pass={passed_reps}/{len(slice_runs)} cost=${c_cost:.5f}{spend_str}"
+                f"pass={passed_reps}/{len(slice_runs)} {cost_label}=${c_cost:.5f}{spend_str}"
             )
             if stopped_by_cost_cap:
                 break
@@ -585,12 +586,13 @@ def main(
 
     s = report["summary"]
     gates = report["gates"]
+    sum_cost_label = "recorded_cost" if mode == "replay" else "cost"
     typer.echo(
         f"Eval complete ({mode}, {report['metadata']['model']}): "
         f"cases={s['total_cases']} runs={s['total_runs']} "
         f"overall={s['overall_pass_rate']:.4f} pass_k={s['pass_k_rate']:.4f} "
         f"first_pass_grounding={s['first_pass_grounding_rate']:.4f} "
-        f"cost=${s['total_cost_usd_est']:.4f}"
+        f"{sum_cost_label}=${s['total_cost_usd_est']:.4f}"
     )
     for g in gates["gates"]:
         mark = "PASS" if g["passed"] else "FAIL"

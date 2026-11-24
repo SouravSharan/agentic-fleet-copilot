@@ -202,6 +202,11 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         mark = "PASS" if g["passed"] else "FAIL"
         lines.append(f"| {g['name']} | {g['actual']:.4f} | >= {g['threshold']:.2f} | {mark} |")
 
+    cost_row_label = (
+        "Recorded LLM cost (`recorded_cost`, USD)"
+        if meta.get("mode") == "replay"
+        else "Estimated LLM cost (USD)"
+    )
     lines.extend(
         [
             "",
@@ -235,7 +240,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 f"| Total tokens (in / out) "
                 f"| {s['total_input_tokens']:,} / {s['total_output_tokens']:,} |"
             ),
-            f"| Estimated LLM cost (USD) | ${s['total_cost_usd_est']:.4f} |",
+            f"| {cost_row_label} | ${s['total_cost_usd_est']:.4f} |",
             f"| Mean latency (ms) | {s['mean_latency_ms']:.1f} |",
         ]
     )
