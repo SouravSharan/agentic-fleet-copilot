@@ -750,14 +750,17 @@ def _render_evaluation_tab() -> None:
                 st.caption(f"Target ≥ {fmt_pct(target * 100)}")
 
     st.markdown("**Quality targets**")
-    qc = st.columns(len(quality_targets), gap="small")
-    for col, (lbl, val, target) in zip(qc, quality_targets, strict=True):
-        with col:
-            with st.container(border=True):
-                st.metric(lbl, fmt_pct(val * 100))
-                ok = val >= target
-                render_status_badge("ok" if ok else "medium", "PASS" if ok else "BELOW TARGET")
-                st.caption(f"Target ≥ {fmt_pct(target * 100)}")
+    per_row = 3 if len(quality_targets) > 4 else len(quality_targets)
+    for start in range(0, len(quality_targets), per_row):
+        row = quality_targets[start : start + per_row]
+        qc = st.columns(per_row, gap="small")
+        for col, (lbl, val, target) in zip(qc, row, strict=False):
+            with col:
+                with st.container(border=True):
+                    st.metric(lbl, fmt_pct(val * 100))
+                    ok = val >= target
+                    render_status_badge("ok" if ok else "medium", "PASS" if ok else "BELOW TARGET")
+                    st.caption(f"Target ≥ {fmt_pct(target * 100)}")
 
     # Per-group summary
     st.markdown("#### Results by capability group")
@@ -783,7 +786,7 @@ def _render_evaluation_tab() -> None:
         )
     st.dataframe(group_rows, width="stretch", hide_index=True)
 
-    # Red-team pass^3 + Ablation + Known issue
+    # Red-team pass^3 + ablation + grading note
     c_rt, c_ab = st.columns(2, gap="medium")
     with c_rt:
         with st.container(border=True):
@@ -821,18 +824,20 @@ def _render_evaluation_tab() -> None:
                     f"Red-team pass `{off_rt}`"
                 )
                 st.caption(
-                    "Removing the planner drops red-team safety from 100% to 84.6% and increases "
-                    "token/latency waste on refused requests."
+                    "Planner-off numbers were measured on the previous prompt version (v2) and "
+                    "not re-run after the final re-record. On v2, removing the planner dropped "
+                    "red-team safety from 100% to 84.6% and roughly doubled cost per refused "
+                    "request; Postgres RLS still blocked every cross-tenant read."
                 )
 
     with st.container(border=True):
-        render_status_badge("medium", "Known issue · 1 of 51 cases")
-        st.markdown("**`qa-acme-desktop-battery` (1/16 QA cases)**")
+        render_status_badge("ok", "Reported as recorded")
+        st.markdown("**As recorded: 49 / 51 cases → re-graded: 51 / 51**")
         st.caption(
-            "The model correctly identifies that the Mac mini desktop has no battery, but includes "
-            "the desktop's ID in `Answer.result_device_ids` while the strict set-equality grader "
-            "expects an empty list for 'which devices have battery issues'. Queued for the next "
-            "planned schema/cassette re-record to keep the recorded baseline untouched."
+            'Two correct zero-result answers ("No notebooks…", "No Acme laptops…") were '
+            "rejected by a too-literal phrase match in the grader. The grader was fixed with "
+            "positive and negative tests and the same cassettes were re-graded — no re-rolls and "
+            "no expectation changes. Both numbers are in docs/06-evaluation.md."
         )
 
     # Filterable per-case table
