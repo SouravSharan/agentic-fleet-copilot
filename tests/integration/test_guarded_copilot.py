@@ -162,7 +162,7 @@ def test_per_code_turn_cap_and_failed_turns_counted_and_persists_across_instance
             "demo_spend_cap_usd": 5.0,
         }
     )
-    # First turn fails before LLM returns -> still writes a $0 ledger row so it counts!
+    # First turn fails before LLM returns (after graph invoked) -> charges SPEND_RESERVE_USD ($0.05)
     failing_copilot = _make_scripted_copilot(
         db_manager,
         clock,
@@ -172,6 +172,7 @@ def test_per_code_turn_cap_and_failed_turns_counted_and_persists_across_instance
     g1 = GuardedCopilot(failing_copilot, settings=cfg, clock=clock)
     r1 = g1.run_turn(_ctx(actor_id="rev_01:acme_admin"), None, "First attempt")
     assert r1.status == "failed"
+    assert failing_copilot._store.spend_total_usd("acme-001") == pytest.approx(0.05, abs=1e-6)
 
     # Second turn on a BRAND NEW GuardedCopilot instance (same rev_01, different persona!)
     ok_copilot = _make_scripted_copilot(db_manager, clock, settings=cfg)
@@ -297,3 +298,84 @@ def test_eval_runner_never_writes_to_spend_ledger(
     with psycopg.connect(settings.admin_database_url, prepare_threshold=None) as conn:
         count = conn.execute("SELECT COUNT(*) FROM copilot.spend_ledger").fetchone()
         assert count is not None and int(count[0]) == 1
+
+
+def test_failed_turn_after_two_llm_calls_records_actual_accumulated_cost(
+    db_manager: DatabaseManager,
+    reset_copilot_state: None,
+    clean_spend_ledger: None,
+) -> None:
+    """Failure after 2 LLM calls (planner + investigator) records real accumulated token cost."""
+    clock = FixedClock(FIXED_NOW)
+    cfg = get_settings().model_copy(
+        update={
+            "gemini_api_key": SecretStr("test-key"),
+            "llm_replay_mode": "off",
+            "demo_spend_cap_usd": 5.0,
+        }
+    )
+    planner = ScriptedChatModel(
+        script=[
+            Plan(intent="qa", steps=[PlanStep(goal="Overview", tool_hint="get_fleet_overview")])
+        ]
+    )
+    investigator = ScriptedChatModel(
+        script=[
+            make_tool_call_ai([{"name": "get_fleet_overview", "args": {}, "id": "tc_fail2"}]),
+            RuntimeError("Simulated timeout on 3rd LLM call"),
+        ]
+    )
+    synthesizer = ScriptedChatModel(script=[Answer(summary="never reached")])
+
+    def _factory(node: NodeName) -> Any:
+        return {"planner": planner, "investigator": investigator, "synthesizer": synthesizer}[node]
+
+    copilot = CopilotService(
+        db=db_manager,
+        audit_svc=AuditService(db_manager),
+        checkpointer=make_checkpointer(db_manager, settings=cfg),
+        clock=clock,
+        settings=cfg,
+        model_factory=_factory,
+        model_id="google_genai:gemini-3.8-flash",
+    )
+    guarded = GuardedCopilot(copilot, settings=cfg, clock=clock)
+    resp = guarded.run_turn(_ctx(actor_id="rev_fail2:acme_admin"), None, "Overview")
+    assert resp.status == "failed"
+    assert resp.usage.input_tokens > 0
+    assert resp.usage.output_tokens > 0
+    assert resp.usage.cost_usd_est > 0.0
+    # Ledger recorded the exact real accumulated cost (not $0 and not flat $0.05 reserve)
+    recorded = copilot._store.spend_total_usd("acme-001")
+    assert recorded == pytest.approx(resp.usage.cost_usd_est, abs=1e-6)
+    assert recorded < 0.05
+
+
+def test_pre_graph_thread_turn_limit_records_zero_cost_no_reserve(
+    db_manager: DatabaseManager,
+    reset_copilot_state: None,
+    clean_spend_ledger: None,
+) -> None:
+    """thread_turn_limit fails before graph invocation and MUST NOT charge the $0.05 reserve."""
+    clock = FixedClock(FIXED_NOW)
+    cfg = get_settings().model_copy(
+        update={
+            "gemini_api_key": SecretStr("test-key"),
+            "llm_replay_mode": "off",
+            "demo_spend_cap_usd": 5.0,
+        }
+    )
+    copilot = _make_scripted_copilot(db_manager, clock, settings=cfg)
+    guarded = GuardedCopilot(copilot, settings=cfg, clock=clock)
+    ctx = _ctx(actor_id="rev_lim:acme_admin")
+    tid = "acme-001:maxed-out-thread"
+    copilot._store.ensure_thread("acme-001", tid, ctx.actor_id, title="Maxed thread")
+    for idx in range(30):
+        copilot._store.ensure_turn(
+            "acme-001", tid, f"pre_turn_{idx}", f"tr_{idx}", ctx.actor_id, f"msg {idx}"
+        )
+
+    resp = guarded.run_turn(ctx, tid, "31st message should hit thread_turn_limit")
+    assert resp.status == "failed"
+    assert "thread_turn_limit" in resp.answer_markdown
+    assert copilot._store.spend_total_usd("acme-001") == 0.0

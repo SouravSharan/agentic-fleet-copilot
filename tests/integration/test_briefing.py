@@ -66,11 +66,18 @@ def test_briefing_matches_oracle_sets_writes_zero_audit_and_is_stable(
     # Viewing the briefing MUST write 0 audit rows (no prechecks!)
     assert audit_svc.list(ctx) == []
 
-    # KPIs match oracle overview
+    # KPIs match oracle overview; devices_needing_attention counts ONLY HIGH and MEDIUM items
     ov = oracle.overview(company_id)
     assert b1.kpis.devices == ov["total_devices"]
     assert b1.kpis.laptops == ov["by_form_factor"].get("laptop", 0)
     assert b1.kpis.open_approvals == 0
+    expected_high_med = {
+        did for item in b1.items if item.severity in ("high", "medium") for did in item.device_ids
+    }
+    assert b1.kpis.devices_needing_attention == len(expected_high_med)
+    if company_id == "acme-001":
+        # Acme has 10 devices total; LOW chronic os_up_to_date covers 9, HIGH/MEDIUM covers fewer
+        assert b1.kpis.devices_needing_attention < b1.kpis.devices
 
     # Category device sets match oracle and analyzer sets exactly
     by_cat = {item.category: set(item.device_ids) for item in b1.items}
@@ -103,6 +110,12 @@ def test_briefing_matches_oracle_sets_writes_zero_audit_and_is_stable(
         assert item.evidence_snapshot_ids
         assert item.suggested_prompt
         assert item.suggested_action_prompt is not None
+        # G4: proper "an" before vowels and multi-device naming for ticket/notify <= 5 devices
+        assert " a os_" not in item.suggested_action_prompt.lower()
+        if item.category in ("compliance_drift", "compliance_chronic", "software", "stale_devices"):
+            if len(item.hostnames) <= 5:
+                for host in item.hostnames:
+                    assert host in item.suggested_action_prompt
 
 
 def test_briefing_viewer_hides_action_prompts_and_includes_stale_devices() -> None:

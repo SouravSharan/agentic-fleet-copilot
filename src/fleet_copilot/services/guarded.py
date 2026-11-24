@@ -195,10 +195,16 @@ class GuardedCopilot:
 
         final_resp: TurnResponse | None = None
         not_owned = False
+        graph_invoked = False
         try:
             for event in self._copilot.run_turn_stream(
                 ctx, resolved_tid, message, turn_id=resolved_turn_id
             ):
+                if event.step != "failed" or event.detail not in (
+                    "thread_turn_limit",
+                    "thread_busy",
+                ):
+                    graph_invoked = True
                 if event.response is not None:
                     final_resp = event.response
                 yield event
@@ -211,8 +217,17 @@ class GuardedCopilot:
                     "thread_busy" in w for w in final_resp.warnings
                 )
                 if not is_busy:
-                    cost = final_resp.usage.cost_usd_est if final_resp is not None else 0.0
                     tid_to_log = final_resp.turn_id if final_resp is not None else resolved_turn_id
+                    if not graph_invoked:
+                        # Pre-graph rejection (e.g. thread_turn_limit): never charge reserve
+                        cost = 0.0
+                    elif final_resp is not None and final_resp.usage.cost_usd_est > 0.0:
+                        cost = final_resp.usage.cost_usd_est
+                    elif final_resp is None or final_resp.status == "failed":
+                        # Graph ran and failed/aborted with unknown usage -> charge reserve
+                        cost = SPEND_RESERVE_USD
+                    else:
+                        cost = 0.0
                     self._record_turn_attempt(ctx, tid_to_log, cost)
 
     def run_turn(

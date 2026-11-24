@@ -7,7 +7,7 @@ import logging
 import time
 import uuid
 from collections import Counter
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from datetime import timedelta
 from typing import Any
 
@@ -99,6 +99,33 @@ def _friendly_tool_label(tool_name: str, args: dict[str, Any] | None = None) -> 
     return f"Looking up {tool_name.replace('_', ' ')}"
 
 
+def _combine_tool_labels(labels: list[str]) -> str:
+    deduped: list[str] = []
+    for lbl in labels:
+        if lbl not in deduped:
+            deduped.append(lbl)
+    if not deduped:
+        return "Looking up fleet data"
+    if len(deduped) == 1:
+        return deduped[0]
+    if all(lbl.startswith("Looking up ") for lbl in deduped):
+        parts = [lbl[len("Looking up ") :] for lbl in deduped]
+        return "Looking up " + ", ".join(parts)
+    return " · ".join(deduped)
+
+
+def collapse_progress_events(events: Sequence[ProgressEvent]) -> list[ProgressEvent]:
+    """Collapse consecutive progress events sharing an identical user-facing label."""
+    collapsed: list[ProgressEvent] = []
+    for ev in events:
+        if collapsed and collapsed[-1].label == ev.label:
+            if ev.response is not None and collapsed[-1].response is None:
+                collapsed[-1] = ev
+            continue
+        collapsed.append(ev)
+    return collapsed
+
+
 def _progress_event_for_node(
     node_name: str,
     update: Any,
@@ -124,18 +151,19 @@ def _progress_event_for_node(
             msgs = update.get("messages") or []
             for m in reversed(msgs):
                 if isinstance(m, AIMessage) and m.tool_calls:
-                    first_tc = m.tool_calls[0]
-                    tname = str(first_tc.get("name") or "")
-                    targs = first_tc.get("args") if isinstance(first_tc.get("args"), dict) else {}
+                    labels: list[str] = []
+                    names: list[str] = []
                     for tc in m.tool_calls:
                         tc_name = str(tc.get("name") or "")
                         tc_args = tc.get("args") if isinstance(tc.get("args"), dict) else {}
                         if tc_name:
                             last_tool_args[tc_name] = dict(tc_args)
+                            names.append(tc_name)
+                            labels.append(_friendly_tool_label(tc_name, tc_args))
                     return ProgressEvent(
                         step="investigator",
-                        label=_friendly_tool_label(tname, targs),
-                        detail=", ".join(str(tc.get("name") or "") for tc in m.tool_calls),
+                        label=_combine_tool_labels(labels),
+                        detail=", ".join(names),
                     )
         return ProgressEvent(step="investigator", label="Reviewing findings", detail="")
 
@@ -143,12 +171,13 @@ def _progress_event_for_node(
         if isinstance(update, dict):
             trace = update.get("tool_trace") or []
             if trace:
-                last = trace[-1]
-                tname = str(last.get("tool_name") or "")
+                names = [str(entry.get("tool_name") or "") for entry in trace if entry]
+                names = [n for n in names if n]
+                labels = [_friendly_tool_label(n, last_tool_args.get(n)) for n in names]
                 return ProgressEvent(
                     step="tools",
-                    label=_friendly_tool_label(tname, last_tool_args.get(tname)),
-                    detail=tname,
+                    label=_combine_tool_labels(labels),
+                    detail=", ".join(names),
                 )
         return ProgressEvent(step="tools", label="Looking up fleet data", detail="")
 
@@ -320,6 +349,29 @@ class CopilotService:
         summary = ", ".join(f"{n} {st}" for st, n in sorted(counts.items()))
         return f"Current proposal statuses for this turn: {summary}."
 
+    def _accumulated_usage_from_checkpoint(
+        self,
+        config: dict[str, Any] | None,
+        turn_id: str,
+    ) -> tuple[int, int, float]:
+        """Read token usage already checkpointed for `turn_id` before an exception occurred."""
+        if config is None or self._checkpointer is None:
+            return 0, 0, 0.0
+        try:
+            snap = self._graph.get_state(config)
+        except Exception:  # noqa: BLE001
+            return 0, 0, 0.0
+        values = getattr(snap, "values", None)
+        if not isinstance(values, dict):
+            return 0, 0, 0.0
+        if str(values.get("turn_id") or "") != turn_id:
+            return 0, 0, 0.0
+        usage_list = list(values.get("usage") or [])
+        tokens_in = sum(int(u.get("input_tokens", 0) or 0) for u in usage_list)
+        tokens_out = sum(int(u.get("output_tokens", 0) or 0) for u in usage_list)
+        cost_est = self._runtime_cfg.estimate_cost_usd(self._model_id, tokens_in, tokens_out)
+        return tokens_in, tokens_out, cost_est
+
     def _handle_turn_failure(
         self,
         *,
@@ -328,10 +380,12 @@ class CopilotService:
         turn_id: str,
         exc: Exception,
         t0: float,
+        config: dict[str, Any] | None = None,
     ) -> TurnResponse:
         latency_ms = max(0, int((time.monotonic() - t0) * 1000))
         error_code = type(exc).__name__[:64]
         status_note = self._truthful_proposal_status_note(ctx, turn_id)
+        tokens_in, tokens_out, cost_est = self._accumulated_usage_from_checkpoint(config, turn_id)
         friendly = (
             f"This request could not be completed (`{error_code}`). {status_note} Please retry."
         )
@@ -343,6 +397,9 @@ class CopilotService:
                 status="failed",
                 assistant_response=friendly,
                 answer_hash=answer_hash,
+                input_tokens=tokens_in,
+                output_tokens=tokens_out,
+                cost_usd_est=cost_est,
                 latency_ms=latency_ms,
                 completed_at=self._clock.now(),
             )
@@ -357,9 +414,9 @@ class CopilotService:
                     status="failed",
                     answer_hash=answer_hash,
                     citations=0,
-                    tokens_in=0,
-                    tokens_out=0,
-                    cost_usd_est=0.0,
+                    tokens_in=tokens_in,
+                    tokens_out=tokens_out,
+                    cost_usd_est=cost_est,
                     latency_ms=latency_ms,
                     error_code=error_code,
                 ),
@@ -383,7 +440,13 @@ class CopilotService:
             status="failed",
             answer_markdown=friendly,
             answer=Answer(summary=friendly),
-            usage=TurnUsage(latency_ms=latency_ms),
+            usage=TurnUsage(
+                input_tokens=tokens_in,
+                output_tokens=tokens_out,
+                total_tokens=tokens_in + tokens_out,
+                cost_usd_est=cost_est,
+                latency_ms=latency_ms,
+            ),
             warnings=[f"Turn failed ({error_code})."],
         )
 
@@ -739,6 +802,7 @@ class CopilotService:
                     turn_id=resolved_turn_id,
                     exc=exc,
                     t0=t0,
+                    config=config,
                 )
                 yield ProgressEvent(
                     step="failed",
@@ -859,6 +923,7 @@ class CopilotService:
                     turn_id=paused_turn_id,
                     exc=exc,
                     t0=t0,
+                    config=config,
                 )
             finally:
                 self._safe_release_lease(ctx, thread_id, lease_until)

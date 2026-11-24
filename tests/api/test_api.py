@@ -1,4 +1,4 @@
-"""API integration tests covering JWT auth, tenant/actor isolation, RBAC, limits, and endpoints."""
+"""Focused API integration tests: one test per endpoint and security behaviour."""
 
 from __future__ import annotations
 
@@ -155,35 +155,56 @@ def _login(client: TestClient, code: str, persona: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_api_happy_path_all_endpoints_and_trace_id(
+def test_healthz_returns_ok_and_trace_id(
+    db_manager: DatabaseManager,
+    clean_spend_ledger: None,
+) -> None:
+    client, _ = _build_test_client(db_manager)
+    resp = client.get("/healthz")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "ok"
+    assert resp.headers.get("X-Trace-Id")
+
+
+def test_demo_login_valid_and_invalid(
+    db_manager: DatabaseManager,
+    clean_spend_ledger: None,
+) -> None:
+    client, _ = _build_test_client(db_manager)
+    bad = client.post("/v1/auth/demo-login", json={"code": "wrong", "persona": "acme_admin"})
+    assert bad.status_code == 401
+    assert bad.headers.get("X-Trace-Id")
+
+    good = client.post("/v1/auth/demo-login", json={"code": "code-r1", "persona": "acme_admin"})
+    assert good.status_code == 200
+    payload = good.json()
+    assert payload["company_id"] == "acme-001"
+    assert payload["actor_id"] == "rev_01:acme_admin"
+    assert payload["role"] == "it_admin"
+
+
+def test_get_insights_returns_tenant_briefing(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
     clean_spend_ledger: None,
 ) -> None:
-    client, container = _build_test_client(db_manager)
+    client, _ = _build_test_client(db_manager)
+    headers = _login(client, "code-r1", "acme_admin")
+    resp = client.get("/v1/insights", headers=headers)
+    assert resp.status_code == 200
+    assert resp.headers.get("X-Trace-Id")
+    assert resp.json()["company_id"] == "acme-001"
+    assert resp.json()["kpis"]["devices"] == 10
 
-    # 1. Health check
-    health = client.get("/healthz")
-    assert health.status_code == 200
-    assert health.json()["status"] == "ok"
-    assert health.headers.get("X-Trace-Id")
 
-    # 2. Auth login (bad login rejected with 401; valid succeeds)
-    bad_login = client.post("/v1/auth/demo-login", json={"code": "bad", "persona": "acme_admin"})
-    assert bad_login.status_code == 401
-    assert bad_login.headers.get("X-Trace-Id")
-
+def test_post_new_thread_and_list_and_get_threads(
+    db_manager: DatabaseManager,
+    reset_copilot_state: None,
+    clean_spend_ledger: None,
+) -> None:
+    client, _ = _build_test_client(db_manager)
     headers = _login(client, "code-r1", "acme_admin")
 
-    # 3. GET /v1/insights
-    ins = client.get("/v1/insights", headers=headers)
-    assert ins.status_code == 200
-    assert ins.headers.get("X-Trace-Id")
-    body = ins.json()
-    assert body["company_id"] == "acme-001"
-    assert body["kpis"]["devices"] == 10
-
-    # 4. POST /v1/threads/new/messages creates "<company_id>:<uuid>" thread
     msg = client.post(
         "/v1/threads/new/messages",
         json={"message": "Give me an Acme fleet overview"},
@@ -191,12 +212,10 @@ def test_api_happy_path_all_endpoints_and_trace_id(
     )
     assert msg.status_code == 200, msg.text
     assert msg.headers.get("X-Trace-Id")
-    turn_data = msg.json()
-    tid = turn_data["thread_id"]
+    tid = msg.json()["thread_id"]
     assert tid.startswith("acme-001:")
-    assert turn_data["status"] == "completed"
+    assert msg.json()["status"] == "completed"
 
-    # 5. GET /v1/threads and GET /v1/threads/{id}
     tlist = client.get("/v1/threads", headers=headers)
     assert tlist.status_code == 200
     assert any(t["thread_id"] == tid for t in tlist.json()["threads"])
@@ -205,7 +224,23 @@ def test_api_happy_path_all_endpoints_and_trace_id(
     assert tdet.status_code == 200
     assert tdet.json()["thread"]["thread_id"] == tid
 
-    # 6. Proposals + approve via API -> executed -> outbox populated
+
+def test_proposals_list_approve_executes_and_populates_outbox(
+    db_manager: DatabaseManager,
+    reset_copilot_state: None,
+    clean_spend_ledger: None,
+) -> None:
+    client, container = _build_test_client(db_manager)
+    headers = _login(client, "code-r1", "acme_admin")
+    msg = client.post(
+        "/v1/threads/new/messages",
+        json={"message": "Overview"},
+        headers=headers,
+    )
+    assert msg.status_code == 200
+    tid = msg.json()["thread_id"]
+    turn_id = msg.json()["turn_id"]
+
     ctx = TenantContext(
         company_id="acme-001", actor_id="rev_01:acme_admin", role="it_admin", trace_id="tr-api-prop"
     )
@@ -238,7 +273,7 @@ def test_api_happy_path_all_endpoints_and_trace_id(
             )
         ],
         tid,
-        turn_data["turn_id"],
+        turn_id,
         ledger,
         container.clock,
     )
@@ -253,23 +288,90 @@ def test_api_happy_path_all_endpoints_and_trace_id(
         json={"decision": "approve", "note": "Approved via API"},
         headers=headers,
     )
-    assert dec.status_code == 200, dec.text
+    assert dec.status_code == 200
     assert dec.json()["decision"]["applied"] is True
     assert dec.json()["execution"]["status"] == "executed"
 
-    # 7. GET /v1/outbox
     outbox = client.get("/v1/outbox", headers=headers)
     assert outbox.status_code == 200
     assert len(outbox.json()["items"]) == 1
     assert outbox.json()["items"][0]["proposal_id"] == pid
 
-    # 8. GET /v1/audit/verify
+
+def test_audit_verify_endpoint(
+    db_manager: DatabaseManager,
+    reset_copilot_state: None,
+    clean_spend_ledger: None,
+) -> None:
+    client, _ = _build_test_client(db_manager)
+    headers = _login(client, "code-r1", "acme_admin")
+    client.post("/v1/threads/new/messages", json={"message": "Overview"}, headers=headers)
+
     verify = client.get("/v1/audit/verify", headers=headers)
     assert verify.status_code == 200
     assert verify.json()["ok"] is True
 
 
-def test_api_isolation_404_viewer_403_tampered_jwt_401_and_limits_429(
+def test_cross_tenant_thread_returns_identical_404(
+    db_manager: DatabaseManager,
+    reset_copilot_state: None,
+    clean_spend_ledger: None,
+) -> None:
+    client, _ = _build_test_client(db_manager)
+    acme_headers = _login(client, "code-r1", "acme_admin")
+    globex_headers = _login(client, "code-r1", "globex_admin")
+
+    tid = client.post(
+        "/v1/threads/new/messages", json={"message": "Acme"}, headers=acme_headers
+    ).json()["thread_id"]
+
+    missing = client.get("/v1/threads/globex-002:does-not-exist", headers=globex_headers)
+    cross = client.get(f"/v1/threads/{tid}", headers=globex_headers)
+    assert missing.status_code == 404
+    assert cross.status_code == 404
+    assert cross.json() == missing.json()
+
+
+def test_other_actor_same_company_thread_returns_identical_404(
+    db_manager: DatabaseManager,
+    reset_copilot_state: None,
+    clean_spend_ledger: None,
+) -> None:
+    client, _ = _build_test_client(db_manager)
+    r1_headers = _login(client, "code-r1", "acme_admin")
+    r2_headers = _login(client, "code-r2", "acme_admin")
+
+    tid = client.post(
+        "/v1/threads/new/messages", json={"message": "Acme"}, headers=r1_headers
+    ).json()["thread_id"]
+
+    missing = client.get("/v1/threads/acme-001:missing", headers=r2_headers)
+    other_get = client.get(f"/v1/threads/{tid}", headers=r2_headers)
+    other_post = client.post(
+        f"/v1/threads/{tid}/messages", json={"message": "Hijack"}, headers=r2_headers
+    )
+    assert other_get.status_code == 404
+    assert other_get.json() == missing.json()
+    assert other_post.status_code == 404
+    assert other_post.json() == missing.json()
+
+
+def test_viewer_proposal_decision_returns_403(
+    db_manager: DatabaseManager,
+    reset_copilot_state: None,
+    clean_spend_ledger: None,
+) -> None:
+    client, _ = _build_test_client(db_manager)
+    viewer_headers = _login(client, "code-r2", "acme_viewer")
+    resp = client.post(
+        "/v1/proposals/any-proposal-id/decision",
+        json={"decision": "approve"},
+        headers=viewer_headers,
+    )
+    assert resp.status_code == 403
+
+
+def test_limit_exceeded_returns_429_with_limit_code(
     db_manager: DatabaseManager,
     reset_copilot_state: None,
     clean_spend_ledger: None,
@@ -277,7 +379,7 @@ def test_api_isolation_404_viewer_403_tampered_jwt_401_and_limits_429(
     cfg = get_settings().model_copy(
         update={
             "app_env": "prod",
-            "demo_access_codes": "code-r1:rev_01,code-r2:rev_02",
+            "demo_access_codes": "code-r1:rev_01",
             "session_signing_key": SecretStr("b2" * 32),
             "gemini_api_key": SecretStr("fake-live-key"),
             "llm_replay_mode": "off",
@@ -287,60 +389,25 @@ def test_api_isolation_404_viewer_403_tampered_jwt_401_and_limits_429(
         }
     )
     client, _ = _build_test_client(db_manager, settings=cfg)
+    headers = _login(client, "code-r1", "acme_admin")
 
-    r1_acme_headers = _login(client, "code-r1", "acme_admin")
-    r2_acme_headers = _login(client, "code-r2", "acme_admin")
-    r1_globex_headers = _login(client, "code-r1", "globex_admin")
-    r2_viewer_headers = _login(client, "code-r2", "acme_viewer")
+    first = client.post("/v1/threads/new/messages", json={"message": "Turn 1"}, headers=headers)
+    assert first.status_code == 200
+    tid = first.json()["thread_id"]
 
-    # Create a thread as rev_01:acme_admin (uses rev_01's 1 allowed turn!)
-    created = client.post(
-        "/v1/threads/new/messages",
-        json={"message": "Acme overview"},
-        headers=r1_acme_headers,
-    )
-    assert created.status_code == 200
-    acme_tid = created.json()["thread_id"]
+    second = client.post(f"/v1/threads/{tid}/messages", json={"message": "Turn 2"}, headers=headers)
+    assert second.status_code == 429
+    assert second.json()["code"] == "turn_cap_reached"
+    assert second.headers.get("X-Trace-Id")
 
-    # 1. Cross-tenant 404 has exact same body as genuinely missing thread
-    missing_resp = client.get("/v1/threads/globex-002:does-not-exist", headers=r1_globex_headers)
-    cross_tenant_resp = client.get(f"/v1/threads/{acme_tid}", headers=r1_globex_headers)
-    assert missing_resp.status_code == 404
-    assert cross_tenant_resp.status_code == 404
-    assert cross_tenant_resp.json() == missing_resp.json()
 
-    # 2. Same company, OTHER actor -> 404 with identical body (both GET and POST)
-    other_actor_get = client.get(f"/v1/threads/{acme_tid}", headers=r2_acme_headers)
-    other_actor_post = client.post(
-        f"/v1/threads/{acme_tid}/messages",
-        json={"message": "Hijack attempt"},
-        headers=r2_acme_headers,
-    )
-    assert other_actor_get.status_code == 404
-    assert other_actor_get.json() == missing_resp.json()
-    assert other_actor_post.status_code == 404
-    assert other_actor_post.json() == missing_resp.json()
-
-    # 3. Viewer deciding a proposal -> 403
-    viewer_dec = client.post(
-        "/v1/proposals/any-proposal-id/decision",
-        json={"decision": "approve"},
-        headers=r2_viewer_headers,
-    )
-    assert viewer_dec.status_code == 403
-
-    # 4. Limit exceeded -> 429 with limit code (rev_01 already used 1/1 turns!)
-    limited = client.post(
-        f"/v1/threads/{acme_tid}/messages",
-        json={"message": "Second turn should hit turn_cap_reached"},
-        headers=r1_acme_headers,
-    )
-    assert limited.status_code == 429
-    assert limited.json()["code"] == "turn_cap_reached"
-    assert limited.headers.get("X-Trace-Id")
-
-    # 5. Tampered JWT (modified company_id payload) -> rejected with 401
-    raw_token = r1_acme_headers["Authorization"].split(" ", 1)[1]
+def test_tampered_jwt_company_id_rejected_with_401(
+    db_manager: DatabaseManager,
+    clean_spend_ledger: None,
+) -> None:
+    client, _ = _build_test_client(db_manager)
+    headers = _login(client, "code-r1", "acme_admin")
+    raw_token = headers["Authorization"].split(" ", 1)[1]
     hdr_b64, pay_b64, sig_b64 = raw_token.split(".")
     padded = pay_b64 + "=" * (-len(pay_b64) % 4)
     claims = json.loads(base64.urlsafe_b64decode(padded))
@@ -349,6 +416,6 @@ def test_api_isolation_404_viewer_403_tampered_jwt_401_and_limits_429(
         base64.urlsafe_b64encode(json.dumps(claims).encode("utf-8")).rstrip(b"=").decode("ascii")
     )
     tampered_token = f"{hdr_b64}.{tampered_pay}.{sig_b64}"
-    tampered = client.get("/v1/insights", headers={"Authorization": f"Bearer {tampered_token}"})
-    assert tampered.status_code == 401
-    assert tampered.headers.get("X-Trace-Id")
+    resp = client.get("/v1/insights", headers={"Authorization": f"Bearer {tampered_token}"})
+    assert resp.status_code == 401
+    assert resp.headers.get("X-Trace-Id")

@@ -163,7 +163,12 @@ def test_run_turn_stream_events_arrive_in_order_and_match_run_turn() -> None:
         turn_id="turn_fixed_1",
     )
 
-    assert stream_resp.model_dump(exclude={"usage"}) == sync_resp.model_dump(exclude={"usage"})
+    stream_dump = stream_resp.model_dump(exclude={"usage"})
+    sync_dump = sync_resp.model_dump(exclude={"usage"})
+    for d in (stream_dump, sync_dump):
+        for entry in d.get("tool_trace", []):
+            entry.pop("duration_ms", None)
+    assert stream_dump == sync_dump
     assert stream_resp.usage.input_tokens == sync_resp.usage.input_tokens
     assert stream_resp.usage.output_tokens == sync_resp.usage.output_tokens
     assert stream_resp.usage.cost_usd_est == sync_resp.usage.cost_usd_est
@@ -357,3 +362,55 @@ def test_turn_jobs_failure_hides_stack_trace() -> None:
         assert "postgres://" not in snap.error
     finally:
         jobs.shutdown(wait=True)
+
+
+def test_tools_progress_lists_all_parallel_tools_and_collapse_deduplicates_labels() -> None:
+    """Parallel tool calls appear in the tools event; consecutive identical labels collapse."""
+    from fleet_copilot.services.copilot import collapse_progress_events
+
+    svc, _ = _offline_service(
+        planner_script=[
+            Plan(
+                intent="insight",
+                steps=[PlanStep(goal="Battery + devices", tool_hint="find_devices")],
+            )
+        ],
+        investigator_script=[
+            make_tool_call_ai(
+                [
+                    {
+                        "name": "analyze_fleet_trends",
+                        "args": {"categories": ["battery"]},
+                        "id": "tc_p1",
+                    },
+                    {"name": "find_devices", "args": {"form_factor": "laptop"}, "id": "tc_p2"},
+                ]
+            ),
+            "Done.",
+        ],
+        synthesizer_script=[
+            Answer(
+                summary="Battery analysis complete.",
+                claims=[
+                    Claim(
+                        text="8NM23J95R5I6 needs battery service [E1].",
+                        citations=["E1"],
+                        device_ids=["8NM23J95R5I6"],
+                        numbers=[],
+                    )
+                ],
+                caveats=["As of 2026-06-12."],
+            )
+        ],
+    )
+    events = list(svc.run_turn_stream(_ctx(), None, "Check batteries and laptops"))
+    tools_events = [e for e in events if e.step == "tools"]
+    assert len(tools_events) == 1
+    assert "analyze_fleet_trends" in tools_events[0].detail
+    assert "find_devices" in tools_events[0].detail
+    assert "battery trends" in tools_events[0].label.lower()
+    assert "matching devices" in tools_events[0].label.lower()
+
+    collapsed = collapse_progress_events(events)
+    for prev, nxt in zip(collapsed, collapsed[1:], strict=False):
+        assert prev.label != nxt.label

@@ -88,6 +88,28 @@ def _policy_note(policies: dict[str, PolicyValue], key: str, default: Any) -> st
     return f"{key}={val} ({src})"
 
 
+def _a_or_an(word: str) -> str:
+    return "an" if word and word[0].lower() in ("a", "e", "i", "o", "u") else "a"
+
+
+def _format_host_list(hostnames: list[str]) -> str:
+    if not hostnames:
+        return ""
+    if len(hostnames) == 1:
+        return hostnames[0]
+    if len(hostnames) == 2:
+        return f"{hostnames[0]} and {hostnames[1]}"
+    return ", ".join(hostnames[:-1]) + f", and {hostnames[-1]}"
+
+
+def _ticket_action_prompt(check_id: str, hostnames: list[str]) -> str:
+    if len(hostnames) == 1:
+        return f"Open {_a_or_an(check_id)} {check_id} remediation ticket for {hostnames[0]}"
+    if len(hostnames) <= 5:
+        return f"Open {check_id} remediation tickets for {_format_host_list(hostnames)}"
+    return f"Open {_a_or_an(check_id)} {check_id} remediation ticket for {hostnames[0]}"
+
+
 def _recency_for_insights(insights: list[dict[str, Any]], as_of_date: str) -> str:
     dates: list[str] = []
     for ins in insights:
@@ -166,11 +188,7 @@ def _build_category_item(
             f"Which {company_name} devices are low or depleting on disk space, "
             "and what remediation do you recommend?"
         )
-        action_prompt = (
-            f"Open a low_disk_space remediation ticket or storage upgrade for {lead_host}"
-            if is_admin
-            else None
-        )
+        action_prompt = _ticket_action_prompt("low_disk_space", hostnames) if is_admin else None
     elif category == "ram":
         p_ram = _policy_note(policies, "high_ram_used_pct", 80.0)
         p_ratio = _policy_note(policies, "ram_sustained_ratio", 0.7)
@@ -197,9 +215,7 @@ def _build_category_item(
         prompt = (
             f"Which {company_name} devices drifted into compliance failure in the last 30 days?"
         )
-        action_prompt = (
-            f"Open a {lead_check} remediation ticket for {lead_host}" if is_admin else None
-        )
+        action_prompt = _ticket_action_prompt(lead_check, hostnames) if is_admin else None
     elif category == "compliance_chronic":
         checks = sorted(
             {str((ins.get("stats") or {}).get("check_id") or "compliance") for ins in insights}
@@ -211,9 +227,7 @@ def _build_category_item(
             "on every snapshot in the 30-day window (compliance_chronic analyzer, global)."
         )
         prompt = f"Which {company_name} devices have chronic compliance check failures?"
-        action_prompt = (
-            f"Open a {lead_check} remediation ticket for {lead_host}" if is_admin else None
-        )
+        action_prompt = _ticket_action_prompt(lead_check, hostnames) if is_admin else None
     elif category == "software":
         p_share = _policy_note(policies, "software_baseline_min_share", 0.8)
         apps = sorted(
@@ -233,7 +247,7 @@ def _build_category_item(
             f"Which {company_name} devices installed non-baseline software over the last 30 days?"
         )
         action_prompt = (
-            f"Open a non_baseline_software remediation ticket for {lead_host}" if is_admin else None
+            _ticket_action_prompt("non_baseline_software", hostnames) if is_admin else None
         )
     else:
         title = f"{n} {plural} with {category.replace('_', ' ')} findings"
@@ -350,7 +364,18 @@ def build_briefing(
                     f"Which {company_name} devices have stopped reporting telemetry recently?"
                 ),
                 suggested_action_prompt=(
-                    f"Notify the owner of {lead_host} about missing telemetry check-ins"
+                    (
+                        f"Notify the owner of {stale_hosts[0]} about missing telemetry check-ins"
+                        if len(stale_hosts) == 1
+                        else (
+                            f"Notify the owners of {_format_host_list(stale_hosts)} "
+                            "about missing telemetry check-ins"
+                            if len(stale_hosts) <= 5
+                            else (
+                                f"Notify the owner of {lead_host} about missing telemetry check-ins"
+                            )
+                        )
+                    )
                     if is_admin
                     else None
                 ),
@@ -382,7 +407,10 @@ def build_briefing(
         if hasattr(store, "list_proposals")
         else []
     )
-    attention_ids = {did for item in items for did in item.device_ids}
+    # Count only devices in HIGH or MEDIUM items so LOW chronic items don't inflate the headline
+    attention_ids = {
+        did for item in items if item.severity in ("high", "medium") for did in item.device_ids
+    }
 
     kpis = BriefingKpis(
         devices=int(overview.get("total_devices", len(devices))),
