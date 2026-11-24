@@ -53,6 +53,8 @@ def set_ui_container_override(container: UIContainer | None) -> None:
     cached_briefing_dict.clear()
     cached_resolved_policies.clear()
     cached_hostname_map.clear()
+    cached_fleet_devices.clear()
+    cached_device_detail.clear()
     cached_thread_list.clear()
     cached_thread_turns.clear()
 
@@ -211,6 +213,168 @@ def get_hostname_map(company_id: str, telemetry_as_of: str) -> dict[str, str]:
         devices = _CONTAINER_OVERRIDE.telemetry_repo.latest_states(company_id)
         return {d.device_id: (d.os_hostname or d.device_id) for d in devices}
     return cached_hostname_map(company_id, telemetry_as_of)
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def cached_fleet_devices(company_id: str, telemetry_as_of: str) -> list[dict[str, Any]]:
+    """Build cached fleet table rows keyed by `(company_id, telemetry_as_of)`."""
+    from datetime import timedelta
+
+    from fleet_copilot.services.briefing import build_briefing
+    from fleet_copilot.services.staleness import resolve_stale_device_days, stale_days_ago
+
+    _ = telemetry_as_of
+    container = get_ui_container()
+    repo = container.telemetry_repo
+    as_of = repo.tenant_as_of(company_id)
+    devices = sorted(repo.latest_states(company_id), key=lambda d: d.os_hostname or d.device_id)
+    latest_comp = repo.compliance(company_id, latest_only=True)
+
+    fail_counts: dict[str, int] = {}
+    for row in latest_comp:
+        if row.status == "fail":
+            fail_counts[row.device_id] = fail_counts.get(row.device_id, 0) + 1
+
+    ctx = TenantContext(
+        company_id=company_id,
+        actor_id="ui:fleet_reader",
+        role="viewer",
+        trace_id=f"ui-fleet-{company_id}",
+    )
+    policies = container.policy_svc.resolve(ctx)
+    low_disk_thresh = float(
+        policies["low_disk_free_pct"].value if "low_disk_free_pct" in policies else 15.0
+    )
+    stale_days = resolve_stale_device_days(policies)
+    brief = build_briefing(ctx, repo, container.store, container.policy_svc)
+    attention_ids = {
+        did
+        for item in brief.items
+        if item.severity in ("high", "medium")
+        for did in item.device_ids
+    }
+    _ = timedelta  # keep local import tidy
+
+    rows: list[dict[str, Any]] = []
+    for d in devices[:200]:
+        stale_n = stale_days_ago(d, as_of, stale_days)
+        is_stale = stale_n is not None
+        if d.battery_present and d.battery_condition:
+            cyc = f"{int(d.battery_cycle_count):,} cyc" if d.battery_cycle_count is not None else ""
+            batt_str = f"{d.battery_condition} ({cyc})" if cyc else d.battery_condition
+        elif d.form_factor == "desktop":
+            batt_str = "Desktop (no battery)"
+        else:
+            batt_str = "Unavailable"
+
+        os_label = f"{d.os_product_name or 'Unknown'} {d.os_product_version or ''}".strip()
+        disk_pct = round(float(d.disk_free_pct), 1) if d.disk_free_pct is not None else None
+        ram_pct = round(float(d.ram_used_pct), 1) if d.ram_used_pct is not None else None
+        disk_low = disk_pct is not None and disk_pct < low_disk_thresh
+        last_seen_date = d.collected_at.date().isoformat()
+        last_seen_label = f"{last_seen_date} · Stale ({stale_n}d)" if is_stale else last_seen_date
+
+        rows.append(
+            {
+                "device_id": d.device_id,
+                "hostname": d.os_hostname or d.device_id,
+                "model": d.model_name or "Unknown",
+                "os": os_label,
+                "os_family": (
+                    "macOS"
+                    if "mac" in os_label.lower() or (d.os_platform or "").lower() == "darwin"
+                    else ("Windows" if "win" in os_label.lower() else "Other")
+                ),
+                "form_factor": d.form_factor,
+                "disk_free_pct": disk_pct,
+                "disk_low": disk_low,
+                "ram_used_pct": ram_pct,
+                "battery": batt_str,
+                "failing_checks": fail_counts.get(d.device_id, 0),
+                "last_seen": last_seen_label,
+                "is_stale": is_stale,
+                "needs_attention": d.device_id in attention_ids or is_stale or disk_low,
+                "employee_id": d.employee_id,
+            }
+        )
+    return rows
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def cached_device_detail(
+    company_id: str,
+    telemetry_as_of: str,
+    device_id: str,
+) -> dict[str, Any] | None:
+    """Fetch cached device profile, 30-day series, compliance timeline, and software list."""
+    from datetime import timedelta
+
+    from fleet_copilot.services.staleness import resolve_stale_device_days, stale_days_ago
+    from fleet_copilot.services.trends import analyze_fleet_trends
+
+    _ = telemetry_as_of
+    container = get_ui_container()
+    repo = container.telemetry_repo
+    as_of = repo.tenant_as_of(company_id)
+    dev = repo.resolve_device(company_id, device_id)
+    if dev is None:
+        return None
+
+    ctx = TenantContext(
+        company_id=company_id,
+        actor_id="ui:device_reader",
+        role="viewer",
+        trace_id=f"ui-dev-{device_id}",
+    )
+    policies = container.policy_svc.resolve(ctx)
+    stale_days = resolve_stale_device_days(policies)
+    stale_n = stale_days_ago(dev, as_of, stale_days)
+
+    since = as_of - timedelta(days=30)
+    series_pts = repo.series(company_id, since, device_ids=[dev.device_id])
+    comp_rows = repo.compliance(company_id, since=since, device_ids=[dev.device_id])
+    sw_rows = repo.software(company_id, latest_only=True, device_ids=[dev.device_id])
+
+    # Identify non-baseline apps from deterministic software trend analyzer
+    sw_trends = analyze_fleet_trends(ctx, ["software"], repo, container.policy_svc)
+    non_baseline_apps = {
+        str((ins.get("stats") or {}).get("software_name") or "").lower()
+        for ins in sw_trends.data
+        if str(ins.get("device_id") or "") == dev.device_id
+    }
+
+    return {
+        "profile": dev.model_dump(mode="json"),
+        "as_of": as_of.isoformat(),
+        "stale_days_ago": stale_n,
+        "series": [
+            {
+                "date": pt.collected_at.date().isoformat(),
+                "disk_free_pct": pt.disk_free_pct,
+                "ram_used_pct": pt.ram_used_pct,
+                "battery_cycles": pt.battery_cycle_count if pt.battery_present else None,
+            }
+            for pt in series_pts
+        ],
+        "compliance": [
+            {
+                "date": c.collected_at.date().isoformat(),
+                "check_id": c.check_id,
+                "status": c.status,
+                "severity": c.severity,
+            }
+            for c in comp_rows
+        ],
+        "software": [
+            {
+                "name": sw.software_name,
+                "version": sw.version or "—",
+                "publisher": sw.publisher or "—",
+                "non_baseline": sw.software_name.lower() in non_baseline_apps,
+            }
+            for sw in sorted(sw_rows, key=lambda s: s.software_name.lower())
+        ],
+    }
 
 
 @st.cache_data(ttl=30, show_spinner=False)
