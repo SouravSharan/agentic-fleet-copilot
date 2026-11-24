@@ -130,3 +130,33 @@ def test_sanitize_value_sets_truncated_flag_when_nested_list_clipped() -> None:
     parsed = json.loads(out_str)
     assert parsed["truncated"] is True
     assert len(parsed["rows"][0]["installed_software"]) == 50
+
+
+def test_b4_thirteen_tools_caps_and_prompt_v2() -> None:
+    """11 §2 B4: 13 tools registered, create_chart/run_readonly_sql caps=3, prompt v2."""
+    from fleet_copilot.agent.prompts import load_prompt, prompt_bundle_version
+    from fleet_copilot.clock import FixedClock
+    from fleet_copilot.tools.registry import ToolDeps, build_all_tool_specs
+
+    get_runtime_config.cache_clear()
+    rt = get_runtime_config()
+    assert rt.budgets.cap_for("create_chart") == 3
+    assert rt.budgets.cap_for("run_readonly_sql") == 3
+
+    for name in ("planner", "investigator", "synthesizer"):
+        _, ver = load_prompt(name)
+        assert ver == "2", f"Expected {name}.md version == '2', got {ver!r}"
+    assert "2" in prompt_bundle_version()
+
+    dummy_deps = ToolDeps(
+        telemetry_repo=None,  # type: ignore[arg-type]
+        copilot_store=None,  # type: ignore[arg-type]
+        policy_svc=None,  # type: ignore[arg-type]
+        action_svc=None,  # type: ignore[arg-type]
+        clock=FixedClock(datetime(2026, 11, 24, 12, 0, tzinfo=UTC)),
+    )
+    specs = build_all_tool_specs(dummy_deps)
+    names = {s.name for s in specs}
+    assert len(specs) == 13
+    assert "create_chart" in names
+    assert "run_readonly_sql" in names

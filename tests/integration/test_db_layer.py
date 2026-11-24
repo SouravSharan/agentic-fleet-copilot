@@ -764,7 +764,7 @@ def test_copilot_policies_and_tool_configs_global_protection(
 
         cur.execute(
             """
-            SELECT tool_name, enabled, requires_approval
+            SELECT tool_name, enabled, requires_approval, min_role
             FROM copilot.tenant_tool_configs
             WHERE company_id = '*'
             """
@@ -778,14 +778,18 @@ def test_copilot_policies_and_tool_configs_global_protection(
             "get_employee_devices",
             "analyze_fleet_trends",
             "list_action_proposals",
+            "create_chart",
+            "run_readonly_sql",
             "create_upgrade_order",
             "open_remediation_ticket",
             "flag_device_for_replacement",
             "notify_employee",
-            "run_readonly_sql",
         }
         assert set(tool_rows.keys()) == expected_tools
-        assert tool_rows["run_readonly_sql"]["enabled"] is False
+        assert tool_rows["create_chart"]["enabled"] is True
+        assert tool_rows["create_chart"]["min_role"] == "viewer"
+        assert tool_rows["run_readonly_sql"]["enabled"] is True
+        assert tool_rows["run_readonly_sql"]["min_role"] == "viewer"
         for action_tool in (
             "create_upgrade_order",
             "open_remediation_ticket",

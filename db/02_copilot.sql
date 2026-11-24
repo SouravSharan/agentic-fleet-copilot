@@ -650,7 +650,7 @@ VALUES
     ('*', 'global', '', 'require_distinct_approver',        'false'::jsonb,'system')
 ON CONFLICT (company_id, scope_type, scope_value, metric_key) DO NOTHING;
 
--- Sync global tool-config seeds to the exact 05 §3.3 catalog and remove obsolete '*' rows.
+-- Sync global tool-config seeds to the exact 13-tool catalog (11 §2 B4).
 DELETE FROM copilot.tenant_tool_configs
 WHERE company_id = '*'
   AND tool_name NOT IN (
@@ -661,11 +661,12 @@ WHERE company_id = '*'
       'get_employee_devices',
       'analyze_fleet_trends',
       'list_action_proposals',
+      'create_chart',
+      'run_readonly_sql',
       'create_upgrade_order',
       'open_remediation_ticket',
       'flag_device_for_replacement',
-      'notify_employee',
-      'run_readonly_sql'
+      'notify_employee'
   );
 
 INSERT INTO copilot.tenant_tool_configs (company_id, tool_name, enabled, requires_approval, min_role, adapter_config_json, updated_by)
@@ -677,9 +678,16 @@ VALUES
     ('*', 'get_employee_devices',        true,  false, 'viewer',   '{}'::jsonb,             'system'),
     ('*', 'analyze_fleet_trends',        true,  false, 'viewer',   '{}'::jsonb,             'system'),
     ('*', 'list_action_proposals',       true,  false, 'viewer',   '{}'::jsonb,             'system'),
+    ('*', 'create_chart',                true,  false, 'viewer',   '{}'::jsonb,             'system'),
+    ('*', 'run_readonly_sql',            true,  false, 'viewer',   '{}'::jsonb,             'system'),
     ('*', 'create_upgrade_order',        true,  true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system'),
     ('*', 'open_remediation_ticket',     true,  true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system'),
     ('*', 'flag_device_for_replacement', true,  true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system'),
-    ('*', 'notify_employee',             true,  true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system'),
-    ('*', 'run_readonly_sql',            false, false, 'it_admin', '{}'::jsonb,             'system')
-ON CONFLICT (company_id, tool_name) DO NOTHING;
+    ('*', 'notify_employee',             true,  true,  'it_admin', '{"mode": "mock"}'::jsonb, 'system')
+ON CONFLICT (company_id, tool_name) DO UPDATE
+    SET enabled = EXCLUDED.enabled,
+        requires_approval = EXCLUDED.requires_approval,
+        min_role = EXCLUDED.min_role,
+        updated_at = now()
+    WHERE copilot.tenant_tool_configs.company_id = '*'
+      AND copilot.tenant_tool_configs.tool_name IN ('create_chart', 'run_readonly_sql');

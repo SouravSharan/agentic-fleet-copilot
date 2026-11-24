@@ -175,8 +175,15 @@ def tools_for(
 
 
 def build_all_tool_specs(deps: ToolDeps) -> list[ToolSpec]:
-    """Construct all 11 LLM-facing tool specifications (7 read/analytics + 4 action prechecks)."""
+    """Construct all 13 LLM-facing tool specifications (7 read + chart + SQL + 4 actions)."""
     from fleet_copilot.tools.action_tools import build_action_tool_specs
+    from fleet_copilot.tools.chart_tool import build_chart_tool_spec
     from fleet_copilot.tools.read_tools import build_read_tool_specs
+    from fleet_copilot.tools.sql_tool import build_sql_tool_spec
 
-    return [*build_read_tool_specs(deps), *build_action_tool_specs(deps)]
+    return [
+        *build_read_tool_specs(deps),
+        build_chart_tool_spec(deps),
+        build_sql_tool_spec(deps),
+        *build_action_tool_specs(deps),
+    ]

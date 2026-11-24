@@ -32,6 +32,8 @@ budgets:
     get_employee_devices: 4
     analyze_fleet_trends: 3
     list_action_proposals: 3
+    create_chart: 3
+    run_readonly_sql: 3
     create_upgrade_order: 4
     open_remediation_ticket: 4
     flag_device_for_replacement: 4

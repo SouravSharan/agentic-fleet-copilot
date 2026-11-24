@@ -326,6 +326,8 @@ class InMemoryCopilotStore:
             "get_employee_devices",
             "analyze_fleet_trends",
             "list_action_proposals",
+            "create_chart",
+            "run_readonly_sql",
         )
         actions = (
             "create_upgrade_order",
