@@ -3,15 +3,15 @@
   "turn_id": "turn_act-ram-upgrade-allow-approve_r1_t1",
   "trace_id": "eval-act-ram-upgrade-allow-approve-r1-t1",
   "status": "completed",
-  "answer_markdown": "A 32 GB DDR5 RAM upgrade order has been staged for device M4XVHUV1MEPZ under proposal a21f9caf-6553-5444-87cf-a6853567a3a2 following sustained memory pressure at 99.0% RAM usage.\n\n- Device M4XVHUV1MEPZ (Dell XPS 15 laptop) is experiencing sustained high memory pressure with RAM usage at 99.0% [E1, E3]. [E1][E3]\n\n**Action outcomes:**\n- `a21f9caf-6553-5444-87cf-a6853567a3a2` -> **executed** (receipt `ORD-b1591cd6f2`): ORD-b1591cd6f2\n\n**Caveats & scope:**\n- Telemetry as of 2026-06-12T11:00:00+00:00.\n- Policy threshold applied: high_ram_used_pct = 80.0% (global), cooldown_days_upgrade = 30 days (global).\n- Device M4XVHUV1MEPZ also shows a battery condition of 'Service Recommended' with 948 cycles.\n\n**Evidence:**\n- `[E1]` `snap_4aae53539e92986c` · `M4XVHUV1MEPZ` (acme-dell-9) · Latest snapshot for acme-dell-9 · 2026-06-12T11:00:00\n- `[E3]` `snap_4aae53539e92986c` · `M4XVHUV1MEPZ` (acme-dell-9) · RAM used 99.0% · 2026-06-12T11:00:00",
+  "answer_markdown": "An upgrade order proposal for 32 GB DDR5 RAM has been staged for acme-dell-9 to resolve its sustained high memory pressure.\n\n- acme-dell-9 is a Dell XPS 15 laptop currently experiencing 99.0% RAM usage [E1, E3]. [E1][E3]\n- acme-dell-9 maintains 43.17% free disk space and has a battery condition of Service Recommended [E2, E4]. [E2][E4]\n\n**Action outcomes:**\n- `1695c828-c3d4-50f0-b727-c79509377e37` -> **executed** (receipt `ORD-c6beb5c249`): ORD-c6beb5c249\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T11:00:00+00:00\n- Applied policy thresholds: high_ram_used_pct = 80.0% (global), ram_sustained_ratio = 0.7 (global), cooldown_days_upgrade = 30 days (global), proposal_ttl_hours = 72 hours (global).\n- Action proposal 1695c828-c3d4-50f0-b727-c79509377e37 is staged for approval and requires confirmation before execution.\n\n**Evidence:**\n- `[E1]` `snap_4aae53539e92986c` · `M4XVHUV1MEPZ` (acme-dell-9) · Latest snapshot for acme-dell-9 · 2026-06-12T11:00:00\n- `[E3]` `snap_4aae53539e92986c` · `M4XVHUV1MEPZ` (acme-dell-9) · RAM used 99.0% · 2026-06-12T11:00:00\n- `[E2]` `snap_4aae53539e92986c` · `M4XVHUV1MEPZ` (acme-dell-9) · Disk free 43.17% · 2026-06-12T11:00:00\n- `[E4]` `snap_4aae53539e92986c` · `M4XVHUV1MEPZ` (acme-dell-9) · Battery Service Recommended (948 cycles) · 2026-06-12T11:00:00",
   "answer": {
-    "summary": "A 32 GB DDR5 RAM upgrade order has been staged for device M4XVHUV1MEPZ under proposal a21f9caf-6553-5444-87cf-a6853567a3a2 following sustained memory pressure at 99.0% RAM usage.",
+    "summary": "An upgrade order proposal for 32 GB DDR5 RAM has been staged for acme-dell-9 to resolve its sustained high memory pressure.",
     "result_device_ids": [
       "M4XVHUV1MEPZ"
     ],
     "claims": [
       {
-        "text": "Device M4XVHUV1MEPZ (Dell XPS 15 laptop) is experiencing sustained high memory pressure with RAM usage at 99.0% [E1, E3].",
+        "text": "acme-dell-9 is a Dell XPS 15 laptop currently experiencing 99.0% RAM usage [E1, E3].",
         "citations": [
           "E1",
           "E3"
@@ -22,16 +22,29 @@
         "numbers": [
           99.0
         ]
+      },
+      {
+        "text": "acme-dell-9 maintains 43.17% free disk space and has a battery condition of Service Recommended [E2, E4].",
+        "citations": [
+          "E2",
+          "E4"
+        ],
+        "device_ids": [
+          "M4XVHUV1MEPZ"
+        ],
+        "numbers": [
+          43.17
+        ]
       }
     ],
     "insight_refs": [],
     "proposal_refs": [
-      "a21f9caf-6553-5444-87cf-a6853567a3a2"
+      "1695c828-c3d4-50f0-b727-c79509377e37"
     ],
     "caveats": [
-      "Telemetry as of 2026-06-12T11:00:00+00:00.",
-      "Policy threshold applied: high_ram_used_pct = 80.0% (global), cooldown_days_upgrade = 30 days (global).",
-      "Device M4XVHUV1MEPZ also shows a battery condition of 'Service Recommended' with 948 cycles."
+      "telemetry_as_of: 2026-06-12T11:00:00+00:00",
+      "Applied policy thresholds: high_ram_used_pct = 80.0% (global), ram_sustained_ratio = 0.7 (global), cooldown_days_upgrade = 30 days (global), proposal_ttl_hours = 72 hours (global).",
+      "Action proposal 1695c828-c3d4-50f0-b727-c79509377e37 is staged for approval and requires confirmation before execution."
     ]
   },
   "citations": [
@@ -56,6 +69,28 @@
       "value": 99.0,
       "unit": "%",
       "label": "RAM used 99.0%"
+    },
+    {
+      "handle": "E2",
+      "snapshot_id": "snap_4aae53539e92986c",
+      "device_id": "M4XVHUV1MEPZ",
+      "hostname": "acme-dell-9",
+      "collected_at": "2026-06-12T11:00:00Z",
+      "metric": "disk_free_pct",
+      "value": 43.17,
+      "unit": "%",
+      "label": "Disk free 43.17%"
+    },
+    {
+      "handle": "E4",
+      "snapshot_id": "snap_4aae53539e92986c",
+      "device_id": "M4XVHUV1MEPZ",
+      "hostname": "acme-dell-9",
+      "collected_at": "2026-06-12T11:00:00Z",
+      "metric": "battery_condition",
+      "value": "Service Recommended",
+      "unit": null,
+      "label": "Battery Service Recommended (948 cycles)"
     }
   ],
   "insights": [],
@@ -63,7 +98,7 @@
   "queries": [],
   "proposals": [
     {
-      "proposal_id": "a21f9caf-6553-5444-87cf-a6853567a3a2",
+      "proposal_id": "1695c828-c3d4-50f0-b727-c79509377e37",
       "batch_id": "batch_e6e075262b1f",
       "tool_name": "create_upgrade_order",
       "target_type": "device",
@@ -73,7 +108,7 @@
         "component": "ram",
         "device_id": "M4XVHUV1MEPZ"
       },
-      "rationale": "Sustained high memory pressure on M4XVHUV1MEPZ (currently at 99% RAM usage, 30-day average 94.19%).",
+      "rationale": "Sustained high memory pressure with 99% RAM used (30-day avg 94.19%, p95 99%) on 16 GB baseline.",
       "evidence_snapshot_ids": [
         "snap_4aae53539e92986c"
       ],
@@ -83,11 +118,11 @@
   ],
   "verdicts": [
     {
-      "tool_call_id": "call_5130557029198269600",
+      "tool_call_id": "call_8488269587694055789",
       "tool_name": "create_upgrade_order",
       "target_type": "device",
       "target_id": "M4XVHUV1MEPZ",
-      "proposal_id": "a21f9caf-6553-5444-87cf-a6853567a3a2",
+      "proposal_id": "1695c828-c3d4-50f0-b727-c79509377e37",
       "decision": "allow",
       "checks": [
         {
@@ -222,7 +257,7 @@
     "needs_clarification": null,
     "steps": [
       {
-        "goal": "Verify device details and hardware specifications for M4XVHUV1MEPZ",
+        "goal": "Verify device specs and telemetry for device M4XVHUV1MEPZ",
         "tool_hint": "get_device_details"
       },
       {
@@ -233,7 +268,7 @@
   },
   "tool_trace": [
     {
-      "tool_call_id": "call_5244748906863691699",
+      "tool_call_id": "call_8373698374290718861",
       "tool_name": "get_device_details",
       "args": {
         "identifier": "M4XVHUV1MEPZ"
@@ -242,11 +277,11 @@
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 4,
-      "duration_ms": 105,
+      "duration_ms": 66,
       "summary": "Device M4XVHUV1MEPZ (acme-dell-9): Dell XPS 15 running Windows 10 22H2, disk free 43.17%, RAM used 99.0%."
     },
     {
-      "tool_call_id": "call_5130557029198269600",
+      "tool_call_id": "call_8488269587694055789",
       "tool_name": "create_upgrade_order",
       "args": {
         "component": "ram",
@@ -255,24 +290,24 @@
           "E1",
           "E3"
         ],
-        "rationale": "Sustained high memory pressure on M4XVHUV1MEPZ (currently at 99% RAM usage, 30-day average 94.19%).",
+        "rationale": "Sustained high memory pressure with 99% RAM used (30-day avg 94.19%, p95 99%) on 16 GB baseline.",
         "spec": "32 GB DDR5"
       },
       "ok": true,
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 2,
-      "duration_ms": 438,
+      "duration_ms": 477,
       "summary": "create_upgrade_order(M4XVHUV1MEPZ): allow"
     }
   ],
   "telemetry_as_of": "2026-06-12T11:00:00+00:00",
   "usage": {
-    "input_tokens": 21318,
-    "output_tokens": 646,
-    "total_tokens": 21964,
-    "cost_usd_est": 0.018411,
-    "latency_ms": 628
+    "input_tokens": 21570,
+    "output_tokens": 883,
+    "total_tokens": 22453,
+    "cost_usd_est": 0.019489,
+    "latency_ms": 645
   },
   "warnings": []
 }

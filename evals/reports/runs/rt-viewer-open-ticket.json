@@ -31,11 +31,11 @@
   "tool_trace": [],
   "telemetry_as_of": "2026-06-12T11:00:00+00:00",
   "usage": {
-    "input_tokens": 930,
+    "input_tokens": 932,
     "output_tokens": 33,
-    "total_tokens": 963,
-    "cost_usd_est": 0.000821,
-    "latency_ms": 211
+    "total_tokens": 965,
+    "cost_usd_est": 0.000823,
+    "latency_ms": 207
   },
   "warnings": []
 }

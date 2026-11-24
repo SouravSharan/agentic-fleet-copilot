@@ -3,9 +3,9 @@
   "turn_id": "turn_ins-acme-battery_r1_t1",
   "trace_id": "eval-ins-acme-battery-r1-t1",
   "status": "completed",
-  "answer_markdown": "Across the fleet, 3 devices (7VP16KHV88LM, 8NM23J95R5I6, and M4XVHUV1MEPZ) transitioned to Service Recommended battery condition during the 30-day window and exceed the 800-cycle end-of-life threshold. The remaining 5 battery-equipped devices remain in Normal condition.\n\n- Out of 8 battery-equipped devices inspected across the fleet [Q1], 3 laptops exhibit end-of-life degradation trends transitioning to Service Recommended status [E2, E5, E8].\n- Device 7VP16KHV88LM (acme-macbook-1) started the window at 1017 cycles [E1], transitioned to Service Recommended on 2026-05-30 [E2], and reached 1049 cycles with Service Recommended status on 2026-06-12 [E3].\n- Device 8NM23J95R5I6 (acme-thinkpad-8) started the window at 1127 cycles [E4], transitioned to Service Recommended on 2026-05-23 [E5], and reached 1157 cycles with Service Recommended status on 2026-06-12 [E6].\n- Device M4XVHUV1MEPZ (acme-dell-9) started the window at 928 cycles [E7], transitioned to Service Recommended on 2026-05-24 [E8], and reached 948 cycles with Service Recommended status on 2026-06-12 [E9].\n\n**Caveats & scope:**\n- Telemetry as of 2026-06-12T11:00:00+00:00.\n- Policy thresholds applied: battery_eol_cycles = 800 (global), battery_capacity_drop_pct = 3.0% (global).\n- Excluded 1 non-laptop device and skipped 7 snapshots missing battery telemetry blocks from the 10 evaluated devices.\n\n**Evidence:**\n- `[Q1]` `query_d20a3b7d6ce7` · `fleet` (fleet) · SQL [Inspect current battery condition across fleet laptops] (8 rows) · 2026-06-12T11:00:00\n- `[E2]` `snap_b5865ab7c7f0789c` · `7VP16KHV88LM` (acme-macbook-1) · Transition to Service Recommended on 2026-05-30 (cycles=1025) · 2026-05-30T09:16:00\n- `[E5]` `snap_4bc8c30312b0137a` · `8NM23J95R5I6` (acme-thinkpad-8) · Transition to Service Recommended on 2026-05-23 (cycles=1136) · 2026-05-23T09:01:00\n- `[E8]` `snap_8b70ef0a4e35423b` · `M4XVHUV1MEPZ` (acme-dell-9) · Transition to Service Recommended on 2026-05-24 (cycles=935) · 2026-05-24T10:05:00\n- `[E1]` `snap_193f2024a9411c0d` · `7VP16KHV88LM` (acme-macbook-1) · First window battery reading: condition=Normal, cycles=1017, capacity=4348 mAh · 2026-05-14T11:09:00\n- `[E3]` `snap_3b8594133404afb5` · `7VP16KHV88LM` (acme-macbook-1) · Latest battery reading: condition=Service Recommended, cycles=1049, capacity=4166 mAh · 2026-06-12T10:41:00\n- `[E4]` `snap_e0918c3d573c39f9` · `8NM23J95R5I6` (acme-thinkpad-8) · First window battery reading: condition=Normal, cycles=1127, capacity=4043 mAh · 2026-05-14T10:10:00\n- `[E6]` `snap_e1d70fe2e26e48da` · `8NM23J95R5I6` (acme-thinkpad-8) · Latest battery reading: condition=Service Recommended, cycles=1157, capacity=3872 mAh · 2026-06-12T09:02:00\n- `[E7]` `snap_74e74922ca7b9e67` · `M4XVHUV1MEPZ` (acme-dell-9) · First window battery reading: condition=Normal, cycles=928, capacity=3406 mAh · 2026-05-14T08:40:00\n- `[E9]` `snap_4aae53539e92986c` · `M4XVHUV1MEPZ` (acme-dell-9) · Latest battery reading: condition=Service Recommended, cycles=948, capacity=3262 mAh · 2026-06-12T11:00:00",
+  "answer_markdown": "Across 10 evaluated devices in the 30-day window, 3 laptops—acme-macbook-1, acme-thinkpad-8, and acme-dell-9—transitioned to Service Recommended battery condition with cycle counts exceeding the 800-cycle threshold. Across the fleet, 5 laptops remain in Normal condition while 3 require service across MacBook Pro, ThinkPad X1 Carbon, and Dell XPS 15 models.\n\n- acme-macbook-1 started the 30-day window at 1017 cycles [E1], transitioned to Service Recommended condition on 2026-05-30 [E2], and reached 1049 cycles with Service Recommended condition at the latest reading [E3].\n- acme-thinkpad-8 started the window at 1127 cycles [E4], transitioned to Service Recommended condition on 2026-05-23 [E5], and ended at 1157 cycles under Service Recommended condition [E6].\n- acme-dell-9 began the window at 928 cycles [E7], transitioned to Service Recommended condition on 2026-05-24 [E8], and concluded at 948 cycles under Service Recommended condition [E9].\n- Fleet-wide SQL aggregation shows 5 distinct model and condition groups: 1 Dell XPS 15 (Service Recommended, avg 948.0 cycles, 3262.0 mAh), 4 MacBook Pros (Normal, avg 436.8 cycles, 5789.0 mAh), 1 MacBook Pro (Service Recommended, avg 1049.0 cycles, 4166.0 mAh), 1 ThinkPad X1 Carbon (Normal, avg 601.0 cycles, 4852.0 mAh), and 1 ThinkPad X1 Carbon (Service Recommended, avg 1157.0 cycles, 3872.0 mAh) [Q1].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T11:00:00+00:00.\n- Policy thresholds applied: battery_capacity_drop_pct = 3.0% (global) and battery_eol_cycles = 800 cycles (global).\n- Excluded 1 non-laptop device from battery checks and skipped 7 snapshots with missing battery telemetry blocks.\n- Analysis covers a 30-day retrospective observation window.\n\n**Evidence:**\n- `[E1]` `snap_193f2024a9411c0d` · `7VP16KHV88LM` (acme-macbook-1) · First window battery reading: condition=Normal, cycles=1017, capacity=4348 mAh · 2026-05-14T11:09:00\n- `[E2]` `snap_b5865ab7c7f0789c` · `7VP16KHV88LM` (acme-macbook-1) · Transition to Service Recommended on 2026-05-30 (cycles=1025) · 2026-05-30T09:16:00\n- `[E3]` `snap_3b8594133404afb5` · `7VP16KHV88LM` (acme-macbook-1) · Latest battery reading: condition=Service Recommended, cycles=1049, capacity=4166 mAh · 2026-06-12T10:41:00\n- `[E4]` `snap_e0918c3d573c39f9` · `8NM23J95R5I6` (acme-thinkpad-8) · First window battery reading: condition=Normal, cycles=1127, capacity=4043 mAh · 2026-05-14T10:10:00\n- `[E5]` `snap_4bc8c30312b0137a` · `8NM23J95R5I6` (acme-thinkpad-8) · Transition to Service Recommended on 2026-05-23 (cycles=1136) · 2026-05-23T09:01:00\n- `[E6]` `snap_e1d70fe2e26e48da` · `8NM23J95R5I6` (acme-thinkpad-8) · Latest battery reading: condition=Service Recommended, cycles=1157, capacity=3872 mAh · 2026-06-12T09:02:00\n- `[E7]` `snap_74e74922ca7b9e67` · `M4XVHUV1MEPZ` (acme-dell-9) · First window battery reading: condition=Normal, cycles=928, capacity=3406 mAh · 2026-05-14T08:40:00\n- `[E8]` `snap_8b70ef0a4e35423b` · `M4XVHUV1MEPZ` (acme-dell-9) · Transition to Service Recommended on 2026-05-24 (cycles=935) · 2026-05-24T10:05:00\n- `[E9]` `snap_4aae53539e92986c` · `M4XVHUV1MEPZ` (acme-dell-9) · Latest battery reading: condition=Service Recommended, cycles=948, capacity=3262 mAh · 2026-06-12T11:00:00\n- `[Q1]` `query_ddb7a979b548` · `fleet` (fleet) · SQL [battery metrics grouped by model] (5 rows) · 2026-06-12T11:00:00",
   "answer": {
-    "summary": "Across the fleet, 3 devices (7VP16KHV88LM, 8NM23J95R5I6, and M4XVHUV1MEPZ) transitioned to Service Recommended battery condition during the 30-day window and exceed the 800-cycle end-of-life threshold. The remaining 5 battery-equipped devices remain in Normal condition.",
+    "summary": "Across 10 evaluated devices in the 30-day window, 3 laptops—acme-macbook-1, acme-thinkpad-8, and acme-dell-9—transitioned to Service Recommended battery condition with cycle counts exceeding the 800-cycle threshold. Across the fleet, 5 laptops remain in Normal condition while 3 require service across MacBook Pro, ThinkPad X1 Carbon, and Dell XPS 15 models.",
     "result_device_ids": [
       "7VP16KHV88LM",
       "8NM23J95R5I6",
@@ -13,25 +13,7 @@
     ],
     "claims": [
       {
-        "text": "Out of 8 battery-equipped devices inspected across the fleet [Q1], 3 laptops exhibit end-of-life degradation trends transitioning to Service Recommended status [E2, E5, E8].",
-        "citations": [
-          "Q1",
-          "E2",
-          "E5",
-          "E8"
-        ],
-        "device_ids": [
-          "7VP16KHV88LM",
-          "8NM23J95R5I6",
-          "M4XVHUV1MEPZ"
-        ],
-        "numbers": [
-          8.0,
-          3.0
-        ]
-      },
-      {
-        "text": "Device 7VP16KHV88LM (acme-macbook-1) started the window at 1017 cycles [E1], transitioned to Service Recommended on 2026-05-30 [E2], and reached 1049 cycles with Service Recommended status on 2026-06-12 [E3].",
+        "text": "acme-macbook-1 started the 30-day window at 1017 cycles [E1], transitioned to Service Recommended condition on 2026-05-30 [E2], and reached 1049 cycles with Service Recommended condition at the latest reading [E3].",
         "citations": [
           "E1",
           "E2",
@@ -46,7 +28,7 @@
         ]
       },
       {
-        "text": "Device 8NM23J95R5I6 (acme-thinkpad-8) started the window at 1127 cycles [E4], transitioned to Service Recommended on 2026-05-23 [E5], and reached 1157 cycles with Service Recommended status on 2026-06-12 [E6].",
+        "text": "acme-thinkpad-8 started the window at 1127 cycles [E4], transitioned to Service Recommended condition on 2026-05-23 [E5], and ended at 1157 cycles under Service Recommended condition [E6].",
         "citations": [
           "E4",
           "E5",
@@ -61,7 +43,7 @@
         ]
       },
       {
-        "text": "Device M4XVHUV1MEPZ (acme-dell-9) started the window at 928 cycles [E7], transitioned to Service Recommended on 2026-05-24 [E8], and reached 948 cycles with Service Recommended status on 2026-06-12 [E9].",
+        "text": "acme-dell-9 began the window at 928 cycles [E7], transitioned to Service Recommended condition on 2026-05-24 [E8], and concluded at 948 cycles under Service Recommended condition [E9].",
         "citations": [
           "E7",
           "E8",
@@ -74,6 +56,28 @@
           928.0,
           948.0
         ]
+      },
+      {
+        "text": "Fleet-wide SQL aggregation shows 5 distinct model and condition groups: 1 Dell XPS 15 (Service Recommended, avg 948.0 cycles, 3262.0 mAh), 4 MacBook Pros (Normal, avg 436.8 cycles, 5789.0 mAh), 1 MacBook Pro (Service Recommended, avg 1049.0 cycles, 4166.0 mAh), 1 ThinkPad X1 Carbon (Normal, avg 601.0 cycles, 4852.0 mAh), and 1 ThinkPad X1 Carbon (Service Recommended, avg 1157.0 cycles, 3872.0 mAh) [Q1].",
+        "citations": [
+          "Q1"
+        ],
+        "device_ids": [],
+        "numbers": [
+          5.0,
+          1.0,
+          948.0,
+          3262.0,
+          4.0,
+          436.8,
+          5789.0,
+          1049.0,
+          4166.0,
+          601.0,
+          4852.0,
+          1157.0,
+          3872.0
+        ]
       }
     ],
     "insight_refs": [
@@ -83,22 +87,23 @@
     ],
     "proposal_refs": [],
     "caveats": [
-      "Telemetry as of 2026-06-12T11:00:00+00:00.",
-      "Policy thresholds applied: battery_eol_cycles = 800 (global), battery_capacity_drop_pct = 3.0% (global).",
-      "Excluded 1 non-laptop device and skipped 7 snapshots missing battery telemetry blocks from the 10 evaluated devices."
+      "telemetry_as_of: 2026-06-12T11:00:00+00:00.",
+      "Policy thresholds applied: battery_capacity_drop_pct = 3.0% (global) and battery_eol_cycles = 800 cycles (global).",
+      "Excluded 1 non-laptop device from battery checks and skipped 7 snapshots with missing battery telemetry blocks.",
+      "Analysis covers a 30-day retrospective observation window."
     ]
   },
   "citations": [
     {
-      "handle": "Q1",
-      "snapshot_id": "query_d20a3b7d6ce7",
-      "device_id": "fleet",
-      "hostname": null,
-      "collected_at": "2026-06-12T11:00:00Z",
-      "metric": "sql_query",
-      "value": 8,
-      "unit": null,
-      "label": "SQL [Inspect current battery condition across fleet laptops] (8 rows)"
+      "handle": "E1",
+      "snapshot_id": "snap_193f2024a9411c0d",
+      "device_id": "7VP16KHV88LM",
+      "hostname": "acme-macbook-1",
+      "collected_at": "2026-05-14T11:09:00Z",
+      "metric": "battery_window_first",
+      "value": 1017,
+      "unit": "cycles",
+      "label": "First window battery reading: condition=Normal, cycles=1017, capacity=4348 mAh"
     },
     {
       "handle": "E2",
@@ -110,39 +115,6 @@
       "value": "Service Recommended",
       "unit": null,
       "label": "Transition to Service Recommended on 2026-05-30 (cycles=1025)"
-    },
-    {
-      "handle": "E5",
-      "snapshot_id": "snap_4bc8c30312b0137a",
-      "device_id": "8NM23J95R5I6",
-      "hostname": "acme-thinkpad-8",
-      "collected_at": "2026-05-23T09:01:00Z",
-      "metric": "battery_condition_transition",
-      "value": "Service Recommended",
-      "unit": null,
-      "label": "Transition to Service Recommended on 2026-05-23 (cycles=1136)"
-    },
-    {
-      "handle": "E8",
-      "snapshot_id": "snap_8b70ef0a4e35423b",
-      "device_id": "M4XVHUV1MEPZ",
-      "hostname": "acme-dell-9",
-      "collected_at": "2026-05-24T10:05:00Z",
-      "metric": "battery_condition_transition",
-      "value": "Service Recommended",
-      "unit": null,
-      "label": "Transition to Service Recommended on 2026-05-24 (cycles=935)"
-    },
-    {
-      "handle": "E1",
-      "snapshot_id": "snap_193f2024a9411c0d",
-      "device_id": "7VP16KHV88LM",
-      "hostname": "acme-macbook-1",
-      "collected_at": "2026-05-14T11:09:00Z",
-      "metric": "battery_window_first",
-      "value": 1017,
-      "unit": "cycles",
-      "label": "First window battery reading: condition=Normal, cycles=1017, capacity=4348 mAh"
     },
     {
       "handle": "E3",
@@ -167,6 +139,17 @@
       "label": "First window battery reading: condition=Normal, cycles=1127, capacity=4043 mAh"
     },
     {
+      "handle": "E5",
+      "snapshot_id": "snap_4bc8c30312b0137a",
+      "device_id": "8NM23J95R5I6",
+      "hostname": "acme-thinkpad-8",
+      "collected_at": "2026-05-23T09:01:00Z",
+      "metric": "battery_condition_transition",
+      "value": "Service Recommended",
+      "unit": null,
+      "label": "Transition to Service Recommended on 2026-05-23 (cycles=1136)"
+    },
+    {
       "handle": "E6",
       "snapshot_id": "snap_e1d70fe2e26e48da",
       "device_id": "8NM23J95R5I6",
@@ -189,6 +172,17 @@
       "label": "First window battery reading: condition=Normal, cycles=928, capacity=3406 mAh"
     },
     {
+      "handle": "E8",
+      "snapshot_id": "snap_8b70ef0a4e35423b",
+      "device_id": "M4XVHUV1MEPZ",
+      "hostname": "acme-dell-9",
+      "collected_at": "2026-05-24T10:05:00Z",
+      "metric": "battery_condition_transition",
+      "value": "Service Recommended",
+      "unit": null,
+      "label": "Transition to Service Recommended on 2026-05-24 (cycles=935)"
+    },
+    {
       "handle": "E9",
       "snapshot_id": "snap_4aae53539e92986c",
       "device_id": "M4XVHUV1MEPZ",
@@ -198,6 +192,17 @@
       "value": "Service Recommended",
       "unit": null,
       "label": "Latest battery reading: condition=Service Recommended, cycles=948, capacity=3262 mAh"
+    },
+    {
+      "handle": "Q1",
+      "snapshot_id": "query_ddb7a979b548",
+      "device_id": "fleet",
+      "hostname": null,
+      "collected_at": "2026-06-12T11:00:00Z",
+      "metric": "sql_query",
+      "value": 5,
+      "unit": null,
+      "label": "SQL [battery metrics grouped by model] (5 rows)"
     }
   ],
   "insights": [
@@ -1679,95 +1684,62 @@
   "queries": [
     {
       "handle": "Q1",
-      "sql": "SELECT device_id, os_hostname, model_name, battery_condition, battery_cycle_count, battery_full_charge_capacity FROM telemetry.v_latest_device_state WHERE battery_present = TRUE LIMIT 50",
-      "purpose": "Inspect current battery condition across fleet laptops",
+      "sql": "SELECT model_name, form_factor, COUNT(device_id) AS device_count, ROUND(CAST(AVG(battery_cycle_count) AS DECIMAL), 1) AS avg_cycles, ROUND(CAST(AVG(battery_full_charge_capacity) AS DECIMAL), 1) AS avg_capacity_mah, battery_condition FROM telemetry.v_latest_device_state WHERE battery_present = TRUE GROUP BY model_name, form_factor, battery_condition ORDER BY model_name, battery_condition LIMIT 200",
+      "purpose": "battery metrics grouped by model",
       "columns": [
-        "device_id",
-        "os_hostname",
         "model_name",
-        "battery_condition",
-        "battery_cycle_count",
-        "battery_full_charge_capacity"
+        "form_factor",
+        "device_count",
+        "avg_cycles",
+        "avg_capacity_mah",
+        "battery_condition"
       ],
       "rows": [
         {
-          "device_id": "1LYSSFD074BB",
-          "os_hostname": "acme-macbook-2",
-          "model_name": "MacBook Pro",
-          "battery_condition": "Normal",
-          "battery_cycle_count": 532,
-          "battery_full_charge_capacity": 6163
-        },
-        {
-          "device_id": "7VP16KHV88LM",
-          "os_hostname": "acme-macbook-1",
-          "model_name": "MacBook Pro",
-          "battery_condition": "Service Recommended",
-          "battery_cycle_count": 1049,
-          "battery_full_charge_capacity": 4166
-        },
-        {
-          "device_id": "8NM23J95R5I6",
-          "os_hostname": "acme-thinkpad-8",
-          "model_name": "ThinkPad X1 Carbon",
-          "battery_condition": "Service Recommended",
-          "battery_cycle_count": 1157,
-          "battery_full_charge_capacity": 3872
-        },
-        {
-          "device_id": "9MXJVZ1I0DKA",
-          "os_hostname": "acme-thinkpad-10",
-          "model_name": "ThinkPad X1 Carbon",
-          "battery_condition": "Normal",
-          "battery_cycle_count": 601,
-          "battery_full_charge_capacity": 4852
-        },
-        {
-          "device_id": "DSYPSES7SKBB",
-          "os_hostname": "acme-macbook-3",
-          "model_name": "MacBook Pro",
-          "battery_condition": "Normal",
-          "battery_cycle_count": 411,
-          "battery_full_charge_capacity": 5876
-        },
-        {
-          "device_id": "M4XVHUV1MEPZ",
-          "os_hostname": "acme-dell-9",
           "model_name": "Dell XPS 15",
-          "battery_condition": "Service Recommended",
-          "battery_cycle_count": 948,
-          "battery_full_charge_capacity": 3262
+          "form_factor": "laptop",
+          "device_count": 1,
+          "avg_cycles": 948.0,
+          "avg_capacity_mah": 3262.0,
+          "battery_condition": "Service Recommended"
         },
         {
-          "device_id": "Q3VUITEGQ400",
-          "os_hostname": "acme-macbook-7",
           "model_name": "MacBook Pro",
-          "battery_condition": "Normal",
-          "battery_cycle_count": 592,
-          "battery_full_charge_capacity": 5781
+          "form_factor": "laptop",
+          "device_count": 4,
+          "avg_cycles": 436.8,
+          "avg_capacity_mah": 5789.0,
+          "battery_condition": "Normal"
         },
         {
-          "device_id": "XSU9UUDGU6AC",
-          "os_hostname": "acme-macbook-6",
           "model_name": "MacBook Pro",
-          "battery_condition": "Normal",
-          "battery_cycle_count": 212,
-          "battery_full_charge_capacity": 5336
+          "form_factor": "laptop",
+          "device_count": 1,
+          "avg_cycles": 1049.0,
+          "avg_capacity_mah": 4166.0,
+          "battery_condition": "Service Recommended"
+        },
+        {
+          "model_name": "ThinkPad X1 Carbon",
+          "form_factor": "laptop",
+          "device_count": 1,
+          "avg_cycles": 601.0,
+          "avg_capacity_mah": 4852.0,
+          "battery_condition": "Normal"
+        },
+        {
+          "model_name": "ThinkPad X1 Carbon",
+          "form_factor": "laptop",
+          "device_count": 1,
+          "avg_cycles": 1157.0,
+          "avg_capacity_mah": 3872.0,
+          "battery_condition": "Service Recommended"
         }
       ],
-      "row_count": 8,
+      "row_count": 5,
       "truncated": false,
       "snapshot_ids": [],
-      "device_ids": [
-        "1LYSSFD074BB",
-        "7VP16KHV88LM",
-        "8NM23J95R5I6",
-        "9MXJVZ1I0DKA",
-        "DSYPSES7SKBB",
-        "M4XVHUV1MEPZ",
-        "Q3VUITEGQ400",
-        "XSU9UUDGU6AC"
-      ],
+      "device_ids": [],
       "telemetry_as_of": "2026-06-12T11:00:00+00:00"
     }
   ],
@@ -1781,18 +1753,18 @@
     "needs_clarification": null,
     "steps": [
       {
-        "goal": "Analyze 30-day fleet battery degradation and end-of-life device trends",
+        "goal": "Analyze 30-day fleet trends for battery health, degradation, and lifecycle risk",
         "tool_hint": "analyze_fleet_trends"
       },
       {
-        "goal": "Identify devices nearing end-of-life or with severely degraded battery health",
-        "tool_hint": "find_devices"
+        "goal": "Query aggregated battery health metrics and end-of-life status by device model across the fleet",
+        "tool_hint": "run_readonly_sql"
       }
     ]
   },
   "tool_trace": [
     {
-      "tool_call_id": "call_16210657785303588917",
+      "tool_call_id": "call_8632502089421720099",
       "tool_name": "analyze_fleet_trends",
       "args": {
         "categories": [
@@ -1803,44 +1775,45 @@
       "evaluated": 10,
       "matched": 3,
       "evidence_count": 9,
-      "duration_ms": 160,
+      "duration_ms": 152,
       "summary": "Analyzed 10 device(s) across battery as of 2026-06-12: 3 insight(s)."
     },
     {
-      "tool_call_id": "call_16210657785303590442",
-      "tool_name": "find_devices",
-      "args": {
-        "battery_condition": "service_recommended"
-      },
-      "ok": true,
-      "evaluated": 10,
-      "matched": 0,
-      "evidence_count": 0,
-      "duration_ms": 58,
-      "summary": "Matched 0 of 10 devices as of 2026-06-12."
-    },
-    {
-      "tool_call_id": "call_10654321354951054785",
+      "tool_call_id": "call_8632502089421717512",
       "tool_name": "run_readonly_sql",
       "args": {
-        "purpose": "Inspect current battery condition across fleet laptops",
-        "sql": "SELECT device_id, os_hostname, model_name, battery_condition, battery_cycle_count, battery_full_charge_capacity FROM telemetry.v_latest_device_state WHERE battery_present = true LIMIT 50"
+        "purpose": "fleet wide battery health metrics and status by model",
+        "sql": "SELECT model_name, form_factor, count(*) as device_count, count(CASE WHEN battery_present THEN 1 END) as battery_device_count, round(avg(battery_cycle_count), 1) as avg_cycles, round(avg(battery_full_charge_capacity), 1) as avg_capacity_mah, count(CASE WHEN battery_condition = 'Service Recommended' THEN 1 END) as service_recommended_count, count(CASE WHEN battery_condition = 'Normal' THEN 1 END) as normal_count FROM telemetry.v_latest_device_state WHERE battery_present = true GROUP BY model_name, form_factor ORDER BY device_count DESC LIMIT 200"
+      },
+      "ok": false,
+      "evaluated": 0,
+      "matched": 0,
+      "evidence_count": 0,
+      "duration_ms": 1,
+      "summary": "SQL function 'case' is not in the allowlist."
+    },
+    {
+      "tool_call_id": "call_3765971338062046231",
+      "tool_name": "run_readonly_sql",
+      "args": {
+        "purpose": "battery metrics grouped by model",
+        "sql": "SELECT model_name, form_factor, count(device_id) as device_count, round(avg(battery_cycle_count), 1) as avg_cycles, round(avg(battery_full_charge_capacity), 1) as avg_capacity_mah, battery_condition FROM telemetry.v_latest_device_state WHERE battery_present = true GROUP BY model_name, form_factor, battery_condition ORDER BY model_name, battery_condition LIMIT 200"
       },
       "ok": true,
-      "evaluated": 8,
-      "matched": 8,
+      "evaluated": 5,
+      "matched": 5,
       "evidence_count": 1,
-      "duration_ms": 18,
-      "summary": "SQL query [Q1] returned 8 row(s) (as of 2026-06-12)."
+      "duration_ms": 16,
+      "summary": "SQL query [Q1] returned 5 row(s) (as of 2026-06-12)."
     }
   ],
   "telemetry_as_of": "2026-06-12T11:00:00+00:00",
   "usage": {
-    "input_tokens": 25415,
-    "output_tokens": 1312,
-    "total_tokens": 26727,
-    "cost_usd_est": 0.023981,
-    "latency_ms": 595
+    "input_tokens": 25405,
+    "output_tokens": 1703,
+    "total_tokens": 27108,
+    "cost_usd_est": 0.02544,
+    "latency_ms": 496
   },
   "warnings": []
 }

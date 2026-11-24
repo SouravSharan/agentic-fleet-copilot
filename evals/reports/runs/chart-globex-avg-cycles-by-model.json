@@ -3,15 +3,16 @@
   "turn_id": "turn_chart-globex-avg-cycles-by-model_r1_t1",
   "trace_id": "eval-chart-globex-avg-cycles-by-model-r1-t1",
   "status": "completed",
-  "answer_markdown": "A bar chart has been generated showing average battery cycle counts across 4 device models in the fleet. ThinkPad X1 Carbon has the highest average at 489.0 cycles, followed by MacBook Air at 371.7 cycles, MacBook Pro at 202.0 cycles, and Dell XPS 15 at 128.0 cycles.\n\n- The bar chart visualizes average battery cycle counts across 4 device models [C2].\n- Across battery-present devices, ThinkPad X1 Carbon averages 489.0 cycles across 2 devices, MacBook Air averages 371.7 cycles across 3 devices, MacBook Pro averages 202.0 cycles across 2 devices, and Dell XPS 15 averages 128.0 cycles across 1 device [Q1].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T10:47:00+00:00\n- Only devices with battery_present = TRUE were evaluated; desktop systems and devices without battery telemetry are excluded from this analysis.\n\n**Evidence:**\n- `[C2]` `chart_82ba8a3eb5e8` · `fleet` (fleet) · Chart [Average Battery Cycle Count by Device Model] (4 points) · 2026-06-12T10:47:00\n- `[Q1]` `query_466c674fa346` · `fleet` (fleet) · SQL [Calculate average battery cycle count by device model for battery-present devices] (4 rows) · 2026-06-12T10:47:00",
+  "answer_markdown": "A bar chart has been generated showing average battery cycle counts across 4 device models in the fleet. ThinkPad X1 Carbon has the highest average cycle count at 489.0 cycles across 2 devices, followed by MacBook Air at 371.7 cycles across 3 devices, MacBook Pro at 202.0 cycles across 2 devices, and Dell XPS 15 at 128.0 cycles across 1 device.\n\n- Bar chart [C1] illustrates average battery cycle count across 4 device models from query [Q1].\n- ThinkPad X1 Carbon averages 489.0 battery cycles across 2 devices, MacBook Air averages 371.7 cycles across 3 devices, MacBook Pro averages 202.0 cycles across 2 devices, and Dell XPS 15 averages 128.0 cycles across 1 device [Q1, C1]. [Q1][C1]\n\n**Caveats & scope:**\n- Telemetry as of 2026-06-12T10:47:00+00:00.\n- Only devices with battery_present = TRUE were included; desktop devices and devices without batteries are excluded from the model averages.\n\n**Evidence:**\n- `[C1]` `chart_59b84ffea49b` · `fleet` (fleet) · Chart [Average Battery Cycle Count by Device Model] (4 points) · 2026-06-12T10:47:00\n- `[Q1]` `query_7c747e2bafe2` · `fleet` (fleet) · SQL [Calculate average battery cycle count by device model for battery-present devices] (4 rows) · 2026-06-12T10:47:00",
   "answer": {
-    "summary": "A bar chart has been generated showing average battery cycle counts across 4 device models in the fleet. ThinkPad X1 Carbon has the highest average at 489.0 cycles, followed by MacBook Air at 371.7 cycles, MacBook Pro at 202.0 cycles, and Dell XPS 15 at 128.0 cycles.",
+    "summary": "A bar chart has been generated showing average battery cycle counts across 4 device models in the fleet. ThinkPad X1 Carbon has the highest average cycle count at 489.0 cycles across 2 devices, followed by MacBook Air at 371.7 cycles across 3 devices, MacBook Pro at 202.0 cycles across 2 devices, and Dell XPS 15 at 128.0 cycles across 1 device.",
     "result_device_ids": [],
     "claims": [
       {
-        "text": "The bar chart visualizes average battery cycle counts across 4 device models [C2].",
+        "text": "Bar chart [C1] illustrates average battery cycle count across 4 device models from query [Q1].",
         "citations": [
-          "C2"
+          "C1",
+          "Q1"
         ],
         "device_ids": [],
         "numbers": [
@@ -19,9 +20,10 @@
         ]
       },
       {
-        "text": "Across battery-present devices, ThinkPad X1 Carbon averages 489.0 cycles across 2 devices, MacBook Air averages 371.7 cycles across 3 devices, MacBook Pro averages 202.0 cycles across 2 devices, and Dell XPS 15 averages 128.0 cycles across 1 device [Q1].",
+        "text": "ThinkPad X1 Carbon averages 489.0 battery cycles across 2 devices, MacBook Air averages 371.7 cycles across 3 devices, MacBook Pro averages 202.0 cycles across 2 devices, and Dell XPS 15 averages 128.0 cycles across 1 device [Q1, C1].",
         "citations": [
-          "Q1"
+          "Q1",
+          "C1"
         ],
         "device_ids": [],
         "numbers": [
@@ -39,14 +41,14 @@
     "insight_refs": [],
     "proposal_refs": [],
     "caveats": [
-      "telemetry_as_of: 2026-06-12T10:47:00+00:00",
-      "Only devices with battery_present = TRUE were evaluated; desktop systems and devices without battery telemetry are excluded from this analysis."
+      "Telemetry as of 2026-06-12T10:47:00+00:00.",
+      "Only devices with battery_present = TRUE were included; desktop devices and devices without batteries are excluded from the model averages."
     ]
   },
   "citations": [
     {
-      "handle": "C2",
-      "snapshot_id": "chart_82ba8a3eb5e8",
+      "handle": "C1",
+      "snapshot_id": "chart_59b84ffea49b",
       "device_id": "fleet",
       "hostname": null,
       "collected_at": "2026-06-12T10:47:00Z",
@@ -57,7 +59,7 @@
     },
     {
       "handle": "Q1",
-      "snapshot_id": "query_466c674fa346",
+      "snapshot_id": "query_7c747e2bafe2",
       "device_id": "fleet",
       "hostname": null,
       "collected_at": "2026-06-12T10:47:00Z",
@@ -70,119 +72,8 @@
   "insights": [],
   "charts": [
     {
-      "chart_id": "chart_014722456254",
+      "chart_id": "chart_59b84ffea49b",
       "handle": "C1",
-      "title": "Average Battery Cycles by Device Model",
-      "request_json": {
-        "title": "Average Battery Cycles by Device Model",
-        "kind": "aggregate_by_group",
-        "metric": "battery_cycles",
-        "device_ids": null,
-        "form_factor": null,
-        "os_family": null,
-        "os_version_lt": null,
-        "model": null,
-        "employee_id": null,
-        "low_disk_only": false,
-        "max_disk_free_pct": null,
-        "min_ram_used_pct": null,
-        "battery_condition": null,
-        "software_name": null,
-        "stat": "avg",
-        "group_by": "model",
-        "window_days": 30,
-        "query_handle": null,
-        "x": null,
-        "y": null,
-        "series": null,
-        "chart_type": "bar"
-      },
-      "vega_lite_spec": {
-        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-        "title": "Average Battery Cycles by Device Model",
-        "width": "container",
-        "height": 260,
-        "data": {
-          "values": [
-            {
-              "group": "Dell XPS 15",
-              "value": 128.0,
-              "count": 1
-            },
-            {
-              "group": "MacBook Air",
-              "value": 371.67,
-              "count": 3
-            },
-            {
-              "group": "MacBook Pro",
-              "value": 202.0,
-              "count": 2
-            },
-            {
-              "group": "ThinkPad X1 Carbon",
-              "value": 489.0,
-              "count": 2
-            }
-          ]
-        },
-        "mark": {
-          "type": "bar"
-        },
-        "encoding": {
-          "x": {
-            "field": "group",
-            "type": "nominal",
-            "title": "Model"
-          },
-          "y": {
-            "field": "value",
-            "type": "quantitative",
-            "title": "AVG · Battery Cycle Count"
-          },
-          "color": {
-            "value": "#2563EB"
-          }
-        }
-      },
-      "data_rows": [
-        {
-          "group": "Dell XPS 15",
-          "value": 128.0,
-          "count": 1
-        },
-        {
-          "group": "MacBook Air",
-          "value": 371.67,
-          "count": 3
-        },
-        {
-          "group": "MacBook Pro",
-          "value": 202.0,
-          "count": 2
-        },
-        {
-          "group": "ThinkPad X1 Carbon",
-          "value": 489.0,
-          "count": 2
-        }
-      ],
-      "evidence_snapshot_ids": [
-        "snap_01b1c28bec22da9f",
-        "snap_2f02a113afd6b4e9",
-        "snap_4fa2b3129caa9b9b",
-        "snap_562a56ca9a9253d2",
-        "snap_6fc7bd1f13ff8d07",
-        "snap_b09dd0635f4d97b6",
-        "snap_dc1a02e6a2117382",
-        "snap_f34bca615c52fa6c"
-      ],
-      "telemetry_as_of": "2026-06-12T10:47:00Z",
-      "row_count": 4
-    },
-    {
-      "chart_id": "chart_82ba8a3eb5e8",
-      "handle": "C2",
       "title": "Average Battery Cycle Count by Device Model",
       "request_json": {
         "title": "Average Battery Cycle Count by Device Model",
@@ -278,7 +169,7 @@
   "queries": [
     {
       "handle": "Q1",
-      "sql": "SELECT model_name, ROUND(CAST(AVG(battery_cycle_count) AS DECIMAL), 1) AS avg_battery_cycles, COUNT(*) AS device_count FROM telemetry.v_latest_device_state WHERE battery_present = TRUE GROUP BY model_name ORDER BY avg_battery_cycles DESC LIMIT 200",
+      "sql": "SELECT model_name, ROUND(CAST(AVG(battery_cycle_count) AS DECIMAL), 1) AS avg_battery_cycles, COUNT(*) AS device_count FROM telemetry.v_latest_device_state WHERE battery_present = TRUE GROUP BY model_name ORDER BY avg_battery_cycles DESC LIMIT 50",
       "purpose": "Calculate average battery cycle count by device model for battery-present devices",
       "columns": [
         "model_name",
@@ -328,46 +219,28 @@
         "tool_hint": "run_readonly_sql"
       },
       {
-        "goal": "Render a bar chart displaying average battery cycles by device model",
+        "goal": "Generate a bar chart showing average battery cycle count by device model",
         "tool_hint": "create_chart"
       }
     ]
   },
   "tool_trace": [
     {
-      "tool_call_id": "call_3546290897492245227",
+      "tool_call_id": "call_5062801389079240960",
       "tool_name": "run_readonly_sql",
       "args": {
         "purpose": "Calculate average battery cycle count by device model for battery-present devices",
-        "sql": "SELECT model_name, ROUND(AVG(battery_cycle_count)::numeric, 1) AS avg_battery_cycles, COUNT(*) AS device_count FROM telemetry.v_latest_device_state WHERE battery_present = true GROUP BY model_name ORDER BY avg_battery_cycles DESC LIMIT 200"
+        "sql": "SELECT model_name, ROUND(AVG(battery_cycle_count)::numeric, 1) AS avg_battery_cycles, COUNT(*) AS device_count FROM telemetry.v_latest_device_state WHERE battery_present = true GROUP BY model_name ORDER BY avg_battery_cycles DESC LIMIT 50;"
       },
       "ok": true,
       "evaluated": 4,
       "matched": 4,
       "evidence_count": 1,
-      "duration_ms": 15,
+      "duration_ms": 18,
       "summary": "SQL query [Q1] returned 4 row(s) (as of 2026-06-12)."
     },
     {
-      "tool_call_id": "call_10969425808632724630",
-      "tool_name": "create_chart",
-      "args": {
-        "chart_type": "bar",
-        "group_by": "model",
-        "kind": "aggregate_by_group",
-        "metric": "battery_cycles",
-        "stat": "avg",
-        "title": "Average Battery Cycles by Device Model"
-      },
-      "ok": true,
-      "evaluated": 4,
-      "matched": 4,
-      "evidence_count": 8,
-      "duration_ms": 70,
-      "summary": "Created chart [C1] 'Average Battery Cycles by Device Model' (4 data points, as of 2026-06-12)."
-    },
-    {
-      "tool_call_id": "call_10969425808632723389",
+      "tool_call_id": "call_6278198713659224468",
       "tool_name": "create_chart",
       "args": {
         "chart_type": "bar",
@@ -381,17 +254,17 @@
       "evaluated": 4,
       "matched": 4,
       "evidence_count": 1,
-      "duration_ms": 12,
-      "summary": "Created chart [C2] 'Average Battery Cycle Count by Device Model' (4 data points, as of 2026-06-12)."
+      "duration_ms": 20,
+      "summary": "Created chart [C1] 'Average Battery Cycle Count by Device Model' (4 data points, as of 2026-06-12)."
     }
   ],
   "telemetry_as_of": "2026-06-12T10:47:00+00:00",
   "usage": {
-    "input_tokens": 16689,
-    "output_tokens": 824,
-    "total_tokens": 17513,
-    "cost_usd_est": 0.015607,
-    "latency_ms": 427
+    "input_tokens": 16077,
+    "output_tokens": 779,
+    "total_tokens": 16856,
+    "cost_usd_est": 0.014979,
+    "latency_ms": 357
   },
   "warnings": []
 }

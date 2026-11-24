@@ -3,9 +3,9 @@
   "turn_id": "turn_ins-initech-software_r1_t1",
   "trace_id": "eval-ins-initech-software-r1-t1",
   "status": "completed",
-  "answer_markdown": "Across 7 evaluated devices in the fleet, 3 devices have non-baseline and flagged software installations detected within the last 30 days: DARFCP0BQM2G (initech-macbook-6) running TeamViewer, and I3JLKILKQTAC (initech-mac-3) and W2656QDAE2ZJ (initech-dell-1) running uTorrent.\n\n- On device DARFCP0BQM2G (initech-macbook-6), non-baseline software TeamViewer version 15.5 was first seen on 2026-05-21 and remained present on 2026-06-12 [E1, E2]. [E1][E2]\n- On device I3JLKILKQTAC (initech-mac-3), non-baseline software uTorrent version 3.6 was first seen on 2026-05-29 and observed through 2026-06-12 [E3, E4]. [E3][E4]\n- On device W2656QDAE2ZJ (initech-dell-1), non-baseline software uTorrent version 3.6 was first seen on 2026-06-02 and observed through 2026-06-12 [E5, E6]. [E5][E6]\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T10:57:00+00:00\n- Policy thresholds applied: software_baseline_min_share = 0.8 (global) and flagged_software_list = ['uTorrent', 'TeamViewer', 'CleanMyMac X'] (global).\n- Tenant baseline consists of 5 applications present on >= 80% of devices: 1Password, Google Chrome, Slack, Visual Studio Code, Zoom.\n- Analysis evaluated 7 devices across the fleet and identified 3 devices matching non-baseline software drift over a 30-day horizon.\n\n**Evidence:**\n- `[E1]` `snap_4814d4913a3486a1` · `DARFCP0BQM2G` (initech-macbook-6) · Non-baseline software 'TeamViewer' first seen on 2026-05-21 · 2026-05-21T09:43:00\n- `[E2]` `snap_132de63c734c1a0c` · `DARFCP0BQM2G` (initech-macbook-6) · Latest observation of 'TeamViewer' on 2026-06-12 · 2026-06-12T10:31:00\n- `[E3]` `snap_315ad702baf621c2` · `I3JLKILKQTAC` (initech-mac-3) · Non-baseline software 'uTorrent' first seen on 2026-05-29 · 2026-05-29T10:52:00\n- `[E4]` `snap_b54bd23aff621e43` · `I3JLKILKQTAC` (initech-mac-3) · Latest observation of 'uTorrent' on 2026-06-12 · 2026-06-12T10:57:00\n- `[E5]` `snap_b62018bd107d54bc` · `W2656QDAE2ZJ` (initech-dell-1) · Non-baseline software 'uTorrent' first seen on 2026-06-02 · 2026-06-02T10:45:00\n- `[E6]` `snap_70f81e6a498fdccc` · `W2656QDAE2ZJ` (initech-dell-1) · Latest observation of 'uTorrent' on 2026-06-12 · 2026-06-12T09:48:00",
+  "answer_markdown": "Non-baseline software was detected on 3 devices in the fleet: initech-macbook-6 has TeamViewer installed, while initech-mac-3 and initech-dell-1 both have uTorrent installed.\n\n- On initech-macbook-6, non-baseline software TeamViewer version 15.5 was first observed on 2026-05-21 and remains present as of 2026-06-12 [E1, E2]. [E1][E2]\n- On initech-mac-3, non-baseline software uTorrent version 3.6 was first observed on 2026-05-29 and remains present as of 2026-06-12 [E3, E4]. [E3][E4]\n- On initech-dell-1, non-baseline software uTorrent version 3.6 was first observed on 2026-06-02 and remains present as of 2026-06-12 [E5, E6]. [E5][E6]\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T10:57:00+00:00.\n- Policy threshold applied: software_baseline_min_share = 0.8 (80.0%, global scope) and flagged_software_list = [uTorrent, TeamViewer, CleanMyMac X] (global scope).\n- Evaluated 7 fleet devices, matching 3 endpoints with software drift.\n\n**Evidence:**\n- `[E1]` `snap_4814d4913a3486a1` · `DARFCP0BQM2G` (initech-macbook-6) · Non-baseline software 'TeamViewer' first seen on 2026-05-21 · 2026-05-21T09:43:00\n- `[E2]` `snap_132de63c734c1a0c` · `DARFCP0BQM2G` (initech-macbook-6) · Latest observation of 'TeamViewer' on 2026-06-12 · 2026-06-12T10:31:00\n- `[E3]` `snap_315ad702baf621c2` · `I3JLKILKQTAC` (initech-mac-3) · Non-baseline software 'uTorrent' first seen on 2026-05-29 · 2026-05-29T10:52:00\n- `[E4]` `snap_b54bd23aff621e43` · `I3JLKILKQTAC` (initech-mac-3) · Latest observation of 'uTorrent' on 2026-06-12 · 2026-06-12T10:57:00\n- `[E5]` `snap_b62018bd107d54bc` · `W2656QDAE2ZJ` (initech-dell-1) · Non-baseline software 'uTorrent' first seen on 2026-06-02 · 2026-06-02T10:45:00\n- `[E6]` `snap_70f81e6a498fdccc` · `W2656QDAE2ZJ` (initech-dell-1) · Latest observation of 'uTorrent' on 2026-06-12 · 2026-06-12T09:48:00",
   "answer": {
-    "summary": "Across 7 evaluated devices in the fleet, 3 devices have non-baseline and flagged software installations detected within the last 30 days: DARFCP0BQM2G (initech-macbook-6) running TeamViewer, and I3JLKILKQTAC (initech-mac-3) and W2656QDAE2ZJ (initech-dell-1) running uTorrent.",
+    "summary": "Non-baseline software was detected on 3 devices in the fleet: initech-macbook-6 has TeamViewer installed, while initech-mac-3 and initech-dell-1 both have uTorrent installed.",
     "result_device_ids": [
       "DARFCP0BQM2G",
       "I3JLKILKQTAC",
@@ -13,7 +13,7 @@
     ],
     "claims": [
       {
-        "text": "On device DARFCP0BQM2G (initech-macbook-6), non-baseline software TeamViewer version 15.5 was first seen on 2026-05-21 and remained present on 2026-06-12 [E1, E2].",
+        "text": "On initech-macbook-6, non-baseline software TeamViewer version 15.5 was first observed on 2026-05-21 and remains present as of 2026-06-12 [E1, E2].",
         "citations": [
           "E1",
           "E2"
@@ -26,7 +26,7 @@
         ]
       },
       {
-        "text": "On device I3JLKILKQTAC (initech-mac-3), non-baseline software uTorrent version 3.6 was first seen on 2026-05-29 and observed through 2026-06-12 [E3, E4].",
+        "text": "On initech-mac-3, non-baseline software uTorrent version 3.6 was first observed on 2026-05-29 and remains present as of 2026-06-12 [E3, E4].",
         "citations": [
           "E3",
           "E4"
@@ -39,7 +39,7 @@
         ]
       },
       {
-        "text": "On device W2656QDAE2ZJ (initech-dell-1), non-baseline software uTorrent version 3.6 was first seen on 2026-06-02 and observed through 2026-06-12 [E5, E6].",
+        "text": "On initech-dell-1, non-baseline software uTorrent version 3.6 was first observed on 2026-06-02 and remains present as of 2026-06-12 [E5, E6].",
         "citations": [
           "E5",
           "E6"
@@ -59,10 +59,9 @@
     ],
     "proposal_refs": [],
     "caveats": [
-      "telemetry_as_of: 2026-06-12T10:57:00+00:00",
-      "Policy thresholds applied: software_baseline_min_share = 0.8 (global) and flagged_software_list = ['uTorrent', 'TeamViewer', 'CleanMyMac X'] (global).",
-      "Tenant baseline consists of 5 applications present on >= 80% of devices: 1Password, Google Chrome, Slack, Visual Studio Code, Zoom.",
-      "Analysis evaluated 7 devices across the fleet and identified 3 devices matching non-baseline software drift over a 30-day horizon."
+      "telemetry_as_of: 2026-06-12T10:57:00+00:00.",
+      "Policy threshold applied: software_baseline_min_share = 0.8 (80.0%, global scope) and flagged_software_list = [uTorrent, TeamViewer, CleanMyMac X] (global scope).",
+      "Evaluated 7 fleet devices, matching 3 endpoints with software drift."
     ]
   },
   "citations": [
@@ -513,18 +512,18 @@
     "needs_clarification": null,
     "steps": [
       {
-        "goal": "Query compliance or fleet trends for software baseline drift and unauthorized software installations in the last 30 days",
-        "tool_hint": "query_compliance"
+        "goal": "Analyze fleet trends to detect software drift or non-baseline software installations in the past 30 days",
+        "tool_hint": "analyze_fleet_trends"
       },
       {
-        "goal": "Run read-only SQL or trend analysis to detect non-baseline or unauthorized software packages across devices",
+        "goal": "Run read-only SQL query to inspect application installations or inventory changes that deviate from baseline software definitions",
         "tool_hint": "run_readonly_sql"
       }
     ]
   },
   "tool_trace": [
     {
-      "tool_call_id": "call_8991734493873457741",
+      "tool_call_id": "call_7843135683957865728",
       "tool_name": "analyze_fleet_trends",
       "args": {
         "categories": [
@@ -535,30 +534,17 @@
       "evaluated": 7,
       "matched": 3,
       "evidence_count": 6,
-      "duration_ms": 114,
+      "duration_ms": 105,
       "summary": "Analyzed 7 device(s) across software as of 2026-06-12: 3 insight(s)."
-    },
-    {
-      "tool_call_id": "call_8991734493873458630",
-      "tool_name": "query_compliance",
-      "args": {
-        "check_id": "software_baseline"
-      },
-      "ok": false,
-      "evaluated": 0,
-      "matched": 0,
-      "evidence_count": 0,
-      "duration_ms": 58,
-      "summary": "Unknown check_id 'software_baseline'."
     }
   ],
   "telemetry_as_of": "2026-06-12T10:57:00+00:00",
   "usage": {
-    "input_tokens": 15230,
-    "output_tokens": 1083,
-    "total_tokens": 16313,
-    "cost_usd_est": 0.015484,
-    "latency_ms": 511
+    "input_tokens": 15208,
+    "output_tokens": 901,
+    "total_tokens": 16109,
+    "cost_usd_est": 0.014785,
+    "latency_ms": 371
   },
   "warnings": []
 }

@@ -3,16 +3,16 @@
   "turn_id": "turn_mt-globex-screen-lock-then-open-tickets_r1_t2",
   "trace_id": "eval-mt-globex-screen-lock-then-open-tickets-r1-t2",
   "status": "waiting_approval",
-  "answer_markdown": "Remediation ticket proposals have been successfully staged for the failing screen_lock compliance check on globex-thinkpad-6 (CUXW0BQSV1B7) and globex-thinkpad-8 (JRZSGXVMKE6M), pending approval.\n\n- A remediation ticket proposal (proposal_id 0f0c60f7-ce43-5358-bcfe-3930ce317d21) was staged for device globex-thinkpad-6 (CUXW0BQSV1B7) for failing the screen_lock check [E1].\n- A remediation ticket proposal (proposal_id 84e55487-b8e5-52a4-8e5d-91baec59762d) was staged for device globex-thinkpad-8 (JRZSGXVMKE6M) for failing the screen_lock check [E2].\n\n**Caveats & scope:**\n- Telemetry data is evaluated as of 2026-06-12T10:47:00+00:00.\n- Both actions have been staged as proposals and require administrative approval before execution.\n\n**Evidence:**\n- `[E1]` `snap_2f02a113afd6b4e9` · `CUXW0BQSV1B7` (globex-thinkpad-6) · screen_lock (medium): fail · 2026-06-12T10:47:00\n- `[E2]` `snap_4fa2b3129caa9b9b` · `JRZSGXVMKE6M` (globex-thinkpad-8) · screen_lock (medium): fail · 2026-06-12T10:46:00",
+  "answer_markdown": "Remediation tickets have been staged for approval for globex-thinkpad-6 and globex-thinkpad-8 to address their failing screen_lock compliance checks.\n\n- A remediation ticket proposal has been staged for globex-thinkpad-6 due to failing the screen_lock compliance check [E1].\n- A remediation ticket proposal has been staged for globex-thinkpad-8 due to failing the screen_lock compliance check [E2].\n\n**Caveats & scope:**\n- Telemetry as of 2026-06-12T10:47:00+00:00.\n- Policy check requires telemetry check status to be 'fail' within the last 7 days (evidence_recent threshold = 7 days).\n\n**Evidence:**\n- `[E1]` `snap_2f02a113afd6b4e9` · `CUXW0BQSV1B7` (globex-thinkpad-6) · screen_lock (medium): fail · 2026-06-12T10:47:00\n- `[E2]` `snap_4fa2b3129caa9b9b` · `JRZSGXVMKE6M` (globex-thinkpad-8) · screen_lock (medium): fail · 2026-06-12T10:46:00",
   "answer": {
-    "summary": "Remediation ticket proposals have been successfully staged for the failing screen_lock compliance check on globex-thinkpad-6 (CUXW0BQSV1B7) and globex-thinkpad-8 (JRZSGXVMKE6M), pending approval.",
+    "summary": "Remediation tickets have been staged for approval for globex-thinkpad-6 and globex-thinkpad-8 to address their failing screen_lock compliance checks.",
     "result_device_ids": [
       "CUXW0BQSV1B7",
       "JRZSGXVMKE6M"
     ],
     "claims": [
       {
-        "text": "A remediation ticket proposal (proposal_id 0f0c60f7-ce43-5358-bcfe-3930ce317d21) was staged for device globex-thinkpad-6 (CUXW0BQSV1B7) for failing the screen_lock check [E1].",
+        "text": "A remediation ticket proposal has been staged for globex-thinkpad-6 due to failing the screen_lock compliance check [E1].",
         "citations": [
           "E1"
         ],
@@ -22,7 +22,7 @@
         "numbers": []
       },
       {
-        "text": "A remediation ticket proposal (proposal_id 84e55487-b8e5-52a4-8e5d-91baec59762d) was staged for device globex-thinkpad-8 (JRZSGXVMKE6M) for failing the screen_lock check [E2].",
+        "text": "A remediation ticket proposal has been staged for globex-thinkpad-8 due to failing the screen_lock compliance check [E2].",
         "citations": [
           "E2"
         ],
@@ -34,12 +34,12 @@
     ],
     "insight_refs": [],
     "proposal_refs": [
-      "0f0c60f7-ce43-5358-bcfe-3930ce317d21",
-      "84e55487-b8e5-52a4-8e5d-91baec59762d"
+      "e12f4046-b992-56a7-a7c5-2765c203d57e",
+      "06565d24-4710-5829-a7ac-730fd1542e27"
     ],
     "caveats": [
-      "Telemetry data is evaluated as of 2026-06-12T10:47:00+00:00.",
-      "Both actions have been staged as proposals and require administrative approval before execution."
+      "Telemetry as of 2026-06-12T10:47:00+00:00.",
+      "Policy check requires telemetry check status to be 'fail' within the last 7 days (evidence_recent threshold = 7 days)."
     ]
   },
   "citations": [
@@ -71,17 +71,17 @@
   "queries": [],
   "proposals": [
     {
-      "proposal_id": "0f0c60f7-ce43-5358-bcfe-3930ce317d21",
+      "proposal_id": "e12f4046-b992-56a7-a7c5-2765c203d57e",
       "batch_id": "batch_8ac1afe233b0",
       "tool_name": "open_remediation_ticket",
       "target_type": "device",
       "target_id": "CUXW0BQSV1B7",
       "arguments": {
-        "note": "Remediate failing screen_lock compliance check on device CUXW0BQSV1B7 (globex-thinkpad-6).",
+        "note": "Remediate failing screen_lock compliance check on globex-thinkpad-6",
         "check_id": "screen_lock",
         "device_id": "CUXW0BQSV1B7"
       },
-      "rationale": "Remediate failing screen_lock compliance check on device CUXW0BQSV1B7 (globex-thinkpad-6).",
+      "rationale": "Remediate failing screen_lock compliance check on globex-thinkpad-6",
       "evidence_snapshot_ids": [
         "snap_2f02a113afd6b4e9"
       ],
@@ -89,17 +89,17 @@
       "expires_at": "2026-11-26T12:00:00+00:00"
     },
     {
-      "proposal_id": "84e55487-b8e5-52a4-8e5d-91baec59762d",
+      "proposal_id": "06565d24-4710-5829-a7ac-730fd1542e27",
       "batch_id": "batch_8ac1afe233b0",
       "tool_name": "open_remediation_ticket",
       "target_type": "device",
       "target_id": "JRZSGXVMKE6M",
       "arguments": {
-        "note": "Remediate failing screen_lock compliance check on device JRZSGXVMKE6M (globex-thinkpad-8).",
+        "note": "Remediate failing screen_lock compliance check on globex-thinkpad-8",
         "check_id": "screen_lock",
         "device_id": "JRZSGXVMKE6M"
       },
-      "rationale": "Remediate failing screen_lock compliance check on device JRZSGXVMKE6M (globex-thinkpad-8).",
+      "rationale": "Remediate failing screen_lock compliance check on globex-thinkpad-8",
       "evidence_snapshot_ids": [
         "snap_4fa2b3129caa9b9b"
       ],
@@ -109,11 +109,11 @@
   ],
   "verdicts": [
     {
-      "tool_call_id": "call_6366459816675217976",
+      "tool_call_id": "call_1951799456715226912",
       "tool_name": "open_remediation_ticket",
       "target_type": "device",
       "target_id": "CUXW0BQSV1B7",
-      "proposal_id": "0f0c60f7-ce43-5358-bcfe-3930ce317d21",
+      "proposal_id": "e12f4046-b992-56a7-a7c5-2765c203d57e",
       "decision": "allow",
       "checks": [
         {
@@ -208,11 +208,11 @@
       "policy_version": "pol_751965d48388f163"
     },
     {
-      "tool_call_id": "call_6366459816675219311",
+      "tool_call_id": "call_1951799456715224257",
       "tool_name": "open_remediation_ticket",
       "target_type": "device",
       "target_id": "JRZSGXVMKE6M",
-      "proposal_id": "84e55487-b8e5-52a4-8e5d-91baec59762d",
+      "proposal_id": "06565d24-4710-5829-a7ac-730fd1542e27",
       "decision": "allow",
       "checks": [
         {
@@ -313,17 +313,17 @@
     "turn_id": "turn_mt-globex-screen-lock-then-open-tickets_r1_t2",
     "proposals": [
       {
-        "proposal_id": "0f0c60f7-ce43-5358-bcfe-3930ce317d21",
+        "proposal_id": "e12f4046-b992-56a7-a7c5-2765c203d57e",
         "batch_id": "batch_8ac1afe233b0",
         "tool_name": "open_remediation_ticket",
         "target_type": "device",
         "target_id": "CUXW0BQSV1B7",
         "arguments": {
-          "note": "Remediate failing screen_lock compliance check on device CUXW0BQSV1B7 (globex-thinkpad-6).",
+          "note": "Remediate failing screen_lock compliance check on globex-thinkpad-6",
           "check_id": "screen_lock",
           "device_id": "CUXW0BQSV1B7"
         },
-        "rationale": "Remediate failing screen_lock compliance check on device CUXW0BQSV1B7 (globex-thinkpad-6).",
+        "rationale": "Remediate failing screen_lock compliance check on globex-thinkpad-6",
         "evidence_snapshot_ids": [
           "snap_2f02a113afd6b4e9"
         ],
@@ -331,17 +331,17 @@
         "expires_at": "2026-11-26T12:00:00+00:00"
       },
       {
-        "proposal_id": "84e55487-b8e5-52a4-8e5d-91baec59762d",
+        "proposal_id": "06565d24-4710-5829-a7ac-730fd1542e27",
         "batch_id": "batch_8ac1afe233b0",
         "tool_name": "open_remediation_ticket",
         "target_type": "device",
         "target_id": "JRZSGXVMKE6M",
         "arguments": {
-          "note": "Remediate failing screen_lock compliance check on device JRZSGXVMKE6M (globex-thinkpad-8).",
+          "note": "Remediate failing screen_lock compliance check on globex-thinkpad-8",
           "check_id": "screen_lock",
           "device_id": "JRZSGXVMKE6M"
         },
-        "rationale": "Remediate failing screen_lock compliance check on device JRZSGXVMKE6M (globex-thinkpad-8).",
+        "rationale": "Remediate failing screen_lock compliance check on globex-thinkpad-8",
         "evidence_snapshot_ids": [
           "snap_4fa2b3129caa9b9b"
         ],
@@ -357,14 +357,18 @@
     "needs_clarification": null,
     "steps": [
       {
-        "goal": "Open remediation tickets for screen_lock failures on devices CUXW0BQSV1B7 and JRZSGXVMKE6M",
+        "goal": "Open a remediation ticket for device CUXW0BQSV1B7 failing screen_lock compliance.",
+        "tool_hint": "open_remediation_ticket"
+      },
+      {
+        "goal": "Open a remediation ticket for device JRZSGXVMKE6M failing screen_lock compliance.",
         "tool_hint": "open_remediation_ticket"
       }
     ]
   },
   "tool_trace": [
     {
-      "tool_call_id": "call_6366459816675217976",
+      "tool_call_id": "call_1951799456715226912",
       "tool_name": "open_remediation_ticket",
       "args": {
         "check_id": "screen_lock",
@@ -372,17 +376,17 @@
         "evidence": [
           "E1"
         ],
-        "note": "Remediate failing screen_lock compliance check on device CUXW0BQSV1B7 (globex-thinkpad-6)."
+        "note": "Remediate failing screen_lock compliance check on globex-thinkpad-6"
       },
       "ok": true,
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 1,
-      "duration_ms": 409,
+      "duration_ms": 392,
       "summary": "open_remediation_ticket(CUXW0BQSV1B7): allow"
     },
     {
-      "tool_call_id": "call_6366459816675219311",
+      "tool_call_id": "call_1951799456715224257",
       "tool_name": "open_remediation_ticket",
       "args": {
         "check_id": "screen_lock",
@@ -390,23 +394,23 @@
         "evidence": [
           "E2"
         ],
-        "note": "Remediate failing screen_lock compliance check on device JRZSGXVMKE6M (globex-thinkpad-8)."
+        "note": "Remediate failing screen_lock compliance check on globex-thinkpad-8"
       },
       "ok": true,
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 1,
-      "duration_ms": 418,
+      "duration_ms": 403,
       "summary": "open_remediation_ticket(JRZSGXVMKE6M): allow"
     }
   ],
   "telemetry_as_of": "2026-06-12T10:47:00+00:00",
   "usage": {
-    "input_tokens": 14974,
-    "output_tokens": 1260,
-    "total_tokens": 16234,
-    "cost_usd_est": 0.015956,
-    "latency_ms": 1981
+    "input_tokens": 14646,
+    "output_tokens": 813,
+    "total_tokens": 15459,
+    "cost_usd_est": 0.014033,
+    "latency_ms": 1947
   },
   "warnings": []
 }

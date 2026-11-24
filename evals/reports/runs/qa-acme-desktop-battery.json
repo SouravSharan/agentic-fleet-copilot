@@ -3,13 +3,15 @@
   "turn_id": "turn_qa-acme-desktop-battery_r1_t1",
   "trace_id": "eval-qa-acme-desktop-battery-r1-t1",
   "status": "completed",
-  "answer_markdown": "Device DLT35MHGTH2D (acme-mac-5) is a desktop Mac mini and does not have battery hardware or battery telemetry.\n\n- Device DLT35MHGTH2D (acme-mac-5) is classified as a Mac mini (desktop) with no battery hardware [E1].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T11:00:00+00:00.\n- Policy thresholds evaluated: low_disk_free_pct = 15.0% (global), high_ram_used_pct = 80.0% (global), battery_eol_cycles = 800 (global).\n- Missing telemetry note: acme-mac-5 is a desktop device (form_factor: desktop, ever_had_battery: false, has_battery_block: false) and has 0 battery snapshots.\n- 0 of 1 evaluated devices have battery health telemetry.\n\n**Evidence:**\n- `[E1]` `snap_887a52cbf5387832` · `DLT35MHGTH2D` (acme-mac-5) · Latest snapshot for acme-mac-5 · 2026-06-12T09:36:00",
+  "answer_markdown": "acme-mac-5 is a Mac mini desktop device and does not have a battery, so battery health metrics are not applicable.\n\n- acme-mac-5 is a Mac mini desktop hardware model with no battery [E1].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T11:00:00+00:00\n- Missing telemetry / platform note: acme-mac-5 is a desktop form factor (Mac mini) with no battery hardware block or historical battery snapshots, so battery health metrics cannot be gathered.\n\n**Evidence:**\n- `[E1]` `snap_887a52cbf5387832` · `DLT35MHGTH2D` (acme-mac-5) · Latest snapshot for acme-mac-5 · 2026-06-12T09:36:00",
   "answer": {
-    "summary": "Device DLT35MHGTH2D (acme-mac-5) is a desktop Mac mini and does not have battery hardware or battery telemetry.",
-    "result_device_ids": [],
+    "summary": "acme-mac-5 is a Mac mini desktop device and does not have a battery, so battery health metrics are not applicable.",
+    "result_device_ids": [
+      "DLT35MHGTH2D"
+    ],
     "claims": [
       {
-        "text": "Device DLT35MHGTH2D (acme-mac-5) is classified as a Mac mini (desktop) with no battery hardware [E1].",
+        "text": "acme-mac-5 is a Mac mini desktop hardware model with no battery [E1].",
         "citations": [
           "E1"
         ],
@@ -22,10 +24,8 @@
     "insight_refs": [],
     "proposal_refs": [],
     "caveats": [
-      "telemetry_as_of: 2026-06-12T11:00:00+00:00.",
-      "Policy thresholds evaluated: low_disk_free_pct = 15.0% (global), high_ram_used_pct = 80.0% (global), battery_eol_cycles = 800 (global).",
-      "Missing telemetry note: acme-mac-5 is a desktop device (form_factor: desktop, ever_had_battery: false, has_battery_block: false) and has 0 battery snapshots.",
-      "0 of 1 evaluated devices have battery health telemetry."
+      "telemetry_as_of: 2026-06-12T11:00:00+00:00",
+      "Missing telemetry / platform note: acme-mac-5 is a desktop form factor (Mac mini) with no battery hardware block or historical battery snapshots, so battery health metrics cannot be gathered."
     ]
   },
   "citations": [
@@ -54,14 +54,14 @@
     "needs_clarification": null,
     "steps": [
       {
-        "goal": "Retrieve details and battery health telemetry for device acme-mac-5",
+        "goal": "Look up details and battery telemetry for device acme-mac-5",
         "tool_hint": "get_device_details"
       }
     ]
   },
   "tool_trace": [
     {
-      "tool_call_id": "call_7157134225378788007",
+      "tool_call_id": "call_11968009968668514336",
       "tool_name": "get_device_details",
       "args": {
         "identifier": "acme-mac-5"
@@ -70,17 +70,17 @@
       "evaluated": 1,
       "matched": 1,
       "evidence_count": 3,
-      "duration_ms": 88,
+      "duration_ms": 90,
       "summary": "Device DLT35MHGTH2D (acme-mac-5): Mac mini running macOS 15.4, disk free 50.93%, RAM used 39.06%."
     }
   ],
   "telemetry_as_of": "2026-06-12T11:00:00+00:00",
   "usage": {
-    "input_tokens": 13645,
-    "output_tokens": 484,
-    "total_tokens": 14129,
-    "cost_usd_est": 0.012049,
-    "latency_ms": 394
+    "input_tokens": 13867,
+    "output_tokens": 402,
+    "total_tokens": 14269,
+    "cost_usd_est": 0.011908,
+    "latency_ms": 462
   },
   "warnings": []
 }

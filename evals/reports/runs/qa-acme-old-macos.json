@@ -3,9 +3,9 @@
   "turn_id": "turn_qa-acme-old-macos_r1_t1",
   "trace_id": "eval-qa-acme-old-macos-r1-t1",
   "status": "completed",
-  "answer_markdown": "There are 4 devices running an OS older than macOS 15 across the evaluated fleet.\n\n- Device 1LYSSFD074BB (acme-macbook-2) runs macOS 14.5 [E1].\n- Device 7VP16KHV88LM (acme-macbook-1) runs macOS 13.6 [E2].\n- Device MT7PJB7N5LRE (acme-macbook-4) runs macOS 14.5 [E3].\n- Device XSU9UUDGU6AC (acme-macbook-6) runs macOS 14.5 [E4].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T11:00:00+00:00\n- 4 of 10 evaluated devices matched OS versions prior to macOS 15.\n- Excluded non-macOS platforms: 3 Windows devices.\n\n**Evidence:**\n- `[E1]` `snap_bb784a054ec16657` · `1LYSSFD074BB` (acme-macbook-2) · OS macOS 14.5 · 2026-06-12T09:47:00\n- `[E2]` `snap_3b8594133404afb5` · `7VP16KHV88LM` (acme-macbook-1) · OS macOS 13.6 · 2026-06-12T10:41:00\n- `[E3]` `snap_de2da5a8a102d45b` · `MT7PJB7N5LRE` (acme-macbook-4) · OS macOS 14.5 · 2026-06-12T08:39:00\n- `[E4]` `snap_3dfc515a67ea9272` · `XSU9UUDGU6AC` (acme-macbook-6) · OS macOS 14.5 · 2026-06-12T09:52:00",
+  "answer_markdown": "There are 4 devices running an OS older than macOS 15 across the fleet: acme-macbook-1 running macOS 13.6, along with acme-macbook-2, acme-macbook-4, and acme-macbook-6 running macOS 14.5.\n\n- acme-macbook-1 runs macOS 13.6 [E2].\n- acme-macbook-2, acme-macbook-4, and acme-macbook-6 run macOS 14.5 [E1, E3, E4]. [E1][E3][E4]\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T11:00:00+00:00\n- Matched 4 of 10 evaluated devices in the fleet.\n- Excluded non-macOS platforms: 3 Windows devices were excluded from this macOS version check.\n\n**Evidence:**\n- `[E2]` `snap_3b8594133404afb5` · `7VP16KHV88LM` (acme-macbook-1) · OS macOS 13.6 · 2026-06-12T10:41:00\n- `[E1]` `snap_bb784a054ec16657` · `1LYSSFD074BB` (acme-macbook-2) · OS macOS 14.5 · 2026-06-12T09:47:00\n- `[E3]` `snap_de2da5a8a102d45b` · `MT7PJB7N5LRE` (acme-macbook-4) · OS macOS 14.5 · 2026-06-12T08:39:00\n- `[E4]` `snap_3dfc515a67ea9272` · `XSU9UUDGU6AC` (acme-macbook-6) · OS macOS 14.5 · 2026-06-12T09:52:00",
   "answer": {
-    "summary": "There are 4 devices running an OS older than macOS 15 across the evaluated fleet.",
+    "summary": "There are 4 devices running an OS older than macOS 15 across the fleet: acme-macbook-1 running macOS 13.6, along with acme-macbook-2, acme-macbook-4, and acme-macbook-6 running macOS 14.5.",
     "result_device_ids": [
       "1LYSSFD074BB",
       "7VP16KHV88LM",
@@ -14,19 +14,7 @@
     ],
     "claims": [
       {
-        "text": "Device 1LYSSFD074BB (acme-macbook-2) runs macOS 14.5 [E1].",
-        "citations": [
-          "E1"
-        ],
-        "device_ids": [
-          "1LYSSFD074BB"
-        ],
-        "numbers": [
-          14.5
-        ]
-      },
-      {
-        "text": "Device 7VP16KHV88LM (acme-macbook-1) runs macOS 13.6 [E2].",
+        "text": "acme-macbook-1 runs macOS 13.6 [E2].",
         "citations": [
           "E2"
         ],
@@ -38,23 +26,15 @@
         ]
       },
       {
-        "text": "Device MT7PJB7N5LRE (acme-macbook-4) runs macOS 14.5 [E3].",
+        "text": "acme-macbook-2, acme-macbook-4, and acme-macbook-6 run macOS 14.5 [E1, E3, E4].",
         "citations": [
-          "E3"
-        ],
-        "device_ids": [
-          "MT7PJB7N5LRE"
-        ],
-        "numbers": [
-          14.5
-        ]
-      },
-      {
-        "text": "Device XSU9UUDGU6AC (acme-macbook-6) runs macOS 14.5 [E4].",
-        "citations": [
+          "E1",
+          "E3",
           "E4"
         ],
         "device_ids": [
+          "1LYSSFD074BB",
+          "MT7PJB7N5LRE",
           "XSU9UUDGU6AC"
         ],
         "numbers": [
@@ -66,22 +46,11 @@
     "proposal_refs": [],
     "caveats": [
       "telemetry_as_of: 2026-06-12T11:00:00+00:00",
-      "4 of 10 evaluated devices matched OS versions prior to macOS 15.",
-      "Excluded non-macOS platforms: 3 Windows devices."
+      "Matched 4 of 10 evaluated devices in the fleet.",
+      "Excluded non-macOS platforms: 3 Windows devices were excluded from this macOS version check."
     ]
   },
   "citations": [
-    {
-      "handle": "E1",
-      "snapshot_id": "snap_bb784a054ec16657",
-      "device_id": "1LYSSFD074BB",
-      "hostname": "acme-macbook-2",
-      "collected_at": "2026-06-12T09:47:00Z",
-      "metric": "os_version",
-      "value": "macOS 14.5",
-      "unit": null,
-      "label": "OS macOS 14.5"
-    },
     {
       "handle": "E2",
       "snapshot_id": "snap_3b8594133404afb5",
@@ -92,6 +61,17 @@
       "value": "macOS 13.6",
       "unit": null,
       "label": "OS macOS 13.6"
+    },
+    {
+      "handle": "E1",
+      "snapshot_id": "snap_bb784a054ec16657",
+      "device_id": "1LYSSFD074BB",
+      "hostname": "acme-macbook-2",
+      "collected_at": "2026-06-12T09:47:00Z",
+      "metric": "os_version",
+      "value": "macOS 14.5",
+      "unit": null,
+      "label": "OS macOS 14.5"
     },
     {
       "handle": "E3",
@@ -129,14 +109,14 @@
     "needs_clarification": null,
     "steps": [
       {
-        "goal": "Find macOS devices with OS version older than macOS 15",
+        "goal": "Find devices running macOS versions older than macOS 15",
         "tool_hint": "run_readonly_sql"
       }
     ]
   },
   "tool_trace": [
     {
-      "tool_call_id": "call_7774841813733626999",
+      "tool_call_id": "call_2956999350643941586",
       "tool_name": "find_devices",
       "args": {
         "os_family": "macos",
@@ -146,17 +126,17 @@
       "evaluated": 10,
       "matched": 4,
       "evidence_count": 4,
-      "duration_ms": 59,
+      "duration_ms": 63,
       "summary": "Matched 4 of 10 devices as of 2026-06-12."
     }
   ],
   "telemetry_as_of": "2026-06-12T11:00:00+00:00",
   "usage": {
-    "input_tokens": 14564,
-    "output_tokens": 760,
-    "total_tokens": 15324,
-    "cost_usd_est": 0.013773,
-    "latency_ms": 328
+    "input_tokens": 14730,
+    "output_tokens": 591,
+    "total_tokens": 15321,
+    "cost_usd_est": 0.013264,
+    "latency_ms": 352
   },
   "warnings": []
 }

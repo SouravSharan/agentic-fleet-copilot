@@ -3,30 +3,18 @@
   "turn_id": "turn_mt-acme-paused-auto-defer_r1_t2",
   "trace_id": "eval-mt-acme-paused-auto-defer-r1-t2",
   "status": "completed",
-  "answer_markdown": "Out of 10 evaluated devices, 4 devices are running an OS version older than macOS 15.\n\n- Device 1LYSSFD074BB (acme-macbook-2) runs macOS 14.5 [E5].\n- Device 7VP16KHV88LM (acme-macbook-1) runs macOS 13.6 [E6].\n- Device MT7PJB7N5LRE (acme-macbook-4) runs macOS 14.5 [E7].\n- Device XSU9UUDGU6AC (acme-macbook-6) runs macOS 14.5 [E8].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T11:00:00+00:00.\n- 4 of 10 evaluated devices matched the criteria.\n- Excluded non-macos platforms: 3 Windows devices were excluded from evaluation.\n\n**Evidence:**\n- `[E5]` `snap_bb784a054ec16657` · `1LYSSFD074BB` (acme-macbook-2) · OS macOS 14.5 · 2026-06-12T09:47:00\n- `[E6]` `snap_3b8594133404afb5` · `7VP16KHV88LM` (acme-macbook-1) · OS macOS 13.6 · 2026-06-12T10:41:00\n- `[E7]` `snap_de2da5a8a102d45b` · `MT7PJB7N5LRE` (acme-macbook-4) · OS macOS 14.5 · 2026-06-12T08:39:00\n- `[E8]` `snap_3dfc515a67ea9272` · `XSU9UUDGU6AC` (acme-macbook-6) · OS macOS 14.5 · 2026-06-12T09:52:00",
+  "answer_markdown": "Exactly 4 devices are running an OS version older than macOS 15 across the fleet: acme-macbook-1, acme-macbook-2, acme-macbook-4, and acme-macbook-6.\n\n- acme-macbook-1 runs macOS 13.6 [E6].\n- acme-macbook-2 runs macOS 14.5 [E5].\n- acme-macbook-4 runs macOS 14.5 [E7].\n- acme-macbook-6 runs macOS 14.5 [E8].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T11:00:00+00:00\n- Coverage: 4 of 10 evaluated devices matched the criteria.\n- Excluded non-macOS platforms: 3 Windows devices were excluded.\n\n**Evidence:**\n- `[E6]` `snap_3b8594133404afb5` · `7VP16KHV88LM` (acme-macbook-1) · OS macOS 13.6 · 2026-06-12T10:41:00\n- `[E5]` `snap_bb784a054ec16657` · `1LYSSFD074BB` (acme-macbook-2) · OS macOS 14.5 · 2026-06-12T09:47:00\n- `[E7]` `snap_de2da5a8a102d45b` · `MT7PJB7N5LRE` (acme-macbook-4) · OS macOS 14.5 · 2026-06-12T08:39:00\n- `[E8]` `snap_3dfc515a67ea9272` · `XSU9UUDGU6AC` (acme-macbook-6) · OS macOS 14.5 · 2026-06-12T09:52:00",
   "answer": {
-    "summary": "Out of 10 evaluated devices, 4 devices are running an OS version older than macOS 15.",
+    "summary": "Exactly 4 devices are running an OS version older than macOS 15 across the fleet: acme-macbook-1, acme-macbook-2, acme-macbook-4, and acme-macbook-6.",
     "result_device_ids": [
-      "1LYSSFD074BB",
       "7VP16KHV88LM",
+      "1LYSSFD074BB",
       "MT7PJB7N5LRE",
       "XSU9UUDGU6AC"
     ],
     "claims": [
       {
-        "text": "Device 1LYSSFD074BB (acme-macbook-2) runs macOS 14.5 [E5].",
-        "citations": [
-          "E5"
-        ],
-        "device_ids": [
-          "1LYSSFD074BB"
-        ],
-        "numbers": [
-          14.5
-        ]
-      },
-      {
-        "text": "Device 7VP16KHV88LM (acme-macbook-1) runs macOS 13.6 [E6].",
+        "text": "acme-macbook-1 runs macOS 13.6 [E6].",
         "citations": [
           "E6"
         ],
@@ -38,7 +26,19 @@
         ]
       },
       {
-        "text": "Device MT7PJB7N5LRE (acme-macbook-4) runs macOS 14.5 [E7].",
+        "text": "acme-macbook-2 runs macOS 14.5 [E5].",
+        "citations": [
+          "E5"
+        ],
+        "device_ids": [
+          "1LYSSFD074BB"
+        ],
+        "numbers": [
+          14.5
+        ]
+      },
+      {
+        "text": "acme-macbook-4 runs macOS 14.5 [E7].",
         "citations": [
           "E7"
         ],
@@ -50,7 +50,7 @@
         ]
       },
       {
-        "text": "Device XSU9UUDGU6AC (acme-macbook-6) runs macOS 14.5 [E8].",
+        "text": "acme-macbook-6 runs macOS 14.5 [E8].",
         "citations": [
           "E8"
         ],
@@ -65,23 +65,12 @@
     "insight_refs": [],
     "proposal_refs": [],
     "caveats": [
-      "telemetry_as_of: 2026-06-12T11:00:00+00:00.",
-      "4 of 10 evaluated devices matched the criteria.",
-      "Excluded non-macos platforms: 3 Windows devices were excluded from evaluation."
+      "telemetry_as_of: 2026-06-12T11:00:00+00:00",
+      "Coverage: 4 of 10 evaluated devices matched the criteria.",
+      "Excluded non-macOS platforms: 3 Windows devices were excluded."
     ]
   },
   "citations": [
-    {
-      "handle": "E5",
-      "snapshot_id": "snap_bb784a054ec16657",
-      "device_id": "1LYSSFD074BB",
-      "hostname": "acme-macbook-2",
-      "collected_at": "2026-06-12T09:47:00Z",
-      "metric": "os_version",
-      "value": "macOS 14.5",
-      "unit": null,
-      "label": "OS macOS 14.5"
-    },
     {
       "handle": "E6",
       "snapshot_id": "snap_3b8594133404afb5",
@@ -92,6 +81,17 @@
       "value": "macOS 13.6",
       "unit": null,
       "label": "OS macOS 13.6"
+    },
+    {
+      "handle": "E5",
+      "snapshot_id": "snap_bb784a054ec16657",
+      "device_id": "1LYSSFD074BB",
+      "hostname": "acme-macbook-2",
+      "collected_at": "2026-06-12T09:47:00Z",
+      "metric": "os_version",
+      "value": "macOS 14.5",
+      "unit": null,
+      "label": "OS macOS 14.5"
     },
     {
       "handle": "E7",
@@ -129,14 +129,14 @@
     "needs_clarification": null,
     "steps": [
       {
-        "goal": "Query devices running an operating system older than macOS 15",
-        "tool_hint": "run_readonly_sql"
+        "goal": "Find macOS devices running an OS version older than macOS 15",
+        "tool_hint": "find_devices"
       }
     ]
   },
   "tool_trace": [
     {
-      "tool_call_id": "call_15542497987244198876",
+      "tool_call_id": "call_11071632852420826035",
       "tool_name": "find_devices",
       "args": {
         "os_family": "macos",
@@ -146,17 +146,17 @@
       "evaluated": 10,
       "matched": 4,
       "evidence_count": 4,
-      "duration_ms": 64,
+      "duration_ms": 61,
       "summary": "Matched 4 of 10 devices as of 2026-06-12."
     }
   ],
   "telemetry_as_of": "2026-06-12T11:00:00+00:00",
   "usage": {
-    "input_tokens": 20812,
-    "output_tokens": 718,
-    "total_tokens": 21530,
-    "cost_usd_est": 0.018301,
-    "latency_ms": 411
+    "input_tokens": 20395,
+    "output_tokens": 637,
+    "total_tokens": 21032,
+    "cost_usd_est": 0.017685,
+    "latency_ms": 447
   },
   "warnings": []
 }

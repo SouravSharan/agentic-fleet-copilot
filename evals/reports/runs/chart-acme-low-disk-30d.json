@@ -3,40 +3,16 @@
   "turn_id": "turn_chart-acme-low-disk-30d_r1_t1",
   "trace_id": "eval-chart-acme-low-disk-30d-r1-t1",
   "status": "completed",
-  "answer_markdown": "Two devices currently meet the low-disk threshold: 8NM23J95R5I6 (acme-thinkpad-8) with 2.59% free and MT7PJB7N5LRE (acme-macbook-4) with 2.0% free. A 30-day trend chart tracking disk free percentage across these devices has been generated.\n\n- Device 8NM23J95R5I6 (acme-thinkpad-8) has 2.59% free disk space [E1].\n- Device MT7PJB7N5LRE (acme-macbook-4) has 2.0% free disk space [E2].\n- Line chart [C1] 'Disk Free Percentage (Last 30 Days) - Low Disk Devices' plots 60 data points across the low-disk devices over the 30-day period [C1].\n\n**Caveats & scope:**\n- Telemetry as of 2026-06-12T11:00:00+00:00.\n- Policy threshold used: low_disk_free_pct = 15.0% (global).\n- 2 of 10 evaluated devices matched the low-disk criteria.\n\n**Evidence:**\n- `[E1]` `snap_e1d70fe2e26e48da` · `8NM23J95R5I6` (acme-thinkpad-8) · Disk free 2.59% · 2026-06-12T09:02:00\n- `[E2]` `snap_de2da5a8a102d45b` · `MT7PJB7N5LRE` (acme-macbook-4) · Disk free 2.0% · 2026-06-12T08:39:00\n- `[C1]` `snap_015e8c80b871afdd` · `fleet` (fleet) · Chart [Disk Free Percentage (Last 30 Days) - Low Disk Devices] (60 points) · 2026-06-12T11:00:00",
+  "answer_markdown": "Chart [C1] displays the 30-day disk free percentage trend for our 2 low-disk devices: acme-thinkpad-8 and acme-macbook-4. Both devices have critically depleted storage, with acme-thinkpad-8 dropping to 2.59% and acme-macbook-4 reaching 2.0% free space.\n\n- A 30-day trajectory chart with 60 data points was generated under [C1] tracking disk free percentages for acme-thinkpad-8 and acme-macbook-4.\n- On acme-thinkpad-8, disk free percentage started at 17.27% [E3], dropped below the 15.0% policy threshold to 14.74% [E4], and reached 2.59% [E1].\n- On acme-macbook-4, disk free percentage started at 7.18% [E5] and declined to 2.0% [E2].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T11:00:00+00:00.\n- Applied policy thresholds: low_disk_free_pct = 15.0% (global), disk_burn_min_slope_pct_per_day = 0.1%/day (global), disk_trend_min_r2 = 0.8 (global).\n- Matched 2 of 10 evaluated devices in the fleet.\n- Telemetric note: acme-macbook-4 values flattened near 2.0% floor, so linear depletion projections may overstate the burn rate.\n\n**Evidence:**\n- `[C1]` `snap_015e8c80b871afdd` · `fleet` (fleet) · Chart [Disk Free Percentage Over Last 30 Days (Low-Disk Devices)] (60 points) · 2026-06-12T11:00:00\n- `[E1]` `snap_e1d70fe2e26e48da` · `8NM23J95R5I6` (acme-thinkpad-8) · Disk free 2.59% · 2026-06-12T09:02:00\n- `[E3]` `snap_e0918c3d573c39f9` · `8NM23J95R5I6` (acme-thinkpad-8) · First window disk free: 17.27% · 2026-05-14T10:10:00\n- `[E4]` `snap_45a85d31732f0351` · `8NM23J95R5I6` (acme-thinkpad-8) · First reading below 15.0% threshold: 14.74% · 2026-05-19T08:42:00\n- `[E2]` `snap_de2da5a8a102d45b` · `MT7PJB7N5LRE` (acme-macbook-4) · Disk free 2.0% · 2026-06-12T08:39:00\n- `[E5]` `snap_b996cebe5fbdb8de` · `MT7PJB7N5LRE` (acme-macbook-4) · First window disk free: 7.18% · 2026-05-14T11:14:00",
   "answer": {
-    "summary": "Two devices currently meet the low-disk threshold: 8NM23J95R5I6 (acme-thinkpad-8) with 2.59% free and MT7PJB7N5LRE (acme-macbook-4) with 2.0% free. A 30-day trend chart tracking disk free percentage across these devices has been generated.",
+    "summary": "Chart [C1] displays the 30-day disk free percentage trend for our 2 low-disk devices: acme-thinkpad-8 and acme-macbook-4. Both devices have critically depleted storage, with acme-thinkpad-8 dropping to 2.59% and acme-macbook-4 reaching 2.0% free space.",
     "result_device_ids": [
       "8NM23J95R5I6",
       "MT7PJB7N5LRE"
     ],
     "claims": [
       {
-        "text": "Device 8NM23J95R5I6 (acme-thinkpad-8) has 2.59% free disk space [E1].",
-        "citations": [
-          "E1"
-        ],
-        "device_ids": [
-          "8NM23J95R5I6"
-        ],
-        "numbers": [
-          2.59
-        ]
-      },
-      {
-        "text": "Device MT7PJB7N5LRE (acme-macbook-4) has 2.0% free disk space [E2].",
-        "citations": [
-          "E2"
-        ],
-        "device_ids": [
-          "MT7PJB7N5LRE"
-        ],
-        "numbers": [
-          2.0
-        ]
-      },
-      {
-        "text": "Line chart [C1] 'Disk Free Percentage (Last 30 Days) - Low Disk Devices' plots 60 data points across the low-disk devices over the 30-day period [C1].",
+        "text": "A 30-day trajectory chart with 60 data points was generated under [C1] tracking disk free percentages for acme-thinkpad-8 and acme-macbook-4.",
         "citations": [
           "C1"
         ],
@@ -45,20 +21,66 @@
           "MT7PJB7N5LRE"
         ],
         "numbers": [
-          60.0,
-          30.0
+          30.0,
+          60.0
+        ]
+      },
+      {
+        "text": "On acme-thinkpad-8, disk free percentage started at 17.27% [E3], dropped below the 15.0% policy threshold to 14.74% [E4], and reached 2.59% [E1].",
+        "citations": [
+          "E1",
+          "E3",
+          "E4"
+        ],
+        "device_ids": [
+          "8NM23J95R5I6"
+        ],
+        "numbers": [
+          17.27,
+          15.0,
+          14.74,
+          2.59
+        ]
+      },
+      {
+        "text": "On acme-macbook-4, disk free percentage started at 7.18% [E5] and declined to 2.0% [E2].",
+        "citations": [
+          "E2",
+          "E5"
+        ],
+        "device_ids": [
+          "MT7PJB7N5LRE"
+        ],
+        "numbers": [
+          7.18,
+          2.0
         ]
       }
     ],
-    "insight_refs": [],
+    "insight_refs": [
+      "disk:8NM23J95R5I6",
+      "disk:MT7PJB7N5LRE"
+    ],
     "proposal_refs": [],
     "caveats": [
-      "Telemetry as of 2026-06-12T11:00:00+00:00.",
-      "Policy threshold used: low_disk_free_pct = 15.0% (global).",
-      "2 of 10 evaluated devices matched the low-disk criteria."
+      "telemetry_as_of: 2026-06-12T11:00:00+00:00.",
+      "Applied policy thresholds: low_disk_free_pct = 15.0% (global), disk_burn_min_slope_pct_per_day = 0.1%/day (global), disk_trend_min_r2 = 0.8 (global).",
+      "Matched 2 of 10 evaluated devices in the fleet.",
+      "Telemetric note: acme-macbook-4 values flattened near 2.0% floor, so linear depletion projections may overstate the burn rate."
     ]
   },
   "citations": [
+    {
+      "handle": "C1",
+      "snapshot_id": "snap_015e8c80b871afdd",
+      "device_id": "fleet",
+      "hostname": null,
+      "collected_at": "2026-06-12T11:00:00Z",
+      "metric": "chart:disk_free_pct",
+      "value": 60,
+      "unit": null,
+      "label": "Chart [Disk Free Percentage Over Last 30 Days (Low-Disk Devices)] (60 points)"
+    },
     {
       "handle": "E1",
       "snapshot_id": "snap_e1d70fe2e26e48da",
@@ -69,6 +91,28 @@
       "value": 2.59,
       "unit": "%",
       "label": "Disk free 2.59%"
+    },
+    {
+      "handle": "E3",
+      "snapshot_id": "snap_e0918c3d573c39f9",
+      "device_id": "8NM23J95R5I6",
+      "hostname": "acme-thinkpad-8",
+      "collected_at": "2026-05-14T10:10:00Z",
+      "metric": "disk_free_pct_first",
+      "value": 17.27,
+      "unit": "%",
+      "label": "First window disk free: 17.27%"
+    },
+    {
+      "handle": "E4",
+      "snapshot_id": "snap_45a85d31732f0351",
+      "device_id": "8NM23J95R5I6",
+      "hostname": "acme-thinkpad-8",
+      "collected_at": "2026-05-19T08:42:00Z",
+      "metric": "disk_free_pct_below_threshold",
+      "value": 14.74,
+      "unit": "%",
+      "label": "First reading below 15.0% threshold: 14.74%"
     },
     {
       "handle": "E2",
@@ -82,34 +126,1011 @@
       "label": "Disk free 2.0%"
     },
     {
-      "handle": "C1",
-      "snapshot_id": "snap_015e8c80b871afdd",
-      "device_id": "fleet",
-      "hostname": null,
-      "collected_at": "2026-06-12T11:00:00Z",
-      "metric": "chart:disk_free_pct",
-      "value": 60,
-      "unit": null,
-      "label": "Chart [Disk Free Percentage (Last 30 Days) - Low Disk Devices] (60 points)"
+      "handle": "E5",
+      "snapshot_id": "snap_b996cebe5fbdb8de",
+      "device_id": "MT7PJB7N5LRE",
+      "hostname": "acme-macbook-4",
+      "collected_at": "2026-05-14T11:14:00Z",
+      "metric": "disk_free_pct_first",
+      "value": 7.18,
+      "unit": "%",
+      "label": "First window disk free: 7.18%"
     }
   ],
-  "insights": [],
+  "insights": [
+    {
+      "insight_id": "disk:8NM23J95R5I6",
+      "category": "disk",
+      "severity": "high",
+      "device_id": "8NM23J95R5I6",
+      "employee_id": "emp-acme-1005",
+      "finding": "Disk capacity risk on acme-thinkpad-8: latest free space 2.59% < 15.0%; depleting at -0.5065%/day (R^2=1.0).",
+      "explanation": "Primary disk free space moved from 17.27% to 2.59% over 30 snapshots. Linear fit slope=-0.5065%/day (R^2=1.0), estimated days_to_low=None, days_to_zero=5.11.",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_e0918c3d573c39f9",
+          "device_id": "8NM23J95R5I6",
+          "hostname": "acme-thinkpad-8",
+          "collected_at": "2026-05-14T10:10:00Z",
+          "metric": "disk_free_pct_first",
+          "value": 17.27,
+          "unit": "%",
+          "label": "First window disk free: 17.27%"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_45a85d31732f0351",
+          "device_id": "8NM23J95R5I6",
+          "hostname": "acme-thinkpad-8",
+          "collected_at": "2026-05-19T08:42:00Z",
+          "metric": "disk_free_pct_below_threshold",
+          "value": 14.74,
+          "unit": "%",
+          "label": "First reading below 15.0% threshold: 14.74%"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_e1d70fe2e26e48da",
+          "device_id": "8NM23J95R5I6",
+          "hostname": "acme-thinkpad-8",
+          "collected_at": "2026-06-12T09:02:00Z",
+          "metric": "disk_free_pct",
+          "value": 2.59,
+          "unit": "%",
+          "label": "Latest disk free: 2.59%"
+        }
+      ],
+      "stats": {
+        "is_low": true,
+        "is_depleting": true,
+        "first_free_pct": 17.27,
+        "latest_free_pct": 2.59,
+        "slope_pct_per_day": -0.5065,
+        "r2": 1.0,
+        "days_to_low": null,
+        "days_to_zero": 5.11,
+        "last_7d_slope_pct_per_day": -0.5104,
+        "flattened_near_floor": false,
+        "disk_total_gb": 1024.0
+      },
+      "suggested_action": {
+        "tool": "create_upgrade_order",
+        "args_hint": {
+          "device_id": "8NM23J95R5I6",
+          "component": "storage"
+        },
+        "reason": "Low or rapidly depleting primary disk free space"
+      },
+      "chart": {
+        "title": "8NM23J95R5I6 · Disk",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "8NM23J95R5I6 · Disk",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 17.27,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_e0918c3d573c39f9"
+              },
+              {
+                "date": "2026-05-15",
+                "value": 16.76,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_877050623f4f4a73"
+              },
+              {
+                "date": "2026-05-16",
+                "value": 16.25,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_58cc7b1d24806125"
+              },
+              {
+                "date": "2026-05-17",
+                "value": 15.75,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_8bc1984fd1cc7a07"
+              },
+              {
+                "date": "2026-05-18",
+                "value": 15.24,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_2c1c8cc7df54879b"
+              },
+              {
+                "date": "2026-05-19",
+                "value": 14.74,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_45a85d31732f0351"
+              },
+              {
+                "date": "2026-05-20",
+                "value": 14.23,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_603335f870ef4dfb"
+              },
+              {
+                "date": "2026-05-21",
+                "value": 13.72,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_56075c4f895b1e84"
+              },
+              {
+                "date": "2026-05-22",
+                "value": 13.22,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_a3998ed6baeb6143"
+              },
+              {
+                "date": "2026-05-23",
+                "value": 12.71,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_4bc8c30312b0137a"
+              },
+              {
+                "date": "2026-05-24",
+                "value": 12.2,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_470286face534a21"
+              },
+              {
+                "date": "2026-05-25",
+                "value": 11.7,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_89e02649949aea9a"
+              },
+              {
+                "date": "2026-05-26",
+                "value": 11.19,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_5d4f7d97bd45de2d"
+              },
+              {
+                "date": "2026-05-27",
+                "value": 10.69,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_d817b7df6ee2ec78"
+              },
+              {
+                "date": "2026-05-28",
+                "value": 10.18,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_cbe96dcc3656d086"
+              },
+              {
+                "date": "2026-05-29",
+                "value": 9.67,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_2210326a05f3a79f"
+              },
+              {
+                "date": "2026-05-30",
+                "value": 9.17,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_ce1a1a26c18fe8b0"
+              },
+              {
+                "date": "2026-05-31",
+                "value": 8.66,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_077c3626380c3710"
+              },
+              {
+                "date": "2026-06-01",
+                "value": 8.16,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_9b69089870170376"
+              },
+              {
+                "date": "2026-06-02",
+                "value": 7.65,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_d1af246280b3ad36"
+              },
+              {
+                "date": "2026-06-03",
+                "value": 7.14,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_12afe5970c9eab95"
+              },
+              {
+                "date": "2026-06-04",
+                "value": 6.64,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_c58ef5bc7a5e8a94"
+              },
+              {
+                "date": "2026-06-05",
+                "value": 6.13,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_f135b8e91a947b2c"
+              },
+              {
+                "date": "2026-06-06",
+                "value": 5.63,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_4ae1d44cb02567a9"
+              },
+              {
+                "date": "2026-06-07",
+                "value": 5.12,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_a1b4bd8743cb9d7a"
+              },
+              {
+                "date": "2026-06-08",
+                "value": 4.61,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_102b2c9f4847fd4a"
+              },
+              {
+                "date": "2026-06-09",
+                "value": 4.11,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_eb0d40661e62ac3b"
+              },
+              {
+                "date": "2026-06-10",
+                "value": 3.6,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_b596684050181deb"
+              },
+              {
+                "date": "2026-06-11",
+                "value": 3.1,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_27b86cdbc63ae6bc"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 2.59,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_e1d70fe2e26e48da"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Disk Free (%)"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 17.27,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_e0918c3d573c39f9"
+          },
+          {
+            "date": "2026-05-15",
+            "value": 16.76,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_877050623f4f4a73"
+          },
+          {
+            "date": "2026-05-16",
+            "value": 16.25,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_58cc7b1d24806125"
+          },
+          {
+            "date": "2026-05-17",
+            "value": 15.75,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_8bc1984fd1cc7a07"
+          },
+          {
+            "date": "2026-05-18",
+            "value": 15.24,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_2c1c8cc7df54879b"
+          },
+          {
+            "date": "2026-05-19",
+            "value": 14.74,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_45a85d31732f0351"
+          },
+          {
+            "date": "2026-05-20",
+            "value": 14.23,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_603335f870ef4dfb"
+          },
+          {
+            "date": "2026-05-21",
+            "value": 13.72,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_56075c4f895b1e84"
+          },
+          {
+            "date": "2026-05-22",
+            "value": 13.22,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_a3998ed6baeb6143"
+          },
+          {
+            "date": "2026-05-23",
+            "value": 12.71,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_4bc8c30312b0137a"
+          },
+          {
+            "date": "2026-05-24",
+            "value": 12.2,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_470286face534a21"
+          },
+          {
+            "date": "2026-05-25",
+            "value": 11.7,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_89e02649949aea9a"
+          },
+          {
+            "date": "2026-05-26",
+            "value": 11.19,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_5d4f7d97bd45de2d"
+          },
+          {
+            "date": "2026-05-27",
+            "value": 10.69,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_d817b7df6ee2ec78"
+          },
+          {
+            "date": "2026-05-28",
+            "value": 10.18,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_cbe96dcc3656d086"
+          },
+          {
+            "date": "2026-05-29",
+            "value": 9.67,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_2210326a05f3a79f"
+          },
+          {
+            "date": "2026-05-30",
+            "value": 9.17,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_ce1a1a26c18fe8b0"
+          },
+          {
+            "date": "2026-05-31",
+            "value": 8.66,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_077c3626380c3710"
+          },
+          {
+            "date": "2026-06-01",
+            "value": 8.16,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_9b69089870170376"
+          },
+          {
+            "date": "2026-06-02",
+            "value": 7.65,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_d1af246280b3ad36"
+          },
+          {
+            "date": "2026-06-03",
+            "value": 7.14,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_12afe5970c9eab95"
+          },
+          {
+            "date": "2026-06-04",
+            "value": 6.64,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_c58ef5bc7a5e8a94"
+          },
+          {
+            "date": "2026-06-05",
+            "value": 6.13,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_f135b8e91a947b2c"
+          },
+          {
+            "date": "2026-06-06",
+            "value": 5.63,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_4ae1d44cb02567a9"
+          },
+          {
+            "date": "2026-06-07",
+            "value": 5.12,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_a1b4bd8743cb9d7a"
+          },
+          {
+            "date": "2026-06-08",
+            "value": 4.61,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_102b2c9f4847fd4a"
+          },
+          {
+            "date": "2026-06-09",
+            "value": 4.11,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_eb0d40661e62ac3b"
+          },
+          {
+            "date": "2026-06-10",
+            "value": 3.6,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_b596684050181deb"
+          },
+          {
+            "date": "2026-06-11",
+            "value": 3.1,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_27b86cdbc63ae6bc"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 2.59,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_e1d70fe2e26e48da"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_077c3626380c3710",
+          "snap_102b2c9f4847fd4a",
+          "snap_12afe5970c9eab95",
+          "snap_2210326a05f3a79f",
+          "snap_27b86cdbc63ae6bc",
+          "snap_2c1c8cc7df54879b",
+          "snap_45a85d31732f0351",
+          "snap_470286face534a21",
+          "snap_4ae1d44cb02567a9",
+          "snap_4bc8c30312b0137a",
+          "snap_56075c4f895b1e84",
+          "snap_58cc7b1d24806125",
+          "snap_5d4f7d97bd45de2d",
+          "snap_603335f870ef4dfb",
+          "snap_877050623f4f4a73",
+          "snap_89e02649949aea9a",
+          "snap_8bc1984fd1cc7a07",
+          "snap_9b69089870170376",
+          "snap_a1b4bd8743cb9d7a",
+          "snap_a3998ed6baeb6143",
+          "snap_b596684050181deb",
+          "snap_c58ef5bc7a5e8a94",
+          "snap_cbe96dcc3656d086",
+          "snap_ce1a1a26c18fe8b0",
+          "snap_d1af246280b3ad36",
+          "snap_d817b7df6ee2ec78",
+          "snap_e0918c3d573c39f9",
+          "snap_e1d70fe2e26e48da",
+          "snap_eb0d40661e62ac3b",
+          "snap_f135b8e91a947b2c"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "disk:MT7PJB7N5LRE",
+      "category": "disk",
+      "severity": "high",
+      "device_id": "MT7PJB7N5LRE",
+      "employee_id": "emp-acme-1003",
+      "finding": "Disk capacity risk on acme-macbook-4: latest free space 2.0% < 15.0%; depleting at -0.1959%/day (R^2=0.9887).",
+      "explanation": "Primary disk free space moved from 7.18% to 2.0% over 30 snapshots. Linear fit slope=-0.1959%/day (R^2=0.9887), estimated days_to_low=None, days_to_zero=10.21. Note: values flattened near 2.0%; projection may overstate.",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_b996cebe5fbdb8de",
+          "device_id": "MT7PJB7N5LRE",
+          "hostname": "acme-macbook-4",
+          "collected_at": "2026-05-14T11:14:00Z",
+          "metric": "disk_free_pct_first",
+          "value": 7.18,
+          "unit": "%",
+          "label": "First window disk free: 7.18%"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_de2da5a8a102d45b",
+          "device_id": "MT7PJB7N5LRE",
+          "hostname": "acme-macbook-4",
+          "collected_at": "2026-06-12T08:39:00Z",
+          "metric": "disk_free_pct",
+          "value": 2.0,
+          "unit": "%",
+          "label": "Latest disk free: 2.0%"
+        }
+      ],
+      "stats": {
+        "is_low": true,
+        "is_depleting": true,
+        "first_free_pct": 7.18,
+        "latest_free_pct": 2.0,
+        "slope_pct_per_day": -0.1959,
+        "r2": 0.9887,
+        "days_to_low": null,
+        "days_to_zero": 10.21,
+        "last_7d_slope_pct_per_day": -0.0712,
+        "flattened_near_floor": true,
+        "disk_total_gb": 512.0
+      },
+      "suggested_action": {
+        "tool": "create_upgrade_order",
+        "args_hint": {
+          "device_id": "MT7PJB7N5LRE",
+          "component": "storage"
+        },
+        "reason": "Low or rapidly depleting primary disk free space"
+      },
+      "chart": {
+        "title": "MT7PJB7N5LRE · Disk",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "MT7PJB7N5LRE · Disk",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 7.18,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_b996cebe5fbdb8de"
+              },
+              {
+                "date": "2026-05-15",
+                "value": 6.97,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_e2cc1084ac454383"
+              },
+              {
+                "date": "2026-05-16",
+                "value": 6.76,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_18c749c0db9a7b96"
+              },
+              {
+                "date": "2026-05-17",
+                "value": 6.55,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_7d974e69bc8ed53e"
+              },
+              {
+                "date": "2026-05-18",
+                "value": 6.34,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_16f1b38a8f48c44a"
+              },
+              {
+                "date": "2026-05-19",
+                "value": 6.13,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_144cac1de6824b1f"
+              },
+              {
+                "date": "2026-05-20",
+                "value": 5.92,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_f577cf70bfa8afec"
+              },
+              {
+                "date": "2026-05-21",
+                "value": 5.71,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_015e8c80b871afdd"
+              },
+              {
+                "date": "2026-05-22",
+                "value": 5.5,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_d98b4bbe8fdc07f3"
+              },
+              {
+                "date": "2026-05-23",
+                "value": 5.29,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_f5b6f358b42512a0"
+              },
+              {
+                "date": "2026-05-24",
+                "value": 5.08,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_146d4429d19234aa"
+              },
+              {
+                "date": "2026-05-25",
+                "value": 4.87,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_8ff141dfd2b860f1"
+              },
+              {
+                "date": "2026-05-26",
+                "value": 4.66,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_eff4680587546627"
+              },
+              {
+                "date": "2026-05-27",
+                "value": 4.44,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_ba04dabb4b950478"
+              },
+              {
+                "date": "2026-05-28",
+                "value": 4.23,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_314d8e2c3c3de16d"
+              },
+              {
+                "date": "2026-05-29",
+                "value": 4.02,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_77a6d3d326dcce86"
+              },
+              {
+                "date": "2026-05-30",
+                "value": 3.81,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_c76b76630c1b5088"
+              },
+              {
+                "date": "2026-05-31",
+                "value": 3.6,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_59844f04f81c7cde"
+              },
+              {
+                "date": "2026-06-01",
+                "value": 3.39,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_8d11b96db4258e54"
+              },
+              {
+                "date": "2026-06-02",
+                "value": 3.18,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_0afa1b7a41109de7"
+              },
+              {
+                "date": "2026-06-03",
+                "value": 2.97,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_038d3a66b30da8a1"
+              },
+              {
+                "date": "2026-06-04",
+                "value": 2.76,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_0f3bb28880559abc"
+              },
+              {
+                "date": "2026-06-05",
+                "value": 2.55,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_c1ec4073acee28d9"
+              },
+              {
+                "date": "2026-06-06",
+                "value": 2.34,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_e8446e1ee20949c7"
+              },
+              {
+                "date": "2026-06-07",
+                "value": 2.13,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_3e73cbfcbd6c7b99"
+              },
+              {
+                "date": "2026-06-08",
+                "value": 2.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_268754ac04150aad"
+              },
+              {
+                "date": "2026-06-09",
+                "value": 2.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_ccd5a3182052ce0f"
+              },
+              {
+                "date": "2026-06-10",
+                "value": 2.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_afa566d86cb855e7"
+              },
+              {
+                "date": "2026-06-11",
+                "value": 2.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_db074660ae3a0f11"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 2.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_de2da5a8a102d45b"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Disk Free (%)"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 7.18,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_b996cebe5fbdb8de"
+          },
+          {
+            "date": "2026-05-15",
+            "value": 6.97,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_e2cc1084ac454383"
+          },
+          {
+            "date": "2026-05-16",
+            "value": 6.76,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_18c749c0db9a7b96"
+          },
+          {
+            "date": "2026-05-17",
+            "value": 6.55,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_7d974e69bc8ed53e"
+          },
+          {
+            "date": "2026-05-18",
+            "value": 6.34,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_16f1b38a8f48c44a"
+          },
+          {
+            "date": "2026-05-19",
+            "value": 6.13,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_144cac1de6824b1f"
+          },
+          {
+            "date": "2026-05-20",
+            "value": 5.92,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_f577cf70bfa8afec"
+          },
+          {
+            "date": "2026-05-21",
+            "value": 5.71,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_015e8c80b871afdd"
+          },
+          {
+            "date": "2026-05-22",
+            "value": 5.5,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_d98b4bbe8fdc07f3"
+          },
+          {
+            "date": "2026-05-23",
+            "value": 5.29,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_f5b6f358b42512a0"
+          },
+          {
+            "date": "2026-05-24",
+            "value": 5.08,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_146d4429d19234aa"
+          },
+          {
+            "date": "2026-05-25",
+            "value": 4.87,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_8ff141dfd2b860f1"
+          },
+          {
+            "date": "2026-05-26",
+            "value": 4.66,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_eff4680587546627"
+          },
+          {
+            "date": "2026-05-27",
+            "value": 4.44,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_ba04dabb4b950478"
+          },
+          {
+            "date": "2026-05-28",
+            "value": 4.23,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_314d8e2c3c3de16d"
+          },
+          {
+            "date": "2026-05-29",
+            "value": 4.02,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_77a6d3d326dcce86"
+          },
+          {
+            "date": "2026-05-30",
+            "value": 3.81,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_c76b76630c1b5088"
+          },
+          {
+            "date": "2026-05-31",
+            "value": 3.6,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_59844f04f81c7cde"
+          },
+          {
+            "date": "2026-06-01",
+            "value": 3.39,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_8d11b96db4258e54"
+          },
+          {
+            "date": "2026-06-02",
+            "value": 3.18,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_0afa1b7a41109de7"
+          },
+          {
+            "date": "2026-06-03",
+            "value": 2.97,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_038d3a66b30da8a1"
+          },
+          {
+            "date": "2026-06-04",
+            "value": 2.76,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_0f3bb28880559abc"
+          },
+          {
+            "date": "2026-06-05",
+            "value": 2.55,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_c1ec4073acee28d9"
+          },
+          {
+            "date": "2026-06-06",
+            "value": 2.34,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_e8446e1ee20949c7"
+          },
+          {
+            "date": "2026-06-07",
+            "value": 2.13,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_3e73cbfcbd6c7b99"
+          },
+          {
+            "date": "2026-06-08",
+            "value": 2.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_268754ac04150aad"
+          },
+          {
+            "date": "2026-06-09",
+            "value": 2.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_ccd5a3182052ce0f"
+          },
+          {
+            "date": "2026-06-10",
+            "value": 2.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_afa566d86cb855e7"
+          },
+          {
+            "date": "2026-06-11",
+            "value": 2.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_db074660ae3a0f11"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 2.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_de2da5a8a102d45b"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_015e8c80b871afdd",
+          "snap_038d3a66b30da8a1",
+          "snap_0afa1b7a41109de7",
+          "snap_0f3bb28880559abc",
+          "snap_144cac1de6824b1f",
+          "snap_146d4429d19234aa",
+          "snap_16f1b38a8f48c44a",
+          "snap_18c749c0db9a7b96",
+          "snap_268754ac04150aad",
+          "snap_314d8e2c3c3de16d",
+          "snap_3e73cbfcbd6c7b99",
+          "snap_59844f04f81c7cde",
+          "snap_77a6d3d326dcce86",
+          "snap_7d974e69bc8ed53e",
+          "snap_8d11b96db4258e54",
+          "snap_8ff141dfd2b860f1",
+          "snap_afa566d86cb855e7",
+          "snap_b996cebe5fbdb8de",
+          "snap_ba04dabb4b950478",
+          "snap_c1ec4073acee28d9",
+          "snap_c76b76630c1b5088",
+          "snap_ccd5a3182052ce0f",
+          "snap_d98b4bbe8fdc07f3",
+          "snap_db074660ae3a0f11",
+          "snap_de2da5a8a102d45b",
+          "snap_e2cc1084ac454383",
+          "snap_e8446e1ee20949c7",
+          "snap_eff4680587546627",
+          "snap_f577cf70bfa8afec",
+          "snap_f5b6f358b42512a0"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    }
+  ],
   "charts": [
     {
-      "chart_id": "chart_fba2b473446e",
+      "chart_id": "chart_cb144aca8b78",
       "handle": "C1",
-      "title": "Disk Free Percentage (Last 30 Days) - Low Disk Devices",
+      "title": "Disk Free Percentage Over Last 30 Days (Low-Disk Devices)",
       "request_json": {
-        "title": "Disk Free Percentage (Last 30 Days) - Low Disk Devices",
+        "title": "Disk Free Percentage Over Last 30 Days (Low-Disk Devices)",
         "kind": "metric_over_time",
         "metric": "disk_free_pct",
-        "device_ids": null,
+        "device_ids": [
+          "8NM23J95R5I6",
+          "MT7PJB7N5LRE"
+        ],
         "form_factor": null,
         "os_family": null,
         "os_version_lt": null,
         "model": null,
         "employee_id": null,
-        "low_disk_only": true,
+        "low_disk_only": false,
         "max_disk_free_pct": null,
         "min_ram_used_pct": null,
         "battery_condition": null,
@@ -120,12 +1141,12 @@
         "query_handle": null,
         "x": null,
         "y": null,
-        "series": null,
+        "series": "device_id",
         "chart_type": "line"
       },
       "vega_lite_spec": {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-        "title": "Disk Free Percentage (Last 30 Days) - Low Disk Devices",
+        "title": "Disk Free Percentage Over Last 30 Days (Low-Disk Devices)",
         "width": "container",
         "height": 260,
         "data": {
@@ -1083,22 +2104,22 @@
     "needs_clarification": null,
     "steps": [
       {
-        "goal": "Find devices currently flagged with low disk space or lowest free disk space",
+        "goal": "Identify devices currently flagged or experiencing low free disk space",
         "tool_hint": "find_devices"
       },
       {
-        "goal": "Retrieve historical disk free percentage telemetry over the last 30 days for these low-disk devices",
+        "goal": "Query disk free percentage telemetry over the last 30 days for low-disk devices",
         "tool_hint": "run_readonly_sql"
       },
       {
-        "goal": "Create a time-series line chart of disk free percentage over the last 30 days for the identified devices",
+        "goal": "Create a line or time-series chart showing disk free percentage over the last 30 days for these devices",
         "tool_hint": "create_chart"
       }
     ]
   },
   "tool_trace": [
     {
-      "tool_call_id": "call_10871860272433233458",
+      "tool_call_id": "call_10787507157019423543",
       "tool_name": "find_devices",
       "args": {
         "low_disk_only": true
@@ -1107,35 +2128,54 @@
       "evaluated": 10,
       "matched": 2,
       "evidence_count": 2,
-      "duration_ms": 60,
+      "duration_ms": 62,
       "summary": "Matched 2 of 10 devices as of 2026-06-12."
     },
     {
-      "tool_call_id": "call_10871860272433231847",
+      "tool_call_id": "call_10787507157019426024",
+      "tool_name": "analyze_fleet_trends",
+      "args": {
+        "categories": [
+          "disk"
+        ]
+      },
+      "ok": true,
+      "evaluated": 10,
+      "matched": 2,
+      "evidence_count": 5,
+      "duration_ms": 154,
+      "summary": "Analyzed 10 device(s) across disk as of 2026-06-12: 2 insight(s)."
+    },
+    {
+      "tool_call_id": "call_1743517916896395558",
       "tool_name": "create_chart",
       "args": {
         "chart_type": "line",
+        "device_ids": [
+          "8NM23J95R5I6",
+          "MT7PJB7N5LRE"
+        ],
         "kind": "metric_over_time",
-        "low_disk_only": true,
         "metric": "disk_free_pct",
-        "title": "Disk Free Percentage (Last 30 Days) - Low Disk Devices",
+        "series": "device_id",
+        "title": "Disk Free Percentage Over Last 30 Days (Low-Disk Devices)",
         "window_days": 30
       },
       "ok": true,
       "evaluated": 60,
       "matched": 60,
       "evidence_count": 60,
-      "duration_ms": 146,
-      "summary": "Created chart [C1] 'Disk Free Percentage (Last 30 Days) - Low Disk Devices' (60 data points, as of 2026-06-12)."
+      "duration_ms": 94,
+      "summary": "Created chart [C1] 'Disk Free Percentage Over Last 30 Days (Low-Disk Devices)' (60 data points, as of 2026-06-12)."
     }
   ],
   "telemetry_as_of": "2026-06-12T11:00:00+00:00",
   "usage": {
-    "input_tokens": 16213,
-    "output_tokens": 947,
-    "total_tokens": 17160,
-    "cost_usd_est": 0.015711,
-    "latency_ms": 498
+    "input_tokens": 27242,
+    "output_tokens": 1156,
+    "total_tokens": 28398,
+    "cost_usd_est": 0.024767,
+    "latency_ms": 635
   },
   "warnings": []
 }

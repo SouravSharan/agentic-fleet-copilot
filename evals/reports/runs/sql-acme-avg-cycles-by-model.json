@@ -3,13 +3,13 @@
   "turn_id": "turn_sql-acme-avg-cycles-by-model_r1_t1",
   "trace_id": "eval-sql-acme-avg-cycles-by-model-r1-t1",
   "status": "completed",
-  "answer_markdown": "Across Acme's fleet, the average battery cycle count broken down by device model is 948.0 for Dell XPS 15 (1 device), 879.0 for ThinkPad X1 Carbon (2 devices), and 559.2 for MacBook Pro (5 devices).\n\n- The Dell XPS 15 model has an average battery cycle count of 948.0 across 1 device [Q1].\n- The ThinkPad X1 Carbon model has an average battery cycle count of 879.0 across 2 devices [Q1].\n- The MacBook Pro model has an average battery cycle count of 559.2 across 5 devices [Q1].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T11:00:00+00:00\n- Results only evaluate devices with battery_present = TRUE as recorded in telemetry.\n- This query reflects fleet-level aggregations across 8 total devices matching 3 distinct models.\n\n**Evidence:**\n- `[Q1]` `query_fe36f462d456` · `fleet` (fleet) · SQL [Calculate average battery cycle count grouped by device model] (3 rows) · 2026-06-12T11:00:00",
+  "answer_markdown": "Across Acme's fleet, the average battery cycle count by device model is 948.0 cycles for the Dell XPS 15 (1 device), 879.0 cycles for the ThinkPad X1 Carbon (2 devices), and 559.2 cycles for the MacBook Pro (5 devices).\n\n- Dell XPS 15 models average 948.0 battery cycles across 1 device [Q1].\n- ThinkPad X1 Carbon models average 879.0 battery cycles across 2 devices [Q1].\n- MacBook Pro models average 559.2 battery cycles across 5 devices [Q1].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T11:00:00+00:00.\n- Only devices with battery_present = TRUE and non-null battery_cycle_count were evaluated; devices without batteries (such as desktops) are excluded from the averages.\n\n**Evidence:**\n- `[Q1]` `query_3acb46ce19d4` · `fleet` (fleet) · SQL [Calculate average battery cycle count by device model for battery-present devices] (3 rows) · 2026-06-12T11:00:00",
   "answer": {
-    "summary": "Across Acme's fleet, the average battery cycle count broken down by device model is 948.0 for Dell XPS 15 (1 device), 879.0 for ThinkPad X1 Carbon (2 devices), and 559.2 for MacBook Pro (5 devices).",
+    "summary": "Across Acme's fleet, the average battery cycle count by device model is 948.0 cycles for the Dell XPS 15 (1 device), 879.0 cycles for the ThinkPad X1 Carbon (2 devices), and 559.2 cycles for the MacBook Pro (5 devices).",
     "result_device_ids": [],
     "claims": [
       {
-        "text": "The Dell XPS 15 model has an average battery cycle count of 948.0 across 1 device [Q1].",
+        "text": "Dell XPS 15 models average 948.0 battery cycles across 1 device [Q1].",
         "citations": [
           "Q1"
         ],
@@ -20,7 +20,7 @@
         ]
       },
       {
-        "text": "The ThinkPad X1 Carbon model has an average battery cycle count of 879.0 across 2 devices [Q1].",
+        "text": "ThinkPad X1 Carbon models average 879.0 battery cycles across 2 devices [Q1].",
         "citations": [
           "Q1"
         ],
@@ -31,7 +31,7 @@
         ]
       },
       {
-        "text": "The MacBook Pro model has an average battery cycle count of 559.2 across 5 devices [Q1].",
+        "text": "MacBook Pro models average 559.2 battery cycles across 5 devices [Q1].",
         "citations": [
           "Q1"
         ],
@@ -45,22 +45,21 @@
     "insight_refs": [],
     "proposal_refs": [],
     "caveats": [
-      "telemetry_as_of: 2026-06-12T11:00:00+00:00",
-      "Results only evaluate devices with battery_present = TRUE as recorded in telemetry.",
-      "This query reflects fleet-level aggregations across 8 total devices matching 3 distinct models."
+      "telemetry_as_of: 2026-06-12T11:00:00+00:00.",
+      "Only devices with battery_present = TRUE and non-null battery_cycle_count were evaluated; devices without batteries (such as desktops) are excluded from the averages."
     ]
   },
   "citations": [
     {
       "handle": "Q1",
-      "snapshot_id": "query_fe36f462d456",
+      "snapshot_id": "query_3acb46ce19d4",
       "device_id": "fleet",
       "hostname": null,
       "collected_at": "2026-06-12T11:00:00Z",
       "metric": "sql_query",
       "value": 3,
       "unit": null,
-      "label": "SQL [Calculate average battery cycle count grouped by device model] (3 rows)"
+      "label": "SQL [Calculate average battery cycle count by device model for battery-present devices] (3 rows)"
     }
   ],
   "insights": [],
@@ -68,27 +67,27 @@
   "queries": [
     {
       "handle": "Q1",
-      "sql": "SELECT model_name, ROUND(CAST(AVG(battery_cycle_count) AS DECIMAL), 1) AS avg_battery_cycle_count, COUNT(*) AS device_count FROM telemetry.v_latest_device_state WHERE battery_present = TRUE GROUP BY model_name ORDER BY avg_battery_cycle_count DESC LIMIT 200",
-      "purpose": "Calculate average battery cycle count grouped by device model",
+      "sql": "SELECT model_name, ROUND(CAST(AVG(battery_cycle_count) AS DECIMAL), 1) AS avg_battery_cycles, COUNT(*) AS device_count FROM telemetry.v_latest_device_state WHERE battery_present = TRUE AND battery_cycle_count IS NOT NULL GROUP BY model_name ORDER BY avg_battery_cycles DESC LIMIT 200",
+      "purpose": "Calculate average battery cycle count by device model for battery-present devices",
       "columns": [
         "model_name",
-        "avg_battery_cycle_count",
+        "avg_battery_cycles",
         "device_count"
       ],
       "rows": [
         {
           "model_name": "Dell XPS 15",
-          "avg_battery_cycle_count": 948.0,
+          "avg_battery_cycles": 948.0,
           "device_count": 1
         },
         {
           "model_name": "ThinkPad X1 Carbon",
-          "avg_battery_cycle_count": 879.0,
+          "avg_battery_cycles": 879.0,
           "device_count": 2
         },
         {
           "model_name": "MacBook Pro",
-          "avg_battery_cycle_count": 559.2,
+          "avg_battery_cycles": 559.2,
           "device_count": 5
         }
       ],
@@ -109,34 +108,34 @@
     "needs_clarification": null,
     "steps": [
       {
-        "goal": "Calculate the average battery cycle count grouped by device model across Acme fleet using SQL aggregation",
+        "goal": "Calculate average battery cycle count grouped by device model across Acme fleet using SQL",
         "tool_hint": "run_readonly_sql"
       }
     ]
   },
   "tool_trace": [
     {
-      "tool_call_id": "call_11901365916596904581",
+      "tool_call_id": "call_16134948938142132659",
       "tool_name": "run_readonly_sql",
       "args": {
-        "purpose": "Calculate average battery cycle count grouped by device model",
-        "sql": "SELECT model_name, ROUND(AVG(battery_cycle_count), 1) AS avg_battery_cycle_count, COUNT(*) AS device_count FROM telemetry.v_latest_device_state WHERE battery_present = true GROUP BY model_name ORDER BY avg_battery_cycle_count DESC LIMIT 200"
+        "purpose": "Calculate average battery cycle count by device model for battery-present devices",
+        "sql": "SELECT model_name, ROUND(AVG(battery_cycle_count)::numeric, 1) AS avg_battery_cycles, COUNT(*) AS device_count FROM telemetry.v_latest_device_state WHERE battery_present = true AND battery_cycle_count IS NOT NULL GROUP BY model_name ORDER BY avg_battery_cycles DESC LIMIT 200"
       },
       "ok": true,
       "evaluated": 3,
       "matched": 3,
       "evidence_count": 1,
-      "duration_ms": 12,
+      "duration_ms": 11,
       "summary": "SQL query [Q1] returned 3 row(s) (as of 2026-06-12)."
     }
   ],
   "telemetry_as_of": "2026-06-12T11:00:00+00:00",
   "usage": {
-    "input_tokens": 9143,
-    "output_tokens": 605,
-    "total_tokens": 9748,
-    "cost_usd_est": 0.009126,
-    "latency_ms": 311
+    "input_tokens": 9357,
+    "output_tokens": 599,
+    "total_tokens": 9956,
+    "cost_usd_est": 0.009264,
+    "latency_ms": 307
   },
   "warnings": []
 }
