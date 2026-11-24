@@ -15,18 +15,6 @@ _FORBIDDEN_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("session-" + "docs", re.compile("session-" + "docs")),
 )
 
-# Frozen LLM schema docstring: Pydantic exports `Answer.__doc__` directly into Gemini's
-# `response_json_schema["description"]` hashed by replay cassettes, so it stays untouched
-# until the next deliberate schema change and cassette re-record.
-_FROZEN_SCHEMA_ALLOWLIST: frozenset[tuple[str, str]] = frozenset(
-    {
-        (
-            "src/fleet_copilot/agent/schemas.py",
-            '    """Structured answer produced by the `synthesizer` node',
-        ),
-    }
-)
-
 
 def _iter_repo_text_files() -> list[Path]:
     files: list[Path] = []
@@ -61,11 +49,6 @@ def test_no_private_planning_doc_references_in_repo() -> None:
             path.read_text(encoding="utf-8", errors="ignore").splitlines(),
             start=1,
         ):
-            if any(
-                rel == allow_rel and line.startswith(allow_prefix)
-                for allow_rel, allow_prefix in _FROZEN_SCHEMA_ALLOWLIST
-            ):
-                continue
             for label, regex in _FORBIDDEN_PATTERNS:
                 if regex.search(line):
                     violations.append(f"{rel}:{lineno}: contains {label!r} -> {line.strip()[:90]}")

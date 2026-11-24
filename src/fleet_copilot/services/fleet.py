@@ -250,8 +250,9 @@ def find_devices(
 
     evidence: list[Evidence] = []
     for d in page:
+        dev_ev: list[Evidence] = []
         if filters.low_disk_only or filters.max_disk_free_pct is not None:
-            evidence.append(
+            dev_ev.append(
                 _evidence_for_device(
                     d,
                     metric="disk_free_pct",
@@ -260,9 +261,9 @@ def find_devices(
                     label=f"Disk free {d.disk_free_pct}%",
                 )
             )
-        elif filters.os_family is not None or filters.os_version_lt is not None:
+        if filters.os_family is not None or filters.os_version_lt is not None:
             ver_str = f"{d.os_product_name or ''} {d.os_product_version or ''}".strip()
-            evidence.append(
+            dev_ev.append(
                 _evidence_for_device(
                     d,
                     metric="os_version",
@@ -271,8 +272,8 @@ def find_devices(
                     label=f"OS {ver_str}",
                 )
             )
-        elif filters.min_ram_used_pct is not None:
-            evidence.append(
+        if filters.min_ram_used_pct is not None:
+            dev_ev.append(
                 _evidence_for_device(
                     d,
                     metric="ram_used_pct",
@@ -281,8 +282,8 @@ def find_devices(
                     label=f"RAM used {d.ram_used_pct}%",
                 )
             )
-        elif filters.battery_condition is not None:
-            evidence.append(
+        if filters.battery_condition is not None:
+            dev_ev.append(
                 _evidence_for_device(
                     d,
                     metric="battery_condition",
@@ -291,8 +292,8 @@ def find_devices(
                     label=f"Battery condition {d.battery_condition}",
                 )
             )
-        elif filters.software_name is not None:
-            evidence.append(
+        if filters.software_name is not None:
+            dev_ev.append(
                 _evidence_for_device(
                     d,
                     metric=f"software:{filters.software_name}",
@@ -301,8 +302,8 @@ def find_devices(
                     label=f"Installed software matches {filters.software_name}",
                 )
             )
-        else:
-            evidence.append(
+        if not dev_ev:
+            dev_ev.append(
                 _evidence_for_device(
                     d,
                     metric="device_state",
@@ -311,6 +312,7 @@ def find_devices(
                     label=f"{d.os_hostname or d.device_id} ({d.form_factor})",
                 )
             )
+        evidence.extend(dev_ev)
 
     summary = (
         f"Matched {len(matched)} of {len(all_devices)} devices as of {as_of.date().isoformat()}."
