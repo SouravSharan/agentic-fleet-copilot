@@ -85,8 +85,8 @@ def run_fresh(role: str, url: str, schema: str) -> int:
             cur = conn.cursor()
             try:
                 for part in [p for p in stmt.split(";") if p.strip()]:
-                    cur.execute(part)
-                cur.execute(READ[schema])
+                    cur.execute(part)  # type: ignore[arg-type]
+                cur.execute(READ[schema])  # type: ignore[arg-type]
                 out = _verdict(_first(cur.fetchone()))
             except Exception as exc:  # noqa: BLE001
                 out = f"BLOCKED ({type(exc).__name__})"
