@@ -8,7 +8,7 @@ from typing import Any
 import streamlit as st
 
 from fleet_copilot.interfaces.ui.humanize import format_device_record_summary
-from fleet_copilot.interfaces.ui.safe_md import safe_md
+from fleet_copilot.interfaces.ui.safe_md import safe_code, safe_md
 from fleet_copilot.interfaces.ui.state import perf_finish_if_active, perf_mark_start
 from fleet_copilot.interfaces.ui.theme import (
     fmt_as_of_full,
@@ -105,7 +105,10 @@ def render_inspector_panel() -> None:
             raw_resp = selected_turn.get("response_json")
             resp: dict[str, Any] = raw_resp if isinstance(raw_resp, dict) else selected_turn
             turn_id = str(resp.get("turn_id") or selected_turn.get("turn_id") or "")
-            st.caption(f"Turn `{turn_id}` · status `{resp.get('status', 'completed')}`")
+            st.caption(
+                f"Turn `{safe_code(turn_id) or '—'}` · status "
+                f"`{safe_code(resp.get('status', 'completed')) or 'completed'}`"
+            )
 
             # Short labels avoid horizontal tab overflow on desktop widths (U9)
             tab_plan, tab_tools, tab_ev, tab_verify, tab_usage = st.tabs(
@@ -118,7 +121,7 @@ def render_inspector_panel() -> None:
                 if plan is None:
                     st.caption("No planner output recorded for this turn.")
                 else:
-                    st.markdown(f"**Intent:** `{plan.get('intent', '—')}`")
+                    st.markdown(f"**Intent:** `{safe_code(plan.get('intent')) or '—'}`")
                     flags: list[str] = []
                     if plan.get("refers_to_other_org"):
                         flags.append("refers_to_other_org=true")
@@ -131,7 +134,7 @@ def render_inspector_panel() -> None:
                     steps = list(plan.get("steps") or [])
                     if steps:
                         for i, step in enumerate(steps, start=1):
-                            hint = step.get("tool_hint")
+                            hint = safe_code(step.get("tool_hint"))
                             hint_tag = f" (`{hint}`)" if hint else ""
                             st.markdown(f"{i}. {safe_md(step.get('goal', ''))}{hint_tag}")
                     else:
@@ -159,7 +162,7 @@ def render_inspector_panel() -> None:
                         matched = step.get("matched")
                         evaluated = step.get("evaluated")
                         with st.container(border=True):
-                            st.markdown(f"**{idx}. `{tool_name}`**")
+                            st.markdown(f"**{idx}. `{safe_code(tool_name) or 'unknown'}`**")
                             render_status_badge(
                                 "ok" if ok_flag else "blocked",
                                 "ok" if ok_flag else "failed",
@@ -190,17 +193,22 @@ def render_inspector_panel() -> None:
                         metric = str(c.get("metric") or "—")
                         snap_id = str(c.get("snapshot_id") or "—")
                         ts_short = fmt_as_of_full(c.get("collected_at"))
+                        handle_safe = safe_code(handle) or "—"
+                        metric_safe = safe_code(metric) or "—"
+                        snap_safe = safe_code(snap_id) or "—"
                         with st.container(border=True):
                             if metric == "device_state":
                                 summary = format_device_record_summary(c, dev_summaries.get(dev_id))
-                                st.markdown(f"`[{handle}]` **Device record** · {safe_md(summary)}")
+                                st.markdown(
+                                    f"`[{handle_safe}]` **Device record** · {safe_md(summary)}"
+                                )
                             else:
                                 val_txt = fmt_number(c.get("value"), c.get("unit"))
                                 st.markdown(
-                                    f"`[{handle}]` **{safe_md(host)}** · "
-                                    f"`{metric}` = {safe_md(val_txt)}"
+                                    f"`[{handle_safe}]` **{safe_md(host)}** · "
+                                    f"`{metric_safe}` = {safe_md(val_txt)}"
                                 )
-                            st.caption(f"Snapshot `{snap_id}` · {ts_short}")
+                            st.caption(f"Snapshot `{snap_safe}` · {ts_short}")
                     if len(cites) > 60:
                         st.caption(f"Showing first 60 of {fmt_int(len(cites))} evidence items.")
 
@@ -233,7 +241,7 @@ def render_inspector_panel() -> None:
                 with u2:
                     st.metric("Output tokens", fmt_int(usage.get("output_tokens", 0)))
                     st.metric("Latency", f"{fmt_int(usage.get('latency_ms', 0))} ms")
-                st.caption(f"Trace ID: `{resp.get('trace_id', '—')}`")
+                st.caption(f"Trace ID: `{safe_code(resp.get('trace_id')) or '—'}`")
                 if resp.get("telemetry_as_of"):
                     st.caption(f"Telemetry as of: {fmt_as_of_full(resp.get('telemetry_as_of'))}")
 

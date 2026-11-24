@@ -16,7 +16,7 @@ from fleet_copilot.interfaces.ui.humanize import (
     humanize_audit_event,
     humanize_tool_name,
 )
-from fleet_copilot.interfaces.ui.safe_md import safe_md
+from fleet_copilot.interfaces.ui.safe_md import safe_code, safe_md
 from fleet_copilot.interfaces.ui.services import (
     cached_telemetry_as_of,
     cached_thread_turns,
@@ -549,7 +549,9 @@ def _render_outbox_card(
             with p4:
                 st.caption("Ship-to employee")
                 st.text(str(payload.get("ship_to_employee_id") or "—"))
-            st.caption(f"Target device: {safe_md(dev_host or dev_id)} ({dev_id})")
+            st.caption(
+                f"Target device: {safe_md(dev_host or dev_id)} (`{safe_code(dev_id) or '—'}`)"
+            )
             if payload.get("justification"):
                 st.text(str(payload["justification"]))
 
@@ -568,9 +570,10 @@ def _render_outbox_card(
                 message_text=full_email_msg or raw_preview,
                 hostname_map=hostname_map,
             )
-            st.markdown(f"**To:** `{payload.get('recipient_employee_id', '—')}`")
+            st.markdown(f"**To:** `{safe_code(payload.get('recipient_employee_id')) or '—'}`")
             st.markdown("**Subject**")
-            st.text(safe_md(display_subject))
+            # st.text never renders markdown; pass plain text so no escapes appear literally (S5)
+            st.text(display_subject)
             st.markdown("**Message preview**")
             with st.container(border=True):
                 st.markdown(safe_md(preview_txt))

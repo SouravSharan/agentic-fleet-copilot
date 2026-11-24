@@ -535,7 +535,7 @@ def _render_saved_charts_tab(
                         ):
                             ctx_ref = make_tenant_context(session)
                             container.chart_svc.refresh_chart(ctx_ref, chart_id)
-                            st.toast(f"Refreshed '{title}' on latest telemetry.")
+                            st.toast(f"Refreshed '{safe_md(title)}' on latest telemetry.")
                             st.rerun()
                     else:
                         st.caption("Frozen SQL snapshot")

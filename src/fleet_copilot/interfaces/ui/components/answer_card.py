@@ -18,7 +18,7 @@ from fleet_copilot.interfaces.ui.humanize import (
     humanize_tool_name,
     split_and_humanize_caveats,
 )
-from fleet_copilot.interfaces.ui.safe_md import safe_md
+from fleet_copilot.interfaces.ui.safe_md import safe_code, safe_md
 from fleet_copilot.interfaces.ui.services import get_ui_container
 from fleet_copilot.interfaces.ui.state import (
     make_tenant_context,
@@ -58,9 +58,10 @@ def _render_citation_popover(
     with st.popover(f"[{handle}]", type="tertiary", key=key):
         hostname = ev.get("hostname")
         device_id = str(ev.get("device_id") or "fleet")
-        dev_label = f"{safe_md(hostname)} (`{device_id}`)" if hostname else f"`{device_id}`"
+        safe_dev_id = safe_code(device_id) or "fleet"
+        dev_label = f"{safe_md(hostname)} (`{safe_dev_id}`)" if hostname else f"`{safe_dev_id}`"
         metric = str(ev.get("metric") or "—")
-        st.markdown(f"**Evidence `[{handle}]`**")
+        st.markdown(f"**Evidence `[{safe_code(handle) or '—'}]`**")
         st.markdown(f"**Device:** {dev_label}")
         if metric == "device_state":
             cur_dev = (device_summaries or {}).get(device_id)
@@ -68,9 +69,9 @@ def _render_citation_popover(
             st.markdown("**Record:** Device record")
             st.markdown(f"**Summary:** {safe_md(summary_line)}")
         else:
-            st.markdown(f"**Metric:** `{metric}`")
+            st.markdown(f"**Metric:** `{safe_code(metric) or '—'}`")
             st.markdown(f"**Value:** {safe_md(fmt_number(ev.get('value'), ev.get('unit')))}")
-        st.markdown(f"**Snapshot ID:** `{ev.get('snapshot_id', '—')}`")
+        st.markdown(f"**Snapshot ID:** `{safe_code(ev.get('snapshot_id')) or '—'}`")
         st.markdown(f"**Collected at:** {fmt_as_of_full(ev.get('collected_at'))}")
         if ev.get("label"):
             st.text(str(ev["label"]))
@@ -228,9 +229,11 @@ def _render_refusal_cards(
                     for chk in failed_checks:
                         chk_lbl = humanize_check_name(str(chk.get("name") or ""))
                         src_lbl = humanize_source(str(chk.get("source") or ""))
+                        obs_safe = safe_code(chk.get("observed")) or "—"
+                        thr_safe = safe_code(chk.get("threshold")) or "—"
                         st.markdown(
-                            f":material/cancel: **{chk_lbl}** — observed "
-                            f"`{chk.get('observed')}`, required `{chk.get('threshold')}` "
+                            f":material/cancel: **{safe_md(chk_lbl)}** — observed "
+                            f"`{obs_safe}`, required `{thr_safe}` "
                             f"({safe_md(src_lbl)})"
                         )
 

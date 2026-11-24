@@ -72,8 +72,10 @@ def _render_copilot_history_in_sidebar(session: DemoSession) -> None:
 
         row_main, row_menu = st.columns([4.4, 1.2], gap="small")
         with row_main:
+            # Truncate raw title BEFORE sanitising so parser never leaves an open code span (S5)
+            raw_short = title if len(title) <= 28 else title[:27].rstrip() + "…"
+            short = safe_md(raw_short)
             clean_title = safe_md(title)
-            short = clean_title if len(clean_title) <= 28 else clean_title[:27].rstrip() + "…"
             btn_label = short + (f" · {rel_time}" if rel_time else "")
             st.button(
                 btn_label,

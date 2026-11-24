@@ -190,7 +190,7 @@ def _render_active_job_poller(session: DemoSession) -> None:
                         st.markdown(":material/hourglass_top: Reading your fleet context")
                     else:
                         for ev in collapsed:
-                            st.markdown(f":material/check_small: {ev.label}")
+                            st.markdown(f":material/check_small: {safe_md(ev.label)}")
             return
 
         # Completed or failed: clear poller state, refresh caches, and re-render full view

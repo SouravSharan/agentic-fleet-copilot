@@ -75,12 +75,15 @@ def test_h1_home_briefing_title_escapes_html_tags(offline_container: UIContainer
     assert not at.exception
 
     md_values = [m.value for m in at.markdown]
-    # Escaped HTML must be present; live <b> or <img tags must NEVER appear
-    assert any("&lt;b&gt;x&lt;/b&gt;&lt;img src=x onerror=alert(1)&gt;" in v for v in md_values)
+    # Active HTML tags, markdown links, and images must NEVER appear
+    assert any("x" in v for v in md_values)
     for v in md_values:
         assert "<b>" not in v
         assert "<img" not in v
-        assert "](https://evil.example" not in v
+        assert "onerror" not in v
+        assert "![" not in v
+        assert "](" not in v
+        assert "href" not in v
 
 
 def test_h2_answer_card_and_sidebar_neutralise_markdown_images_and_links(
@@ -144,29 +147,38 @@ def test_h2_answer_card_and_sidebar_neutralise_markdown_images_and_links(
 
     all_text = [m.value for m in at.markdown] + [c.value for c in at.caption]
     for val in all_text:
-        assert "](https://evil.example" not in val
+        assert "](" not in val
+        assert "![" not in val
         assert "<script>" not in val
+        assert "<img" not in val
         assert "<b>" not in val
-    # Code span and citation handle preserved cleanly in summary
-    assert any("`disk_free_pct < 15`" in m.value and "[E1]" in m.value for m in at.markdown)
+        assert "href" not in val
+    # Code span and citation handle preserved cleanly in summary (CommonMark-escaped [E1])
+    assert any("`disk_free_pct < 15`" in m.value and r"\[E1\]" in m.value for m in at.markdown)
     # Bare URL neutralized in backticks
     assert any("`https://evil.example/c`" in m.value for m in at.markdown)
 
-    # Sidebar chat title button label also neutralizes markdown images/links
+    # Sidebar chat title button label truncates BEFORE sanitizing so code spans never leak open
     tid = f"{session.company_id}:thr_evil_title"
     offline_container.store.ensure_thread(
         session.company_id,
         tid,
         session.actor_id,
-        title="![x](https://evil.example/s) [bad](https://evil.example/t)",
+        title="Check `code_span_that_gets_cut_midway` ![x](https://evil.example/s)",
     )
     at_sb = AppTest.from_function(_app_render_sidebar, default_timeout=15)
     at_sb.session_state["demo_session"] = session
     at_sb.run()
     assert not at_sb.exception
     for b in at_sb.button:
-        assert "](https://evil.example" not in str(b.label)
-        assert "![" not in str(b.label)
+        lbl = str(b.label)
+        assert "](" not in lbl
+        assert "![" not in lbl
+        assert "<img" not in lbl
+        assert "href" not in lbl
+        # An unmatched backtick cut by 28-char truncation must be backslash-escaped, not open
+        if "code_span" in lbl:
+            assert r"\`" in lbl
 
 
 def test_h1_telemetry_software_name_with_html_is_escaped_on_home(
@@ -431,9 +443,12 @@ def test_w5_w6_w7_chart_title_hostname_and_device_record_evidence_in_answer_and_
     assert "acme-thinkpad-8 · Battery" in md_all
     assert resp["charts"][0]["title"] == "8NM23J95R5I6 · Battery"
     # W6 & W7: Device record summary with `current:` label rendered in compact Evidence cards
-    assert "Device record" in md_all
-    assert "current:" in md_all
-    assert "1,157 cycles" in md_all
+    from markdown_it import MarkdownIt
+
+    rendered_md = MarkdownIt("commonmark").render(md_all)
+    assert "Device record" in rendered_md
+    assert "current: ThinkPad X1 Carbon" in rendered_md
+    assert "1,157 cycles" in rendered_md
 
 
 def test_w8_viewer_empty_approvals_queue_uses_viewer_copy(
@@ -530,13 +545,162 @@ def test_w10_outbox_email_word_boundary_ellipsis_hostname_subject_and_safe_md(
     at.run()
     assert not at.exception
 
-    # Subject replaced raw (acme-001) with matched hostname (acme-macbook-4)
-    assert any("(acme-macbook-4)" in t.value for t in at.text)
+    # Subject replaced raw (acme-001) with matched hostname (acme-macbook-4) with no literal escapes
+    assert any(t.value == "Action needed on your managed device (acme-macbook-4)" for t in at.text)
     # Preview ends cleanly with ellipsis and full message has zero active links/images
     md_values = [m.value for m in at.markdown]
     assert any(v.endswith("…") for v in md_values)
     for v in md_values:
-        assert "](https://evil.example" not in v
+        assert "](" not in v
+        assert "![" not in v
+        assert "href" not in v
+
+
+def test_s5_backtick_interpolation_and_untrusted_call_sites(
+    offline_container: UIContainer,
+) -> None:
+    """S5: inspector tool_hint, policy observed/threshold, citation ids, and outbox dev_id safe."""
+    session = _demo_session_for("acme_admin")
+    hostile_bt = "x` ![px](//evil/p.png) `y"
+    resp = {
+        "turn_id": "turn_s5",
+        "trace_id": "trace-s5",
+        "status": "completed",
+        "plan": {
+            "intent": "qa",
+            "steps": [{"goal": "Check devices", "tool_hint": hostile_bt}],
+        },
+        "answer": {"summary": "Done [E1].", "claims": []},
+        "citations": [
+            {
+                "handle": "E1",
+                "snapshot_id": hostile_bt,
+                "device_id": hostile_bt,
+                "hostname": "acme-macbook-4",
+                "collected_at": AS_OF.isoformat(),
+                "metric": hostile_bt,
+                "value": 5,
+                "unit": "%",
+            }
+        ],
+        "verdicts": [
+            {
+                "allowed": False,
+                "tool_name": "create_upgrade_order",
+                "target_id": "MT7PJB7N5LRE",
+                "reasons": ["Blocked"],
+                "checks": [
+                    {
+                        "name": "ram_upgradable",
+                        "passed": False,
+                        "observed": hostile_bt,
+                        "threshold": hostile_bt,
+                        "source": "catalog",
+                    }
+                ],
+            }
+        ],
+        "proposals": [
+            {
+                "proposal_id": "prop_s5",
+                "tool_name": "open_remediation_ticket",
+                "target_id": "MT7PJB7N5LRE",
+                "status": "pending",
+                "policy_verdict": {
+                    "allowed": True,
+                    "checks": [
+                        {
+                            "name": "disk_encryption",
+                            "passed": True,
+                            "observed": hostile_bt,
+                            "threshold": hostile_bt,
+                            "source": "policy",
+                        }
+                    ],
+                },
+            }
+        ],
+        "telemetry_as_of": AS_OF.isoformat(),
+    }
+
+    def _run_s5(resp_in, sess_in):  # type: ignore[no-untyped-def]
+        import streamlit as st
+
+        from fleet_copilot.interfaces.ui.components.answer_card import render_answer_card
+        from fleet_copilot.interfaces.ui.components.inspector import render_inspector_panel
+        from fleet_copilot.interfaces.ui.components.proposal_card import render_proposal_cards
+
+        st.session_state["_active_turns_by_id"] = {
+            "turn_s5": {"turn_id": "turn_s5", "response_json": resp_in}
+        }
+        st.session_state["_active_turn_order"] = ["turn_s5"]
+        st.session_state["selected_turn_id"] = "turn_s5"
+        render_answer_card(resp_in, session=sess_in, hostname_map={}, turn_id="turn_s5")
+        render_proposal_cards(
+            resp_in, session=sess_in, hostname_map={}, thread_id="acme-001:t1", turn_id="turn_s5"
+        )
+        render_inspector_panel()
+
+    at = AppTest.from_function(_run_s5, args=(resp, session), default_timeout=20)
+    at.session_state["demo_session"] = session
+    at.run()
+    assert not at.exception
+
+    from markdown_it import MarkdownIt
+
+    parser = MarkdownIt("commonmark")
+    for text_val in [m.value for m in at.markdown] + [c.value for c in at.caption]:
+        for tok in parser.parse(text_val):
+            for ch in tok.children or ():
+                assert ch.type not in ("image", "link_open"), (
+                    f"Backtick breakout leaked active {ch.type!r} in {text_val!r}"
+                )
+
+    # Approvals procurement dev_id and plain st.text email subject (no literal \< escapes)
+    offline_container.store.outbox.append(
+        {
+            "outbox_id": 99,
+            "company_id": "acme-001",
+            "proposal_id": "prop_proc_s5",
+            "channel": "procurement",
+            "receipt_id": "ORD-99",
+            "payload_json": {"device_id": hostile_bt, "sku": "RAM-32", "quantity": 1},
+            "created_at": AS_OF,
+        }
+    )
+    offline_container.store.outbox.append(
+        {
+            "outbox_id": 100,
+            "company_id": "acme-001",
+            "proposal_id": "prop_mail_s5",
+            "channel": "email",
+            "receipt_id": "NTF-100",
+            "payload_json": {
+                "recipient_employee_id": hostile_bt,
+                "subject": "Disk < 15% alert (acme-001)",
+                "body_preview": "Short body",
+            },
+            "created_at": AS_OF,
+        }
+    )
+
+    def _run_app_s5() -> None:
+        from fleet_copilot.interfaces.ui.pages.approvals import render_approvals_page
+
+        render_approvals_page()
+
+    at_ap = AppTest.from_function(_run_app_s5, default_timeout=20)
+    at_ap.session_state["demo_session"] = session
+    at_ap.run()
+    assert not at_ap.exception
+    # Plain st.text email subject must NOT show escaped '\<' or '&lt;'
+    assert any(t.value == "Disk < 15% alert (Acme)" for t in at_ap.text)
+    for text_val in [m.value for m in at_ap.markdown] + [c.value for c in at_ap.caption]:
+        for tok in parser.parse(text_val):
+            for ch in tok.children or ():
+                assert ch.type not in ("image", "link_open"), (
+                    f"Outbox leaked active {ch.type!r} in {text_val!r}"
+                )
 
 
 def test_l2_w11_guardrails_uses_turn_jobs_guarded_and_company_aware_copy(

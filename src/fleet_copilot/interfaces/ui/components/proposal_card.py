@@ -13,7 +13,7 @@ from fleet_copilot.interfaces.ui.humanize import (
     humanize_source,
     humanize_tool_name,
 )
-from fleet_copilot.interfaces.ui.safe_md import safe_md
+from fleet_copilot.interfaces.ui.safe_md import safe_code, safe_md
 from fleet_copilot.interfaces.ui.services import cached_thread_turns, get_ui_container
 from fleet_copilot.interfaces.ui.state import (
     bump_thread_list_version,
@@ -118,10 +118,12 @@ def render_policy_checklist(checks: list[dict[str, Any]], *, expanded: bool = Fa
             mark = "Pass" if ok_flag else "Fail"
             chk_label = humanize_check_name(str(chk.get("name") or ""))
             src_label = humanize_source(str(chk.get("source") or ""))
+            obs_safe = safe_code(chk.get("observed")) or "—"
+            thr_safe = safe_code(chk.get("threshold")) or "—"
             st.markdown(
-                f"{icon} **{chk_label}** ({mark}) — "
-                f"observed `{chk.get('observed')}` vs "
-                f"threshold `{chk.get('threshold')}` "
+                f"{icon} **{safe_md(chk_label)}** ({mark}) — "
+                f"observed `{obs_safe}` vs "
+                f"threshold `{thr_safe}` "
                 f"({safe_md(src_label)})"
             )
 
