@@ -103,14 +103,14 @@ def test_caveat_splitting_hides_as_of_and_refusal_duplicates_and_humanizes() -> 
     )
 
 
-def test_d2c_compliance_check_chart_title_and_device_record_helpers() -> None:
-    # L3: compliance check labels have clean plain-English names
+def test_compliance_check_chart_title_and_device_record_helpers() -> None:
+    # compliance check labels have clean plain-English names
     assert humanize_check_name("disk_encryption") == "Disk encryption"
     assert humanize_check_name("os_up_to_date") == "OS up to date"
     assert humanize_check_name("screen_lock") == "Screen lock"
     assert humanize_check_name("endpoint_protection") == "Endpoint protection"
 
-    # W5: chart title device_id -> hostname render-time helper
+    # chart title device_id -> hostname render-time helper
     hmap = {"dev-001": "acme-macbook-1", "dev-002": "acme-dell-9"}
     assert humanize_chart_title("dev-001 · Battery", hmap) == "acme-macbook-1 · Battery"
     assert humanize_chart_title("Device dev-002 battery health", hmap) == (
@@ -118,7 +118,7 @@ def test_d2c_compliance_check_chart_title_and_device_record_helpers() -> None:
     )
     assert humanize_chart_title("Low disk fleet devices", hmap) == "Low disk fleet devices"
 
-    # W6: device_state evidence summary builds from evidence first, labels cached gaps 'current'
+    # device_state evidence summary builds from evidence first, labels cached gaps 'current'
     ev_with_payload = {
         "metric": "device_state",
         "value": {"hostname": "acme-macbook-1", "battery_cycles": 850, "os": "macOS 15"},

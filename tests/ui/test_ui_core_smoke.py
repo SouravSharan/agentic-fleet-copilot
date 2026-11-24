@@ -352,7 +352,7 @@ def test_copilot_examples_only_mode_disables_chat_input() -> None:
         container.turn_jobs.shutdown(wait=False)
 
 
-def test_u11_answer_card_inspector_button_opens_inspector_with_plan_tab(
+def test_answer_card_inspector_button_opens_inspector_with_plan_tab(
     offline_ui_container: UIContainer,
 ) -> None:
     """Clicking the answer-card Inspector button opens the Inspector showing the Plan tab."""

@@ -132,7 +132,7 @@ def test_sanitize_value_sets_truncated_flag_when_nested_list_clipped() -> None:
     assert len(parsed["rows"][0]["installed_software"]) == 50
 
 
-def test_b4_thirteen_tools_caps_and_prompt_v2() -> None:
+def test_thirteen_tools_caps_and_current_prompt_versions() -> None:
     """13 tools registered, create_chart/run_readonly_sql caps=3, prompt v2."""
     from fleet_copilot.agent.prompts import load_prompt, prompt_bundle_version
     from fleet_copilot.clock import FixedClock

@@ -110,7 +110,7 @@ def test_briefing_matches_oracle_sets_writes_zero_audit_and_is_stable(
         assert item.evidence_snapshot_ids
         assert item.suggested_prompt
         assert item.suggested_action_prompt is not None
-        # G4: proper "an" before vowels and multi-device naming for ticket/notify <= 5 devices
+        # proper "an" before vowels and multi-device naming for ticket/notify <= 5 devices
         assert " a os_" not in item.suggested_action_prompt.lower()
         if item.category in ("compliance_drift", "compliance_chronic", "software", "stale_devices"):
             if len(item.hostnames) <= 5:

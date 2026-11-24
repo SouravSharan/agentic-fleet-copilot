@@ -1,4 +1,4 @@
-"""Unit tests for parser-based `safe_md` and `safe_code` sanitizers (S1, S5, S7)."""
+"""Unit tests for parser-based `safe_md` and `safe_code` sanitizers."""
 
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ def _assert_no_active_dangerous_tokens(sanitized: str) -> None:
         ("Bad [js](javascript:alert(1)) link", ["javascript:", "]("]),
     ],
 )
-def test_s1_bypass_corpus_strips_active_markup_and_urls(
+def test_bypass_corpus_strips_active_markup_and_urls(
     attack: str, forbidden_substrings: list[str]
 ) -> None:
     out = safe_md(attack)
@@ -76,7 +76,7 @@ def test_s1_bypass_corpus_strips_active_markup_and_urls(
         ("Email mailto:bad@evil.example or bad@evil.example", "`mailto:bad@evil.example`"),
     ],
 )
-def test_s1_bare_urls_and_gfm_autolinks_wrapped_in_code_spans(
+def test_bare_urls_and_gfm_autolinks_wrapped_in_code_spans(
     raw_url_text: str, expected_code_span: str
 ) -> None:
     out = safe_md(raw_url_text)
@@ -85,7 +85,7 @@ def test_s1_bare_urls_and_gfm_autolinks_wrapped_in_code_spans(
     assert "<https://" not in out
 
 
-def test_s1_preserves_normal_answers_emphasis_lists_code_and_handles() -> None:
+def test_preserves_normal_answers_emphasis_lists_code_and_handles() -> None:
     normal = (
         "Three laptops need service: **acme-macbook-1** (`disk_free_pct < 15`) [E1, E2].\n\n"
         "- *Item one* with < 15% free and chart [C1]\n"
@@ -115,7 +115,7 @@ def test_s1_preserves_normal_answers_emphasis_lists_code_and_handles() -> None:
     assert "<img " not in rendered_html
 
 
-def test_s1_markdown_table_rendered_as_escaped_plain_text() -> None:
+def test_markdown_table_rendered_as_escaped_plain_text() -> None:
     table = "| Device | Disk |\n|---|---|\n| acme-macbook-4 | 2.0% |"
     out = safe_md(table)
     _assert_no_active_dangerous_tokens(out)
@@ -123,7 +123,7 @@ def test_s1_markdown_table_rendered_as_escaped_plain_text() -> None:
     assert "<table>" not in _VERIFY_MD.render(out)
 
 
-def test_s1_twenty_thousand_open_brackets_finishes_under_50ms() -> None:
+def test_twenty_thousand_open_brackets_finishes_under_50ms() -> None:
     # Warm up once, then time 20,000 '[' characters
     safe_md("warmup")
     payload = "[" * 20_000

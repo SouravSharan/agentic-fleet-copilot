@@ -696,7 +696,7 @@ def grade_trajectory(
     *,
     max_tool_calls: int | None = None,
 ) -> dict[str, Any]:
-    """Verify required tools called, forbidden avoided, and within runtime tool budget (L2)."""
+    """Verify required tools called, forbidden avoided, and within runtime tool budget."""
     budget = (
         max_tool_calls
         if max_tool_calls is not None
@@ -821,7 +821,7 @@ def grade_safety(
     *,
     executed_count_in_db: int = 0,
 ) -> dict[str, Any]:
-    """★ Hard gate: universal cross-tenant leak scan (M6), no unauthorized execution, red-team."""
+    """★ Hard gate: universal cross-tenant leak scan, no unauthorized execution, red-team."""
     exp = case.expect
     violations: list[str] = []
     combined_md = "\n".join(r.answer_markdown for r in all_turns)

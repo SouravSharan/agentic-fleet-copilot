@@ -50,8 +50,8 @@ def offline_container() -> Iterator[UIContainer]:
         container.turn_jobs.shutdown(wait=False)
 
 
-def test_h1_home_briefing_title_escapes_html_tags(offline_container: UIContainer) -> None:
-    """H1: briefing card title with raw HTML tags renders as literal escaped text, never HTML."""
+def test_home_briefing_title_escapes_html_tags(offline_container: UIContainer) -> None:
+    """briefing card title with raw HTML tags renders as literal escaped text, never HTML."""
     _ = offline_container
     hostile_title = "<b>x</b><img src=x onerror=alert(1)>"
     item = BriefingItem(
@@ -86,10 +86,10 @@ def test_h1_home_briefing_title_escapes_html_tags(offline_container: UIContainer
         assert "href" not in v
 
 
-def test_h2_answer_card_and_sidebar_neutralise_markdown_images_and_links(
+def test_answer_card_and_sidebar_neutralise_markdown_images_and_links(
     offline_container: UIContainer,
 ) -> None:
-    """H2: untrusted model summary, claims, and sidebar chat titles never render links/images."""
+    """untrusted model summary, claims, and sidebar chat titles never render links/images."""
     session = _demo_session_for("acme_admin")
     resp = {
         "turn_id": "turn_sec_test",
@@ -181,7 +181,7 @@ def test_h2_answer_card_and_sidebar_neutralise_markdown_images_and_links(
             assert r"\`" in lbl
 
 
-def test_h1_telemetry_software_name_with_html_is_escaped_on_home(
+def test_telemetry_software_name_with_html_is_escaped_on_home(
     offline_container: UIContainer,
 ) -> None:
     """Hostile software name from telemetry rendered on Home briefing has zero active HTML tags."""
@@ -217,10 +217,10 @@ def test_h1_telemetry_software_name_with_html_is_escaped_on_home(
 # ---------------------------------------------------------------------------
 
 
-def test_w1_fleet_row_selection_updates_detail_panel_and_picker(
+def test_fleet_row_selection_updates_detail_panel_and_picker(
     offline_container: UIContainer,
 ) -> None:
-    """W1: selecting row 1 in Fleet table switches selected_device_id & detail panel to row 1."""
+    """selecting row 1 in Fleet table switches selected_device_id & detail panel to row 1."""
     _ = offline_container
     session = _demo_session_for("acme_admin")
 
@@ -248,8 +248,8 @@ def test_w1_fleet_row_selection_updates_detail_panel_and_picker(
     assert any("acme-thinkpad-8" in s.value for s in at.subheader)
 
 
-def test_l3_fleet_compliance_heatmap_humanizes_check_ids() -> None:
-    """L3: Fleet compliance heatmap maps raw check IDs to plain English."""
+def test_fleet_compliance_heatmap_humanizes_check_ids() -> None:
+    """Fleet compliance heatmap maps raw check IDs to plain English."""
     from fleet_copilot.interfaces.ui.pages.fleet import _compliance_timeline_spec
 
     spec = _compliance_timeline_spec(
@@ -264,8 +264,8 @@ def test_l3_fleet_compliance_heatmap_humanizes_check_ids() -> None:
     assert checks == {"OS up to date", "Disk encryption", "Screen lock"}
 
 
-def test_w2_architecture_diagrams_theme_aware_and_readable() -> None:
-    """W2: Graphviz DOT sets transparent bg, font size >= 12, and theme-contrasting edge fonts."""
+def test_architecture_diagrams_theme_aware_and_readable() -> None:
+    """Graphviz DOT sets transparent bg, font size >= 12, and theme-contrasting edge fonts."""
     from fleet_copilot.interfaces.ui.pages.how_it_works import _agent_graph_dot, _system_graph_dot
 
     dark_agent = _agent_graph_dot({"load_context", "planner"}, dark=True)
@@ -281,10 +281,10 @@ def test_w2_architecture_diagrams_theme_aware_and_readable() -> None:
     assert 'fontcolor="#1E293B"' in light_agent
 
 
-def test_w3_examples_gallery_defaults_to_showcase_and_shows_question_and_grade(
+def test_examples_gallery_defaults_to_showcase_and_shows_question_and_grade(
     offline_container: UIContainer,
 ) -> None:
-    """W3: Examples defaults to ins-acme-battery (Passed) and shows question + Passed/Missed."""
+    """Examples defaults to ins-acme-battery (Passed) and shows question + Passed/Missed."""
     _ = offline_container
     session = _demo_session_for("acme_admin")
 
@@ -336,8 +336,8 @@ def test_w3_examples_gallery_defaults_to_showcase_and_shows_question_and_grade(
     assert "Strict device-ID set grader expected" in reason
 
 
-def test_w4_home_mini_charts_software_table_and_compliance_heatmap() -> None:
-    """W4: Software omits meaningless chart, compliance renders heatmap, axes use short titles."""
+def test_home_mini_charts_software_table_and_compliance_heatmap() -> None:
+    """Software omits meaningless chart, compliance renders heatmap, axes use short titles."""
     from fleet_copilot.interfaces.ui.pages.home import _CATEGORY_CHART_Y_TITLE, _mini_chart_spec
 
     assert _CATEGORY_CHART_Y_TITLE["battery"] == "Cycles"
@@ -377,10 +377,10 @@ def test_w4_home_mini_charts_software_table_and_compliance_heatmap() -> None:
     assert {v["status"] for v in hm["data"]["values"]} == {"pass", "fail"}
 
 
-def test_w5_w6_w7_chart_title_hostname_and_device_record_evidence_in_answer_and_inspector(
+def test_chart_title_hostname_and_device_record_evidence_in_answer_and_inspector(
     offline_container: UIContainer,
 ) -> None:
-    """W5/W6/W7: Answer chart uses hostname, device_state renders Device record with current:."""
+    """Answer chart uses hostname, device_state renders Device record with current:."""
     _ = offline_container
     session = _demo_session_for("acme_admin")
     resp = {
@@ -465,10 +465,10 @@ def test_w5_w6_w7_chart_title_hostname_and_device_record_evidence_in_answer_and_
     at.run()
     assert not at.exception
     md_all = "\n".join(m.value for m in at.markdown)
-    # W5: chart title uses hostname, raw chart dict stays untouched
+    # chart title uses hostname, raw chart dict stays untouched
     assert "acme-thinkpad-8 · Battery" in md_all
     assert resp["charts"][0]["title"] == "8NM23J95R5I6 · Battery"
-    # W6 & W7: Device record summary with `current:` label rendered in compact Evidence cards
+    # Device record summary with `current:` label rendered in compact Evidence cards
     from markdown_it import MarkdownIt
 
     rendered_md = MarkdownIt("commonmark").render(md_all)
@@ -477,10 +477,10 @@ def test_w5_w6_w7_chart_title_hostname_and_device_record_evidence_in_answer_and_
     assert "1,157 cycles" in rendered_md
 
 
-def test_w8_viewer_empty_approvals_queue_uses_viewer_copy(
+def test_viewer_empty_approvals_queue_uses_viewer_copy(
     offline_container: UIContainer,
 ) -> None:
-    """W8: Viewer with empty approvals queue sees role-appropriate copy."""
+    """Viewer with empty approvals queue sees role-appropriate copy."""
     _ = offline_container
     session = _demo_session_for("acme_viewer")
 
@@ -497,10 +497,10 @@ def test_w8_viewer_empty_approvals_queue_uses_viewer_copy(
     assert any("IT admins stage actions from Home or Copilot." in t for t in info_texts)
 
 
-def test_w9_sign_in_empty_code_does_not_count_toward_lockout_and_typing_clears_error(
+def test_sign_in_empty_code_does_not_count_toward_lockout_and_typing_clears_error(
     offline_container: UIContainer,
 ) -> None:
-    """W9: Empty access code prompts without incrementing lockout; next submit replaces it."""
+    """Empty access code prompts without incrementing lockout; next submit replaces it."""
     _ = offline_container
 
     def _run_sign_in() -> None:
@@ -526,10 +526,10 @@ def test_w9_sign_in_empty_code_does_not_count_toward_lockout_and_typing_clears_e
     assert not any("Enter your access code first." in e.value for e in at.error)
 
 
-def test_w10_outbox_email_word_boundary_ellipsis_hostname_subject_and_safe_md(
+def test_outbox_email_word_boundary_ellipsis_hostname_subject_and_safe_md(
     offline_container: UIContainer,
 ) -> None:
-    """W10: Outbox trims cleanly with ellipsis, shows hostname in subject, and sanitizes message."""
+    """Outbox trims cleanly with ellipsis, shows hostname in subject, and sanitizes message."""
     session = _demo_session_for("acme_admin")
     long_msg = (
         "Hello, your laptop acme-macbook-4 is failing screen_lock compliance. "
@@ -584,10 +584,10 @@ def test_w10_outbox_email_word_boundary_ellipsis_hostname_subject_and_safe_md(
         assert "href" not in v
 
 
-def test_s5_backtick_interpolation_and_untrusted_call_sites(
+def test_backtick_interpolation_and_untrusted_call_sites(
     offline_container: UIContainer,
 ) -> None:
-    """S5: inspector tool_hint, policy observed/threshold, citation ids, and outbox dev_id safe."""
+    """inspector tool_hint, policy observed/threshold, citation ids, and outbox dev_id safe."""
     session = _demo_session_for("acme_admin")
     hostile_bt = "x` ![px](//evil/p.png) `y"
     resp = {
@@ -731,10 +731,10 @@ def test_s5_backtick_interpolation_and_untrusted_call_sites(
                 )
 
 
-def test_l2_w11_guardrails_uses_turn_jobs_guarded_and_company_aware_copy(
+def test_guardrails_uses_turn_jobs_guarded_and_company_aware_copy(
     offline_container: UIContainer,
 ) -> None:
-    """L2 & W11: Guardrails has full-label buttons, company-aware copy, and TurnJobs."""
+    """Guardrails has full-label buttons, company-aware copy, and TurnJobs."""
     session = _demo_session_for("acme_admin")
 
     def _run_how() -> None:
@@ -748,10 +748,10 @@ def test_l2_w11_guardrails_uses_turn_jobs_guarded_and_company_aware_copy(
     at.run()
     assert not at.exception
 
-    # W11: Acme-aware explanation for cross-tenant recorded run
+    # Acme-aware explanation for cross-tenant recorded run
     assert any("You are signed in as **Acme**" in c.value for c in at.caption)
 
-    # L2 & S6: Selecting an Acme-eligible attack and clicking Run live submits via TurnJobs +
+    # Selecting an Acme-eligible attack and clicking Run live submits via TurnJobs +
     # GuardedCopilot with a pre-generated thread ID created hidden=True (never visible in list)
     import time
 
@@ -773,9 +773,9 @@ def test_l2_w11_guardrails_uses_turn_jobs_guarded_and_company_aware_copy(
         snap = offline_container.turn_jobs.get(str(job_meta["job_id"]))
     assert snap is not None
     assert snap.status == "done"
-    # L2: GuardedCopilot recorded the turn attempt in the spend ledger
+    # GuardedCopilot recorded the turn attempt in the spend ledger
     assert len(offline_container.store.spend_ledger) >= 1
-    # S6: Thread was born hidden=True at submit/ensure_thread time, never exposed in visible chats
+    # Thread was born hidden=True at submit/ensure_thread time, never exposed in visible chats
     gr_row = offline_container.store.get_thread(session.company_id, gr_tid)
     assert gr_row is not None and gr_row["hidden"] is True
     visible_tids = {
@@ -787,8 +787,8 @@ def test_l2_w11_guardrails_uses_turn_jobs_guarded_and_company_aware_copy(
     assert gr_tid not in visible_tids
 
 
-def test_s3_persona_switch_clears_guardrail_and_tenant_scoped_state() -> None:
-    """S3: Switching personas or signing out clears all guardrail and tenant-scoped keys."""
+def test_persona_switch_clears_guardrail_and_tenant_scoped_state() -> None:
+    """Switching personas or signing out clears all guardrail and tenant-scoped keys."""
     acme = _demo_session_for("acme_admin")
     globex = _demo_session_for("globex_admin")
 
@@ -836,10 +836,10 @@ def test_s3_persona_switch_clears_guardrail_and_tenant_scoped_state() -> None:
     assert at.session_state["_after_signout_has_gr"] is False
 
 
-def test_s4_approval_bypass_guardrail_is_live_for_viewer_only(
+def test_approval_bypass_guardrail_is_live_for_viewer_only(
     offline_container: UIContainer,
 ) -> None:
-    """S4: approval_bypass cannot run live as it_admin (avoids dangling proposals), only viewer."""
+    """approval_bypass cannot run live as it_admin (avoids dangling proposals), only viewer."""
     _ = offline_container
 
     def _run_how() -> None:
@@ -868,10 +868,10 @@ def test_s4_approval_bypass_guardrail_is_live_for_viewer_only(
     assert "guardrail_live_approval_bypass" in viewer_keys
 
 
-def test_s7_is_dark_theme_detects_light_dark_and_missing_context(
+def test_is_dark_theme_detects_light_dark_and_missing_context(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """S7: `_is_dark_theme()` reads `st.context.theme.type` and fails safe to light."""
+    """`_is_dark_theme()` reads `st.context.theme.type` and fails safe to light."""
     from types import SimpleNamespace
 
     import streamlit as st
@@ -888,10 +888,10 @@ def test_s7_is_dark_theme_detects_light_dark_and_missing_context(
     assert _is_dark_theme() is False
 
 
-def test_r1_signed_out_refresh_redirects_with_session_ended_notice(
+def test_signed_out_refresh_redirects_with_session_ended_notice(
     offline_container: UIContainer,
 ) -> None:
-    """R1: Signed-out route hit shows 'Your session ended' notice; explicit sign-out stays clean."""
+    """Signed-out route hit shows 'Your session ended' notice; explicit sign-out stays clean."""
     _ = offline_container
 
     def _run_home_signed_out() -> None:
@@ -939,15 +939,15 @@ def test_r1_signed_out_refresh_redirects_with_session_ended_notice(
     assert "sign_in_notice" not in at_so.session_state
 
 
-def test_r2_r3_home_heatmap_untruncated_hostnames_and_humanized_check_titles(
+def test_home_heatmap_untruncated_hostnames_and_humanized_check_titles(
     offline_container: UIContainer,
 ) -> None:
-    """R2/R3: Home compliance heatmap disables y-axis truncation; card titles humanize check IDs."""
+    """Home compliance heatmap disables y-axis truncation; card titles humanize check IDs."""
     from fleet_copilot.domain.models import TenantContext
     from fleet_copilot.interfaces.ui.pages.home import _compliance_heatmap_spec
     from fleet_copilot.services.briefing import build_briefing
 
-    # R2: labelLimit == 0 disables Vega-Lite y-axis label truncation for long hostnames
+    # labelLimit == 0 disables Vega-Lite y-axis label truncation for long hostnames
     item = BriefingItem(
         id="brief:compliance_drift",
         severity="medium",
@@ -966,7 +966,7 @@ def test_r2_r3_home_heatmap_untruncated_hostnames_and_humanized_check_titles(
     assert spec is not None
     assert spec["encoding"]["y"]["axis"]["labelLimit"] == 0
 
-    # R3: Real briefing builder never leaks raw snake_case check IDs in titles or explanations
+    # Real briefing builder never leaks raw snake_case check IDs in titles or explanations
     ctx = TenantContext(
         company_id="acme-001",
         actor_id="rev_01:acme_admin",
