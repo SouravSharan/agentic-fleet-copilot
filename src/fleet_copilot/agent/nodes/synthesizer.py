@@ -17,6 +17,7 @@ from fleet_copilot.agent.prompts import load_prompt
 from fleet_copilot.agent.schemas import Answer
 from fleet_copilot.agent.state import CopilotState
 from fleet_copilot.domain.models import TenantContext
+from fleet_copilot.tools.sanitize import neutralize_untrusted_text
 
 logger = logging.getLogger(__name__)
 
@@ -89,36 +90,69 @@ def make_synthesizer_node(deps: Any) -> Any:
         ctx = runtime.context
         template, _ = load_prompt("synthesizer")
 
-        # Build compact ledger digest (only handles, devices, metrics, values, timestamps)
+        # Build compact ledger digest (neutralizing untrusted telemetry text for the LLM while
+        # preserving raw values in state["evidence"] for the UI evidence panel).
         raw_ev = state.get("evidence") or {}
-        ledger_digest = [
-            {
+        ledger_digest: list[dict[str, Any]] = []
+        for h, ev in sorted(
+            raw_ev.items(),
+            key=lambda kv: (
+                {"E": 0, "C": 1, "Q": 2}.get(kv[0][:1], 9),
+                int(kv[0][1:])
+                if len(kv[0]) >= 2 and kv[0][:1] in ("E", "C", "Q") and kv[0][1:].isdigit()
+                else 10**9,
+                kv[0],
+            ),
+        ):
+            ev_suspicious = False
+            raw_host = ev.get("hostname")
+            if isinstance(raw_host, str):
+                safe_host, f_h = neutralize_untrusted_text(raw_host, evidence_handle=h)
+                ev_suspicious = ev_suspicious or f_h
+            else:
+                safe_host = raw_host
+
+            raw_metric = ev.get("metric")
+            if isinstance(raw_metric, str):
+                safe_metric, f_m = neutralize_untrusted_text(raw_metric, evidence_handle=h)
+                ev_suspicious = ev_suspicious or f_m
+            else:
+                safe_metric = raw_metric
+
+            raw_val = ev.get("value")
+            if isinstance(raw_val, str):
+                safe_val: Any
+                safe_val, f_v = neutralize_untrusted_text(raw_val, evidence_handle=h)
+                ev_suspicious = ev_suspicious or f_v
+            else:
+                safe_val = raw_val
+
+            raw_label = ev.get("label")
+            if isinstance(raw_label, str):
+                safe_label, f_l = neutralize_untrusted_text(raw_label, evidence_handle=h)
+                ev_suspicious = ev_suspicious or f_l
+            else:
+                safe_label = raw_label
+
+            entry: dict[str, Any] = {
                 "h": h,
                 "device_id": ev.get("device_id"),
-                "hostname": ev.get("hostname"),
-                "metric": ev.get("metric"),
-                "value": ev.get("value"),
+                "hostname": safe_host,
+                "metric": safe_metric,
+                "value": safe_val,
                 "unit": ev.get("unit"),
                 "at": ev.get("collected_at"),
-                "label": ev.get("label"),
+                "label": safe_label,
             }
-            for h, ev in sorted(
-                raw_ev.items(),
-                key=lambda kv: (
-                    {"E": 0, "C": 1, "Q": 2}.get(kv[0][:1], 9),
-                    int(kv[0][1:])
-                    if len(kv[0]) >= 2 and kv[0][:1] in ("E", "C", "Q") and kv[0][1:].isdigit()
-                    else 10**9,
-                    kv[0],
-                ),
-            )
-        ]
+            if ev_suspicious:
+                entry["suspicious_text"] = True
+            ledger_digest.append(entry)
 
         # Read investigator's concise wrap-up via `.text` (Gemini 3 rule #1: list-shaped content)
         investigator_note = ""
         msgs = state.get("messages") or []
         if msgs and isinstance(msgs[-1], AIMessage) and not msgs[-1].tool_calls:
-            investigator_note = msgs[-1].text
+            investigator_note, _ = neutralize_untrusted_text(msgs[-1].text)
 
         tool_summaries = {
             "tool_outputs": state.get("tool_outputs") or [],

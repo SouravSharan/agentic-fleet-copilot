@@ -16,6 +16,7 @@ from fleet_copilot.agent.schemas import Answer, Plan
 from fleet_copilot.agent.state import CopilotState
 from fleet_copilot.domain.models import TenantContext
 from fleet_copilot.services.audit import TurnCompletedPayload
+from fleet_copilot.tools.sanitize import neutralize_untrusted_text
 
 logger = logging.getLogger(__name__)
 
@@ -90,10 +91,12 @@ def render_answer_markdown(
             ev = evidence_map[h]
             citations_out.append(ev)
             host = ev.get("hostname") or ev.get("device_id")
+            safe_host, _ = neutralize_untrusted_text(str(host), evidence_handle=h)
+            safe_label, _ = neutralize_untrusted_text(str(ev.get("label") or ""), evidence_handle=h)
             snap = str(ev.get("snapshot_id", ""))
             at = str(ev.get("collected_at", ""))[:19]
             lines.append(
-                f"- `[{h}]` `{snap}` · `{ev.get('device_id')}` ({host}) · {ev.get('label')} · {at}"
+                f"- `[{h}]` `{snap}` · `{ev.get('device_id')}` ({safe_host}) · {safe_label} · {at}"
             )
 
     return "\n".join(lines), citations_out

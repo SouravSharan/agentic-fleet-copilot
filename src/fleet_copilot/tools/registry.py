@@ -17,6 +17,7 @@ from fleet_copilot.repositories.copilot_store import PgCopilotStore
 from fleet_copilot.repositories.telemetry import TelemetryRepository
 from fleet_copilot.services.actions import ActionService
 from fleet_copilot.services.policy import PolicyService
+from fleet_copilot.tools.sanitize import neutralize_untrusted_text
 
 _CTRL_RE = re.compile(r"[\x00-\x1f\x7f]+")
 _ROLE_RANK: dict[str, int] = {"employee": 0, "viewer": 1, "it_admin": 2}
@@ -68,16 +69,82 @@ def sanitize_telemetry_str(value: str, *, max_len: int = _MAX_TELEMETRY_STR_LEN)
     return cleaned
 
 
-def _sanitize_value(obj: Any, _truncated_flag: list[bool] | None = None) -> Any:
+def _sanitize_field(
+    value: str,
+    *,
+    max_len: int,
+    evidence_handle: str | None,
+    suspicious_flag: list[bool],
+) -> str:
+    safe, withheld = neutralize_untrusted_text(value, evidence_handle=evidence_handle)
+    if withheld:
+        suspicious_flag[0] = True
+        return safe
+    return sanitize_telemetry_str(value, max_len=max_len)
+
+
+def _sanitize_value(
+    obj: Any,
+    _truncated_flag: list[bool] | None = None,
+    *,
+    evidence_handle: str | None = None,
+    suspicious_flag: list[bool] | None = None,
+) -> Any:
     if isinstance(obj, str):
+        safe, withheld = neutralize_untrusted_text(obj, evidence_handle=evidence_handle)
+        if withheld:
+            if suspicious_flag is not None:
+                suspicious_flag[0] = True
+            return safe
         return sanitize_telemetry_str(obj)
     if isinstance(obj, list):
         if len(obj) > 50 and _truncated_flag is not None:
             _truncated_flag[0] = True
-        return [_sanitize_value(item, _truncated_flag) for item in obj[:50]]
+        return [
+            _sanitize_value(
+                item,
+                _truncated_flag,
+                evidence_handle=evidence_handle,
+                suspicious_flag=suspicious_flag,
+            )
+            for item in obj[:50]
+        ]
     if isinstance(obj, dict):
-        return {str(k): _sanitize_value(v, _truncated_flag) for k, v in obj.items()}
+        return {
+            str(k): _sanitize_value(
+                v,
+                _truncated_flag,
+                evidence_handle=evidence_handle,
+                suspicious_flag=suspicious_flag,
+            )
+            for k, v in obj.items()
+        }
     return obj
+
+
+def _resolve_row_handle(
+    row: Any,
+    *,
+    ev_handles_by_key: dict[tuple[str, str, str], str],
+    ev_handles_by_dev: dict[str, str],
+    first_handle: str | None,
+) -> str | None:
+    if isinstance(row, dict):
+        row_ev = row.get("evidence")
+        if isinstance(row_ev, list):
+            for item in row_ev:
+                if isinstance(item, dict):
+                    key = (
+                        str(item.get("snapshot_id") or ""),
+                        str(item.get("device_id") or ""),
+                        str(item.get("metric") or ""),
+                    )
+                    if key in ev_handles_by_key:
+                        return ev_handles_by_key[key]
+        dev_id = row.get("device_id")
+        if dev_id and str(dev_id) in ev_handles_by_dev:
+            return ev_handles_by_dev[str(dev_id)]
+    return first_handle
 
 
 def format_tool_output(
@@ -86,32 +153,73 @@ def format_tool_output(
     *,
     max_rows: int = _MAX_TOOL_ROWS,
 ) -> tuple[str, list[dict[str, Any]]]:
-    """Register evidence in `ledger` and return compact JSON + evidence entries for the LLM."""
+    """Register raw evidence in `ledger` and return compact, neutralized JSON for the LLM."""
     list_truncated = [False]
+    suspicious_flag = [False]
     ev_entries: list[dict[str, Any]] = []
+    ev_handles_by_key: dict[tuple[str, str, str], str] = {}
+    ev_handles_by_dev: dict[str, str] = {}
+    first_handle: str | None = None
+
     for ev in result.evidence:
         handle = ledger.add(ev)
+        if first_handle is None:
+            first_handle = handle
+        ev_handles_by_key[(ev.snapshot_id, ev.device_id, ev.metric)] = handle
+        ev_handles_by_dev.setdefault(ev.device_id, handle)
+
+        safe_metric, m_withheld = neutralize_untrusted_text(ev.metric, evidence_handle=handle)
+        if m_withheld:
+            suspicious_flag[0] = True
         ev_entries.append(
             {
                 "h": handle,
                 "device": ev.device_id,
-                "metric": ev.metric,
-                "value": _sanitize_value(ev.value, list_truncated),
+                "metric": safe_metric,
+                "value": _sanitize_value(
+                    ev.value,
+                    list_truncated,
+                    evidence_handle=handle,
+                    suspicious_flag=suspicious_flag,
+                ),
                 "at": ev.collected_at.isoformat(),
             }
         )
 
     rows = result.data[:max_rows]
-    sanitized_rows = [_sanitize_value(r, list_truncated) for r in rows]
+    sanitized_rows = [
+        _sanitize_value(
+            r,
+            list_truncated,
+            evidence_handle=_resolve_row_handle(
+                r,
+                ev_handles_by_key=ev_handles_by_key,
+                ev_handles_by_dev=ev_handles_by_dev,
+                first_handle=first_handle,
+            ),
+            suspicious_flag=suspicious_flag,
+        )
+        for r in rows
+    ]
     truncated = result.truncated or (len(result.data) > max_rows) or list_truncated[0]
 
     payload: dict[str, Any] = {
         "ok": result.ok,
-        "summary": sanitize_telemetry_str(result.summary, max_len=240),
+        "summary": _sanitize_field(
+            result.summary,
+            max_len=240,
+            evidence_handle=first_handle,
+            suspicious_flag=suspicious_flag,
+        ),
         "rows": sanitized_rows,
         "evidence": ev_entries[:40],
         "notes": [
-            sanitize_telemetry_str(n, max_len=160)
+            _sanitize_field(
+                n,
+                max_len=160,
+                evidence_handle=first_handle,
+                suspicious_flag=suspicious_flag,
+            )
             for n in (result.coverage.notes if result.coverage else [])
         ],
         "policy": {
@@ -126,7 +234,14 @@ def format_tool_output(
             "matched": result.coverage.matched,
         }
     if result.error is not None:
-        payload["error"] = sanitize_telemetry_str(result.error, max_len=160)
+        payload["error"] = _sanitize_field(
+            result.error,
+            max_len=160,
+            evidence_handle=first_handle,
+            suspicious_flag=suspicious_flag,
+        )
+    if suspicious_flag[0]:
+        payload["suspicious_text"] = True
 
     return json.dumps(payload, sort_keys=True, ensure_ascii=False), ev_entries
 

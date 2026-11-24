@@ -23,6 +23,7 @@ from fleet_copilot.tools.registry import (
     TurnToolSink,
     sanitize_telemetry_str,
 )
+from fleet_copilot.tools.sanitize import neutralize_untrusted_value
 
 
 def _sink_and_ledger(
@@ -146,13 +147,14 @@ def build_sql_tool_spec(deps: ToolDeps) -> ToolSpec:
                 "summary": summary,
             }
 
-        payload = {
+        llm_rows, sql_suspicious = neutralize_untrusted_value(res.rows[:20], evidence_handle=handle)
+        payload: dict[str, object] = {
             "ok": True,
             "query_handle": handle,
             "sql": res.sql,
             "purpose": clean_purpose,
             "columns": res.columns,
-            "rows": res.rows[:20],
+            "rows": llm_rows,
             "row_count": res.row_count,
             "truncated": res.truncated or res.row_count > 20,
             "evidence": [
@@ -167,6 +169,8 @@ def build_sql_tool_spec(deps: ToolDeps) -> ToolSpec:
             "telemetry_as_of": as_of.isoformat(),
             "summary": summary,
         }
+        if sql_suspicious:
+            payload["suspicious_text"] = True
         return json.dumps(payload, sort_keys=True, ensure_ascii=False)
 
     return ToolSpec(name="run_readonly_sql", min_role="viewer", kind="read", tool=run_readonly_sql)
