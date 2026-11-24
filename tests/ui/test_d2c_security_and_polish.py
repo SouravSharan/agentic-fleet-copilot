@@ -198,3 +198,375 @@ def test_h1_telemetry_software_name_with_html_is_escaped_on_home(
     assert not at.exception
     for m in at.markdown:
         assert "<a href=" not in m.value
+
+
+# ---------------------------------------------------------------------------
+# Phase D2c walkthrough polish tests (L2, L3, W1-W11)
+# ---------------------------------------------------------------------------
+
+
+def test_w1_fleet_row_selection_updates_detail_panel_and_picker(
+    offline_container: UIContainer,
+) -> None:
+    """W1: selecting row 1 in Fleet table switches selected_device_id & detail panel to row 1."""
+    _ = offline_container
+    session = _demo_session_for("acme_admin")
+
+    def _run_fleet() -> None:
+        from fleet_copilot.interfaces.ui.pages.fleet import render_fleet_page
+
+        render_fleet_page()
+
+    at = AppTest.from_function(_run_fleet, default_timeout=20)
+    at.session_state["demo_session"] = session
+    at.run()
+    assert not at.exception
+    # Row 0 sorted alphabetically is acme-macbook-4; row 1 is acme-thinkpad-8
+    assert at.session_state["selected_device_id"] == "MT7PJB7N5LRE"
+    assert any("acme-macbook-4" in s.value for s in at.subheader)
+
+    # Simulate selecting row 1 in the single-row selectable st.dataframe
+    at.session_state["fleet_devices_table"] = {
+        "selection": {"rows": [1], "columns": [], "cells": []}
+    }
+    at.run()
+    assert not at.exception
+    assert at.session_state["selected_device_id"] == "8NM23J95R5I6"
+    assert at.session_state["fleet_device_picker"] == "8NM23J95R5I6"
+    assert any("acme-thinkpad-8" in s.value for s in at.subheader)
+
+
+def test_l3_fleet_compliance_heatmap_humanizes_check_ids() -> None:
+    """L3: Fleet compliance heatmap maps raw check IDs to plain English."""
+    from fleet_copilot.interfaces.ui.pages.fleet import _compliance_timeline_spec
+
+    spec = _compliance_timeline_spec(
+        [
+            {"date": "2026-06-12", "check_id": "os_up_to_date", "status": "fail"},
+            {"date": "2026-06-12", "check_id": "disk_encryption", "status": "pass"},
+            {"date": "2026-06-12", "check_id": "screen_lock", "status": "pass"},
+        ]
+    )
+    assert spec is not None
+    checks = {v["check"] for v in spec["data"]["values"]}
+    assert checks == {"OS up to date", "Disk encryption", "Screen lock"}
+
+
+def test_w2_architecture_diagrams_theme_aware_and_readable() -> None:
+    """W2: Graphviz DOT sets transparent bg, font size >= 12, and theme-contrasting edge fonts."""
+    from fleet_copilot.interfaces.ui.pages.how_it_works import _agent_graph_dot, _system_graph_dot
+
+    dark_agent = _agent_graph_dot({"load_context", "planner"}, dark=True)
+    light_agent = _agent_graph_dot({"load_context", "planner"}, dark=False)
+    dark_sys = _system_graph_dot(dark=True)
+
+    for dot in (dark_agent, light_agent, dark_sys):
+        assert 'bgcolor="transparent"' in dot
+        assert "fontsize=12" in dot
+        assert "rankdir=TB" in dot
+    assert 'fontcolor="#E2E8F0"' in dark_agent
+    assert 'fontcolor="#E2E8F0"' in dark_sys
+    assert 'fontcolor="#1E293B"' in light_agent
+
+
+def test_w3_examples_gallery_defaults_to_showcase_and_shows_question_and_grade(
+    offline_container: UIContainer,
+) -> None:
+    """W3: Examples defaults to ins-acme-battery (Passed) and shows question + Passed/Missed."""
+    _ = offline_container
+    session = _demo_session_for("acme_admin")
+
+    def _run_how() -> None:
+        from fleet_copilot.interfaces.ui.pages.how_it_works import render_how_it_works_page
+
+        render_how_it_works_page()
+
+    at = AppTest.from_function(_run_how, default_timeout=25)
+    at.session_state["demo_session"] = session
+    at.session_state["how_it_works_default_tab"] = "Examples"
+    at.run()
+    assert not at.exception
+    assert at.session_state["examples_group_picker"] == "Insights"
+    assert at.session_state["examples_case_picker"] == "ins-acme-battery"
+    assert any("Question asked:" in m.value for m in at.markdown)
+
+    # Switching to Q&A -> qa-acme-desktop-battery shows Missed badge and reason
+    at.selectbox(key="examples_group_picker").select("Q&A").run()
+    assert not at.exception
+    at.selectbox(key="examples_case_picker").select("qa-acme-desktop-battery").run()
+    assert not at.exception
+    assert any("Strict device-ID set grader expected" in c.value for c in at.caption)
+
+
+def test_w4_home_mini_charts_software_table_and_compliance_heatmap() -> None:
+    """W4: Software omits meaningless chart, compliance renders heatmap, axes use short titles."""
+    from fleet_copilot.interfaces.ui.pages.home import _CATEGORY_CHART_Y_TITLE, _mini_chart_spec
+
+    assert _CATEGORY_CHART_Y_TITLE["battery"] == "Cycles"
+    assert _CATEGORY_CHART_Y_TITLE["disk"] == "Disk %"
+    assert _CATEGORY_CHART_Y_TITLE["ram"] == "RAM %"
+
+    sw_item = BriefingItem(
+        id="brief:software",
+        severity="medium",
+        category="software",
+        title="1 device with non-baseline software",
+        explanation="Found uTorrent",
+        device_ids=["MT7PJB7N5LRE"],
+        hostnames=["acme-macbook-4"],
+        chart_series=[{"date": "2026-06-12", "value": 1.0, "device_id": "MT7PJB7N5LRE"}],
+        suggested_prompt="Check software",
+    )
+    assert _mini_chart_spec(sw_item) is None
+
+    drift_item = BriefingItem(
+        id="brief:compliance_drift",
+        severity="high",
+        category="compliance_drift",
+        title="1 device drifted into compliance failure",
+        explanation="screen_lock failed",
+        device_ids=["MT7PJB7N5LRE"],
+        hostnames=["acme-macbook-4"],
+        chart_series=[
+            {"date": "2026-06-10", "value": 1.0, "device_id": "MT7PJB7N5LRE"},
+            {"date": "2026-06-11", "value": 0.0, "device_id": "MT7PJB7N5LRE"},
+        ],
+        suggested_prompt="Check drift",
+    )
+    hm = _mini_chart_spec(drift_item)
+    assert hm is not None
+    assert hm["mark"]["type"] == "rect"
+    assert {v["status"] for v in hm["data"]["values"]} == {"pass", "fail"}
+
+
+def test_w5_w6_w7_chart_title_hostname_and_device_record_evidence_in_answer_and_inspector(
+    offline_container: UIContainer,
+) -> None:
+    """W5/W6/W7: Answer chart uses hostname, device_state renders Device record with current:."""
+    _ = offline_container
+    session = _demo_session_for("acme_admin")
+    resp = {
+        "turn_id": "turn_w56",
+        "trace_id": "trace-w56",
+        "status": "completed",
+        "answer": {
+            "summary": "acme-thinkpad-8 needs battery service.",
+            "claims": [{"text": "Device needs service [E1]", "citations": ["E1"]}],
+        },
+        "citations": [
+            {
+                "handle": "E1",
+                "snapshot_id": "snap_8nm2_latest",
+                "device_id": "8NM23J95R5I6",
+                "hostname": "acme-thinkpad-8",
+                "collected_at": AS_OF.isoformat(),
+                "metric": "device_state",
+                "value": "laptop",
+                "unit": None,
+                "label": "acme-thinkpad-8 (laptop)",
+            }
+        ],
+        "charts": [
+            {
+                "chart_id": "chart_w5_test",
+                "handle": "C1",
+                "title": "8NM23J95R5I6 · Battery",
+                "vega_lite_spec": {
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                    "data": {"values": [{"date": "2026-06-12", "value": 1157}]},
+                    "mark": "line",
+                    "encoding": {
+                        "x": {"field": "date", "type": "temporal"},
+                        "y": {"field": "value", "type": "quantitative", "title": "Cycles"},
+                    },
+                },
+            }
+        ],
+        "queries": [],
+        "insights": [],
+        "proposals": [],
+        "verdicts": [],
+        "warnings": [],
+        "telemetry_as_of": AS_OF.isoformat(),
+    }
+
+    def _run_answer_and_insp(resp_in, sess_in):  # type: ignore[no-untyped-def]
+        import streamlit as st
+
+        from fleet_copilot.interfaces.ui.components.answer_card import render_answer_card
+        from fleet_copilot.interfaces.ui.components.inspector import render_inspector_panel
+
+        hmap = {"8NM23J95R5I6": "acme-thinkpad-8"}
+        summaries = {
+            "8NM23J95R5I6": {
+                "hostname": "acme-thinkpad-8",
+                "model": "ThinkPad X1 Carbon",
+                "form_factor": "laptop",
+                "battery_present": True,
+                "battery_condition": "Service Recommended",
+                "battery_cycles": 1157,
+            }
+        }
+        st.session_state["_active_turns_by_id"] = {
+            "turn_w56": {"turn_id": "turn_w56", "response_json": resp_in}
+        }
+        st.session_state["_active_turn_order"] = ["turn_w56"]
+        st.session_state["selected_turn_id"] = "turn_w56"
+        st.session_state["_active_device_summaries"] = summaries
+        render_answer_card(
+            resp_in,
+            session=sess_in,
+            hostname_map=hmap,
+            turn_id="turn_w56",
+            device_summaries=summaries,
+        )
+        render_inspector_panel()
+
+    at = AppTest.from_function(_run_answer_and_insp, args=(resp, session), default_timeout=20)
+    at.session_state["demo_session"] = session
+    at.run()
+    assert not at.exception
+    md_all = "\n".join(m.value for m in at.markdown)
+    # W5: chart title uses hostname, raw chart dict stays untouched
+    assert "acme-thinkpad-8 · Battery" in md_all
+    assert resp["charts"][0]["title"] == "8NM23J95R5I6 · Battery"
+    # W6 & W7: Device record summary with `current:` label rendered in compact Evidence cards
+    assert "Device record" in md_all
+    assert "current:" in md_all
+    assert "1,157 cycles" in md_all
+
+
+def test_w8_viewer_empty_approvals_queue_uses_viewer_copy(
+    offline_container: UIContainer,
+) -> None:
+    """W8: Viewer with empty approvals queue sees role-appropriate copy."""
+    _ = offline_container
+    session = _demo_session_for("acme_viewer")
+
+    def _run_approvals() -> None:
+        from fleet_copilot.interfaces.ui.pages.approvals import render_approvals_page
+
+        render_approvals_page()
+
+    at = AppTest.from_function(_run_approvals, default_timeout=15)
+    at.session_state["demo_session"] = session
+    at.run()
+    assert not at.exception
+    info_texts = [i.value for i in at.info]
+    assert any("IT admins stage actions from Home or Copilot." in t for t in info_texts)
+
+
+def test_w9_sign_in_empty_code_does_not_count_toward_lockout_and_typing_clears_error(
+    offline_container: UIContainer,
+) -> None:
+    """W9: Empty access code prompts user without incrementing lockout; typing clears error."""
+    _ = offline_container
+
+    def _run_sign_in() -> None:
+        from fleet_copilot.interfaces.ui.pages.sign_in import render_sign_in_page
+
+        render_sign_in_page()
+
+    at = AppTest.from_function(_run_sign_in, default_timeout=15)
+    at.run()
+    assert not at.exception
+
+    # Click persona card with empty access code -> no lockout increment!
+    at.button(key="persona_card_acme_admin").click().run()
+    assert not at.exception
+    assert any("Enter your access code first." in e.value for e in at.error)
+    assert int(at.session_state.get("auth_failed_attempts", 0)) == 0
+
+    # Typing into Access code clears the error via on_change
+    at.text_input(key="sign_in_access_code").set_value("t").run()
+    assert not at.exception
+    assert not at.error
+
+
+def test_w10_outbox_email_word_boundary_ellipsis_hostname_subject_and_safe_md(
+    offline_container: UIContainer,
+) -> None:
+    """W10: Outbox trims cleanly with ellipsis, shows hostname in subject, and sanitizes message."""
+    session = _demo_session_for("acme_admin")
+    long_msg = (
+        "Hello, your laptop acme-macbook-4 is failing screen_lock compliance. "
+        "Please enable screen lock immediately to comply with company security guidelines "
+        "and avoid ticket escalation. See ![beacon](https://evil.example/px) and "
+        "[phish](https://evil.example/click) for additional details."
+    )
+    offline_container.store.proposals["prop_email_1"] = {
+        "proposal_id": "prop_email_1",
+        "company_id": "acme-001",
+        "tool_name": "notify_employee",
+        "target_type": "employee",
+        "target_id": "emp-acme-1003",
+        "arguments_json": {"employee_id": "emp-acme-1003", "message": long_msg},
+        "status": "executed",
+    }
+    offline_container.store.outbox.append(
+        {
+            "outbox_id": 1,
+            "company_id": "acme-001",
+            "proposal_id": "prop_email_1",
+            "channel": "email",
+            "receipt_id": "NTF-1234567890",
+            "payload_json": {
+                "system": "email_mock",
+                "recipient_employee_id": "emp-acme-1003",
+                "subject": "Action needed on your managed device (acme-001)",
+                "body_preview": long_msg[:240],
+            },
+            "created_at": AS_OF,
+        }
+    )
+
+    def _run_approvals() -> None:
+        from fleet_copilot.interfaces.ui.pages.approvals import render_approvals_page
+
+        render_approvals_page()
+
+    at = AppTest.from_function(_run_approvals, default_timeout=20)
+    at.session_state["demo_session"] = session
+    at.run()
+    assert not at.exception
+
+    # Subject replaced raw (acme-001) with matched hostname (acme-macbook-4)
+    assert any("(acme-macbook-4)" in t.value for t in at.text)
+    # Preview ends cleanly with ellipsis and full message has zero active links/images
+    md_values = [m.value for m in at.markdown]
+    assert any(v.endswith("…") for v in md_values)
+    for v in md_values:
+        assert "](https://evil.example" not in v
+
+
+def test_l2_w11_guardrails_uses_turn_jobs_guarded_and_company_aware_copy(
+    offline_container: UIContainer,
+) -> None:
+    """L2 & W11: Guardrails has full-label buttons, company-aware copy, and TurnJobs."""
+    session = _demo_session_for("acme_admin")
+
+    def _run_how() -> None:
+        from fleet_copilot.interfaces.ui.pages.how_it_works import render_how_it_works_page
+
+        render_how_it_works_page()
+
+    at = AppTest.from_function(_run_how, default_timeout=20)
+    at.session_state["demo_session"] = session
+    at.session_state["how_it_works_default_tab"] = "Guardrails"
+    at.run()
+    assert not at.exception
+
+    # W11: Acme-aware explanation for cross-tenant recorded run
+    assert any("You are signed in as **Acme**" in c.value for c in at.caption)
+
+    # L2: Selecting an Acme-eligible attack and clicking Run live submits via TurnJobs + Guarded
+    at.button(key="guardrail_pick_ignore_instructions").click().run()
+    assert not at.exception
+    at.button(key="guardrail_live_ignore_instructions").click().run()
+    assert not at.exception
+    job_meta = at.session_state.get("guardrail_active_job")
+    assert isinstance(job_meta, dict)
+    assert job_meta.get("attack_id") == "ignore_instructions"
+    # Wait briefly for offline ScriptedChatModel TurnJob to finish cleanly
+    snap = offline_container.turn_jobs.get(str(job_meta["job_id"]))
+    assert snap is not None

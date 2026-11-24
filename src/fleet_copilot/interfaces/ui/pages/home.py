@@ -11,6 +11,7 @@ from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.services import (
     cached_personas,
     cached_telemetry_as_of,
+    get_briefing_software_rows,
     get_cached_briefing,
     get_resolved_policies,
 )
@@ -33,12 +34,12 @@ from fleet_copilot.interfaces.ui.theme import (
 from fleet_copilot.services.briefing import BriefingItem
 
 _CATEGORY_CHART_Y_TITLE: dict[str, str] = {
-    "battery": "Battery cycles",
-    "disk": "Disk free (%)",
-    "ram": "RAM used (%)",
+    "battery": "Cycles",
+    "disk": "Disk %",
+    "ram": "RAM %",
     "compliance_drift": "Status",
     "compliance_chronic": "Status",
-    "software": "Present",
+    "software": "Software",
     "stale_devices": "Days offline",
 }
 
@@ -49,12 +50,78 @@ _CATEGORY_METRIC: dict[str, str] = {
 }
 
 
+def _compliance_heatmap_spec(item: BriefingItem) -> dict[str, Any] | None:
+    """Build a crisp pass/fail heatmap (devices x days) for compliance briefing cards (W4)."""
+    if not item.chart_series:
+        return None
+    dev_to_host = dict(zip(item.device_ids, item.hostnames, strict=False))
+    dedup: dict[tuple[str, str], dict[str, Any]] = {}
+    for raw in item.chart_series:
+        if "date" not in raw or "value" not in raw or raw["value"] is None:
+            continue
+        iso_date = str(raw["date"])[:10]
+        did = str(raw.get("device_id") or "")
+        host = dev_to_host.get(did, did or "device")
+        status = "pass" if float(raw["value"]) >= 0.5 else "fail"
+        dedup[(iso_date, host)] = {
+            "date": iso_date[5:] if len(iso_date) == 10 else iso_date,
+            "full_date": iso_date,
+            "device": host,
+            "status": status,
+        }
+    if not dedup:
+        return None
+    vals = sorted(dedup.values(), key=lambda x: x["full_date"])
+    n_devs = len({v["device"] for v in vals})
+    return {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "width": "container",
+        "height": max(110, 32 * n_devs + 44),
+        "data": {"values": vals},
+        "mark": {"type": "rect", "cornerRadius": 3, "stroke": "#FFFFFF", "strokeWidth": 1},
+        "encoding": {
+            "x": {
+                "field": "date",
+                "type": "ordinal",
+                "sort": None,
+                "title": None,
+                "axis": {"labelAngle": 0, "labelOverlap": True},
+            },
+            "y": {
+                "field": "device",
+                "type": "nominal",
+                "title": None,
+                "axis": {"labelLimit": 180},
+            },
+            "color": {
+                "field": "status",
+                "type": "nominal",
+                "title": "Status",
+                "scale": {
+                    "domain": ["pass", "fail"],
+                    "range": [STATUS_HEX["ok"], STATUS_HEX["high"]],
+                },
+                "legend": {"orient": "right"},
+            },
+            "tooltip": [
+                {"field": "full_date", "type": "nominal", "title": "Date"},
+                {"field": "device", "type": "nominal", "title": "Device"},
+                {"field": "status", "type": "nominal", "title": "Status"},
+            ],
+        },
+    }
+
+
 def _mini_chart_spec(
     item: BriefingItem,
     *,
     policies: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """Build a compact inline Vega-Lite v5 trend chart with threshold line from `chart_series`."""
+    if item.category == "software":
+        return None
+    if item.category in ("compliance_drift", "compliance_chronic"):
+        return _compliance_heatmap_spec(item)
     if not item.chart_series:
         return None
     dev_to_host = dict(zip(item.device_ids, item.hostnames, strict=False))
@@ -144,6 +211,7 @@ def _render_briefing_card(
     is_admin: bool,
     key_prefix: str,
     policies: dict[str, Any] | None = None,
+    software_rows: list[dict[str, Any]] | None = None,
 ) -> None:
     """Render one ranked fleet briefing attention card."""
     with st.container(border=True):
@@ -167,9 +235,13 @@ def _render_briefing_card(
                 if len(item.hostnames) > 8:
                     st.badge(f"+{len(item.hostnames) - 8} more", color="gray")
 
-        spec = _mini_chart_spec(item, policies=policies)
-        if spec is not None:
-            st.vega_lite_chart(spec=spec, width="stretch", key=f"{key_prefix}_chart_{item.id}")
+        if item.category == "software":
+            if software_rows:
+                st.dataframe(software_rows[:20], width="stretch", hide_index=True)
+        else:
+            spec = _mini_chart_spec(item, policies=policies)
+            if spec is not None:
+                st.vega_lite_chart(spec=spec, width="stretch", key=f"{key_prefix}_chart_{item.id}")
 
         with st.container(horizontal=True, gap="small"):
             if st.button(
@@ -360,6 +432,8 @@ def render_home_page() -> None:
         session.actor_id,
     )
     policies = get_resolved_policies(session.company_id, as_of_iso)
+    has_software_item = any(item.category == "software" for item in briefing.items)
+    sw_rows = get_briefing_software_rows(session.company_id, as_of_iso) if has_software_item else []
 
     head_left, head_right = st.columns([4, 2])
     with head_left:
@@ -405,6 +479,7 @@ def render_home_page() -> None:
                 is_admin=is_admin,
                 key_prefix="attn",
                 policies=policies,
+                software_rows=sw_rows if item.category == "software" else None,
             )
 
     if low_items:
@@ -419,6 +494,7 @@ def render_home_page() -> None:
                     is_admin=is_admin,
                     key_prefix="low",
                     policies=policies,
+                    software_rows=sw_rows if item.category == "software" else None,
                 )
 
     # Ask box + persona suggested prompts

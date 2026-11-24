@@ -7,9 +7,15 @@ from typing import Any
 
 import streamlit as st
 
+from fleet_copilot.interfaces.ui.humanize import format_device_record_summary
 from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.state import perf_finish_if_active, perf_mark_start
-from fleet_copilot.interfaces.ui.theme import fmt_as_of_full, fmt_int, render_status_badge
+from fleet_copilot.interfaces.ui.theme import (
+    fmt_as_of_full,
+    fmt_int,
+    fmt_number,
+    render_status_badge,
+)
 
 _SENSITIVE_ARG_KEYS: frozenset[str] = frozenset(
     {"api_key", "token", "secret", "password", "authorization", "dsn"}
@@ -70,14 +76,14 @@ def render_inspector_panel() -> None:
         if selected_turn is None and turn_order:
             selected_turn = turns_by_id.get(turn_order[-1])
 
-        with st.container(border=True):
+        with st.container(border=True, key="inspector_card_wrap"):
             with st.container(
                 horizontal=True,
                 horizontal_alignment="distribute",
                 vertical_alignment="center",
                 gap="small",
             ):
-                st.markdown("#### :material/search_insights: Inspector")
+                st.markdown("##### :material/search_insights: Inspector")
                 if st.button(
                     "Close",
                     key="inspector_close_btn",
@@ -171,22 +177,32 @@ def render_inspector_panel() -> None:
 
             with tab_ev:
                 cites = list(resp.get("citations") or [])
+                dev_summaries: dict[str, dict[str, Any]] = dict(
+                    st.session_state.get("_active_device_summaries") or {}
+                )
                 if not cites:
                     st.caption("No evidence handles cited in this turn.")
                 else:
-                    rows = [
-                        {
-                            "handle": c.get("handle"),
-                            "device": c.get("hostname") or c.get("device_id"),
-                            "metric": c.get("metric"),
-                            "value": c.get("value"),
-                            "unit": c.get("unit") or "",
-                            "snapshot_id": c.get("snapshot_id"),
-                            "collected_at": str(c.get("collected_at") or "")[:19],
-                        }
-                        for c in cites[:200]
-                    ]
-                    st.dataframe(rows, width="stretch", hide_index=True)
+                    for c in cites[:60]:
+                        handle = str(c.get("handle") or "—")
+                        dev_id = str(c.get("device_id") or "fleet")
+                        host = str(c.get("hostname") or dev_id)
+                        metric = str(c.get("metric") or "—")
+                        snap_id = str(c.get("snapshot_id") or "—")
+                        ts_short = fmt_as_of_full(c.get("collected_at"))
+                        with st.container(border=True):
+                            if metric == "device_state":
+                                summary = format_device_record_summary(c, dev_summaries.get(dev_id))
+                                st.markdown(f"`[{handle}]` **Device record** · {safe_md(summary)}")
+                            else:
+                                val_txt = fmt_number(c.get("value"), c.get("unit"))
+                                st.markdown(
+                                    f"`[{handle}]` **{safe_md(host)}** · "
+                                    f"`{metric}` = {safe_md(val_txt)}"
+                                )
+                            st.caption(f"Snapshot `{snap_id}` · {ts_short}")
+                    if len(cites) > 60:
+                        st.caption(f"Showing first 60 of {fmt_int(len(cites))} evidence items.")
 
             with tab_verify:
                 g = _grounding_summary(resp)

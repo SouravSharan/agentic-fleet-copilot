@@ -91,6 +91,14 @@ _CHECK_PLAIN_NAMES: dict[str, str] = {
     "replacement_signal_threshold": "Meets multi-signal replacement threshold",
     "employee_owns_referenced_devices": "Employee owns all mentioned devices",
     "notify_message_within_limit": "Message within length limit",
+    "disk_encryption": "Disk encryption",
+    "os_up_to_date": "OS up to date",
+    "screen_lock": "Screen lock",
+    "antivirus_enabled": "Antivirus enabled",
+    "firewall_enabled": "Firewall enabled",
+    "low_disk_space": "Low disk space",
+    "memory_pressure": "Memory pressure",
+    "non_baseline_software": "Non-baseline software",
 }
 
 _AUDIT_EVENT_LABELS: dict[str, str] = {
@@ -388,3 +396,119 @@ def split_and_humanize_caveats(
         else:
             other_notes.append(humanized)
     return policy_lines, other_notes
+
+
+def humanize_chart_title(title: str, hostname_map: Mapping[str, str] | None = None) -> str:
+    """Replace raw device IDs in a displayed chart title with hostnames at render time."""
+    if not title or not hostname_map:
+        return title
+    out = title
+    # Replace longer IDs first to avoid partial collisions
+    for dev_id in sorted(hostname_map.keys(), key=len, reverse=True):
+        host = hostname_map.get(dev_id)
+        if not host or host == dev_id or len(dev_id) < 6:
+            continue
+        out = re.sub(rf"\b{re.escape(dev_id)}\b", host, out)
+    return out
+
+
+def format_device_record_summary(
+    ev: Mapping[str, Any],
+    current_device: Mapping[str, Any] | None = None,
+) -> str:
+    """Format a readable one-line Device record summary from evidence fields first.
+
+    Any supplemental fields taken from current cached device state are explicitly labelled
+    `current:` so reviewers never mistake current values for values at citation time.
+    """
+    raw_val_obj = ev.get("value")
+    val_map: Mapping[str, Any] = raw_val_obj if isinstance(raw_val_obj, Mapping) else {}
+    raw_val = "" if isinstance(raw_val_obj, Mapping) else str(raw_val_obj or "").strip()
+
+    hostname = str(ev.get("hostname") or val_map.get("hostname") or "").strip()
+    device_id = str(ev.get("device_id") or val_map.get("device_id") or "").strip()
+    ev_model = str(ev.get("model") or val_map.get("model") or "").strip()
+    ev_ff = str(ev.get("form_factor") or val_map.get("form_factor") or "").strip()
+    ev_os = str(ev.get("os") or val_map.get("os") or "").strip()
+    ev_batt_cond = str(
+        ev.get("battery_condition") or val_map.get("battery_condition") or ""
+    ).strip()
+    ev_batt_cyc = (
+        ev.get("battery_cycles")
+        if ev.get("battery_cycles") is not None
+        else val_map.get("battery_cycles")
+    )
+    ev_ram = (
+        ev.get("ram_used_pct")
+        if ev.get("ram_used_pct") is not None
+        else val_map.get("ram_used_pct")
+    )
+    ev_disk = (
+        ev.get("disk_free_pct")
+        if ev.get("disk_free_pct") is not None
+        else val_map.get("disk_free_pct")
+    )
+
+    ev_parts: list[str] = []
+    if hostname:
+        ev_parts.append(hostname)
+    elif device_id:
+        ev_parts.append(device_id)
+    if ev_model:
+        ev_parts.append(ev_model)
+    if ev_ff:
+        ev_parts.append(ev_ff)
+    if ev_os:
+        ev_parts.append(ev_os)
+    if ev_batt_cond and ev_batt_cyc is not None:
+        ev_parts.append(f"battery {ev_batt_cond} ({int(ev_batt_cyc):,} cycles)")
+    elif ev_batt_cond:
+        ev_parts.append(f"battery {ev_batt_cond}")
+    elif ev_batt_cyc is not None:
+        ev_parts.append(f"{int(ev_batt_cyc):,} cycles")
+    if ev_ram is not None:
+        ev_parts.append(f"{float(ev_ram):.0f}% RAM")
+    if ev_disk is not None:
+        ev_parts.append(f"{float(ev_disk):.0f}% disk free")
+    if raw_val and raw_val.lower() not in (hostname.lower(), device_id.lower()):
+        ev_parts.append(raw_val)
+
+    ev_summary = " · ".join(ev_parts) if ev_parts else "Device record"
+    if not current_device:
+        return ev_summary
+
+    cur_parts: list[str] = []
+    cur_host = str(current_device.get("hostname") or "").strip()
+    if cur_host and not hostname and cur_host.lower() != device_id.lower():
+        cur_parts.append(cur_host)
+    model = str(current_device.get("model") or "").strip()
+    if model and not ev_model and model.lower() not in raw_val.lower():
+        cur_parts.append(model)
+    ff = str(current_device.get("form_factor") or "").strip()
+    if ff and not ev_ff and ff.lower() not in raw_val.lower():
+        cur_parts.append(ff)
+    cur_os = str(current_device.get("os") or "").strip()
+    if cur_os and not ev_os and cur_os.lower() not in raw_val.lower():
+        cur_parts.append(cur_os)
+
+    has_ev_battery = bool(ev_batt_cond) or ev_batt_cyc is not None
+    if not has_ev_battery and current_device.get("battery_present", True):
+        cond = str(current_device.get("battery_condition") or "").strip()
+        cyc = current_device.get("battery_cycles")
+        if cond and cyc is not None:
+            cur_parts.append(f"battery {cond} ({int(cyc):,} cycles)")
+        elif cond:
+            cur_parts.append(f"battery {cond}")
+        elif cyc is not None:
+            cur_parts.append(f"{int(cyc):,} cycles")
+
+    cur_ram = current_device.get("ram_used_pct")
+    if ev_ram is None and cur_ram is not None:
+        cur_parts.append(f"{float(cur_ram):.0f}% RAM")
+    cur_disk = current_device.get("disk_free_pct")
+    if ev_disk is None and cur_disk is not None:
+        cur_parts.append(f"{float(cur_disk):.0f}% disk free")
+
+    if cur_parts:
+        return f"{ev_summary} · current: {', '.join(cur_parts)}"
+    return ev_summary

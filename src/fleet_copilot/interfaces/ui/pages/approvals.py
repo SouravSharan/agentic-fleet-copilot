@@ -115,11 +115,14 @@ def _render_pending_tab(
                         st.caption(f"`{pid_out[:8]}` -> {st_out}: {safe_md(msg)}")
 
         if not pending:
-            st.info(
+            empty_msg = (
                 "No pending approvals for this company right now. Stage an action from Home or "
-                "Copilot to review it here.",
-                icon=":material/check_circle:",
+                "Copilot to review it here."
+                if is_admin
+                else "Nothing is waiting for approval. IT admins stage actions from Home or "
+                "Copilot."
             )
+            st.info(empty_msg, icon=":material/check_circle:")
             perf_finish_if_active()
             return
 
@@ -440,7 +443,55 @@ def _render_audit_tab(session: DemoSession) -> None:
                 st.code(json.dumps(payload, indent=2, default=str), language="json")
 
 
-def _render_outbox_card(row: dict[str, Any], hostname_map: dict[str, str]) -> None:
+def _format_email_preview(full_message: str, raw_preview: str) -> tuple[str, bool]:
+    """Return `(clean_preview, was_truncated)` trimmed on a word boundary with ellipsis."""
+    src = full_message.strip() or raw_preview.strip()
+    if not src:
+        return "", False
+    # Treat either long full message or 240-char adapter preview cap as truncated
+    max_len = 220
+    if len(full_message.strip()) > max_len:
+        cut = src[:max_len].rsplit(" ", 1)[0].rstrip(" ,;:-")
+        return f"{cut or src[:max_len]}…", True
+    if not full_message.strip() and len(raw_preview) >= 240:
+        cut = raw_preview[:max_len].rsplit(" ", 1)[0].rstrip(" ,;:-")
+        return f"{cut or raw_preview[:max_len]}…", True
+    return src, False
+
+
+def _display_email_subject(
+    raw_subject: str,
+    *,
+    company_id: str,
+    company_label: str,
+    message_text: str,
+    hostname_map: dict[str, str],
+) -> str:
+    """Replace raw `(company_id)` in displayed email subject with matched device hostname or org."""
+    token = f"({company_id})"
+    if token not in raw_subject:
+        return raw_subject
+    msg_l = message_text.lower()
+    matched_host = next(
+        (
+            h
+            for h in sorted(hostname_map.values(), key=len, reverse=True)
+            if h and h.lower() in msg_l
+        ),
+        None,
+    )
+    replacement = matched_host or company_label.split("·")[0].strip() or company_id
+    return raw_subject.replace(token, f"({replacement})")
+
+
+def _render_outbox_card(
+    row: dict[str, Any],
+    hostname_map: dict[str, str],
+    *,
+    company_id: str,
+    company_label: str,
+    proposals_by_id: dict[str, dict[str, Any]],
+) -> None:
     """Render one outbox record formatted for its destination integration channel."""
     channel = str(row.get("channel") or "ticketing")
     receipt_id = str(row.get("receipt_id") or "")
@@ -448,6 +499,8 @@ def _render_outbox_card(row: dict[str, Any], hostname_map: dict[str, str]) -> No
     raw_payload = row.get("payload_json")
     payload: dict[str, Any] = raw_payload if isinstance(raw_payload, dict) else {}
     ch_label, ch_icon = _CHANNEL_LABELS.get(channel, (channel.title(), ":material/outbox:"))
+    full_email_msg = ""
+    email_truncated = False
 
     with st.container(border=True):
         with st.container(
@@ -501,12 +554,26 @@ def _render_outbox_card(row: dict[str, Any], hostname_map: dict[str, str]) -> No
                 st.text(str(payload["justification"]))
 
         elif channel == "email":
+            prop_row = proposals_by_id.get(str(row.get("proposal_id") or ""))
+            prop_args = (prop_row or {}).get("arguments_json") or (prop_row or {}).get("arguments")
+            if isinstance(prop_args, dict) and prop_args.get("message"):
+                full_email_msg = str(prop_args["message"])
+            raw_preview = str(payload.get("body_preview") or "")
+            preview_txt, email_truncated = _format_email_preview(full_email_msg, raw_preview)
+            raw_subject = str(payload.get("subject") or "Action needed on your managed device")
+            display_subject = _display_email_subject(
+                raw_subject,
+                company_id=company_id,
+                company_label=company_label,
+                message_text=full_email_msg or raw_preview,
+                hostname_map=hostname_map,
+            )
             st.markdown(f"**To:** `{payload.get('recipient_employee_id', '—')}`")
             st.markdown("**Subject**")
-            st.text(str(payload.get("subject") or "Action needed on your managed device"))
+            st.text(safe_md(display_subject))
             st.markdown("**Message preview**")
             with st.container(border=True):
-                st.text(str(payload.get("body_preview") or ""))
+                st.markdown(safe_md(preview_txt))
 
         else:  # asset_management / replacement
             dev_id = str(payload.get("device_id") or "")
@@ -525,7 +592,16 @@ def _render_outbox_card(row: dict[str, Any], hostname_map: dict[str, str]) -> No
                 st.markdown("**Justification**")
                 st.text(str(payload["reason"]))
 
-        with st.expander("Raw payload JSON", expanded=False):
+        exp_label = (
+            "Full message & raw payload JSON"
+            if (channel == "email" and full_email_msg and email_truncated)
+            else "Raw payload JSON"
+        )
+        with st.expander(exp_label, expanded=False):
+            if channel == "email" and full_email_msg:
+                st.markdown("**Full message**")
+                st.markdown(safe_md(full_email_msg))
+                st.markdown("**Raw payload JSON**")
             st.code(json.dumps(payload, indent=2, default=str), language="json")
 
 
@@ -578,8 +654,19 @@ def _render_outbox_tab(
         st.caption("No integration outbox entries match the current filter.")
         return
 
+    proposals_by_id = {
+        str(p.get("proposal_id") or ""): p
+        for p in container.store.list_proposals(session.company_id)
+        if p.get("proposal_id")
+    }
     for row in visible:
-        _render_outbox_card(row, hostname_map)
+        _render_outbox_card(
+            row,
+            hostname_map,
+            company_id=session.company_id,
+            company_label=session.label or session.company_id,
+            proposals_by_id=proposals_by_id,
+        )
 
 
 def render_approvals_page() -> None:

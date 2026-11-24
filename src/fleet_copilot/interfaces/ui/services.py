@@ -54,6 +54,8 @@ def set_ui_container_override(container: UIContainer | None) -> None:
     cached_briefing_dict.clear()
     cached_resolved_policies.clear()
     cached_hostname_map.clear()
+    cached_device_summaries.clear()
+    cached_briefing_software_rows.clear()
     cached_fleet_devices.clear()
     cached_device_detail.clear()
     cached_thread_list.clear()
@@ -214,6 +216,105 @@ def get_hostname_map(company_id: str, telemetry_as_of: str) -> dict[str, str]:
         devices = _CONTAINER_OVERRIDE.telemetry_repo.latest_states(company_id)
         return {d.device_id: (d.os_hostname or d.device_id) for d in devices}
     return cached_hostname_map(company_id, telemetry_as_of)
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def cached_device_summaries(company_id: str, telemetry_as_of: str) -> dict[str, dict[str, Any]]:
+    """Return compact current device metadata keyed by `device_id` for evidence display."""
+    _ = telemetry_as_of
+    container = get_ui_container()
+    devices = container.telemetry_repo.latest_states(company_id)
+    return {
+        d.device_id: {
+            "hostname": d.os_hostname or d.device_id,
+            "model": d.model_name or "",
+            "form_factor": d.form_factor,
+            "battery_present": bool(d.battery_present),
+            "battery_condition": d.battery_condition or "",
+            "battery_cycles": d.battery_cycle_count,
+        }
+        for d in devices
+    }
+
+
+def get_device_summaries(company_id: str, telemetry_as_of: str) -> dict[str, dict[str, Any]]:
+    """Resolve compact current device summaries (bypassing cache under test container overrides)."""
+    if _CONTAINER_OVERRIDE is not None:
+        devices = _CONTAINER_OVERRIDE.telemetry_repo.latest_states(company_id)
+        return {
+            d.device_id: {
+                "hostname": d.os_hostname or d.device_id,
+                "model": d.model_name or "",
+                "form_factor": d.form_factor,
+                "battery_present": bool(d.battery_present),
+                "battery_condition": d.battery_condition or "",
+                "battery_cycles": d.battery_cycle_count,
+            }
+            for d in devices
+        }
+    return cached_device_summaries(company_id, telemetry_as_of)
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def cached_briefing_software_rows(company_id: str, telemetry_as_of: str) -> list[dict[str, Any]]:
+    """Fetch deterministic non-baseline software table rows for the Home briefing card."""
+    from fleet_copilot.services.trends import analyze_fleet_trends
+
+    _ = telemetry_as_of
+    container = get_ui_container()
+    repo = container.telemetry_repo
+    hosts = {d.device_id: (d.os_hostname or d.device_id) for d in repo.latest_states(company_id)}
+    ctx = TenantContext(
+        company_id=company_id,
+        actor_id="ui:brief_software",
+        role="viewer",
+        trace_id=f"ui-sw-{company_id}",
+    )
+    sw_res = analyze_fleet_trends(ctx, ["software"], repo, container.policy_svc)
+    rows: list[dict[str, Any]] = []
+    for ins in sw_res.data:
+        stats = ins.get("stats") or {}
+        did = str(ins.get("device_id") or "")
+        rows.append(
+            {
+                "Device": hosts.get(did, did),
+                "Software": str(stats.get("software_name") or ""),
+                "First seen": str(stats.get("first_seen_date") or "—"),
+            }
+        )
+    rows.sort(key=lambda r: (r["First seen"], r["Device"], r["Software"]))
+    return rows
+
+
+def get_briefing_software_rows(company_id: str, telemetry_as_of: str) -> list[dict[str, Any]]:
+    """Return non-baseline software table rows (live in test override, cached 60 s otherwise)."""
+    if _CONTAINER_OVERRIDE is not None:
+        from fleet_copilot.services.trends import analyze_fleet_trends
+
+        repo = _CONTAINER_OVERRIDE.telemetry_repo
+        hosts = {
+            d.device_id: (d.os_hostname or d.device_id) for d in repo.latest_states(company_id)
+        }
+        ctx = TenantContext(
+            company_id=company_id,
+            actor_id="ui:brief_software",
+            role="viewer",
+            trace_id=f"ui-sw-{company_id}",
+        )
+        sw_res = analyze_fleet_trends(ctx, ["software"], repo, _CONTAINER_OVERRIDE.policy_svc)
+        rows = [
+            {
+                "Device": hosts.get(
+                    str(ins.get("device_id") or ""), str(ins.get("device_id") or "")
+                ),
+                "Software": str((ins.get("stats") or {}).get("software_name") or ""),
+                "First seen": str((ins.get("stats") or {}).get("first_seen_date") or "—"),
+            }
+            for ins in sw_res.data
+        ]
+        rows.sort(key=lambda r: (r["First seen"], r["Device"], r["Software"]))
+        return rows
+    return cached_briefing_software_rows(company_id, telemetry_as_of)
 
 
 @st.cache_data(ttl=60, show_spinner=False)
@@ -424,6 +525,8 @@ def clear_company_read_caches() -> None:
     cached_briefing_dict.clear()
     cached_resolved_policies.clear()
     cached_hostname_map.clear()
+    cached_device_summaries.clear()
+    cached_briefing_software_rows.clear()
     cached_fleet_devices.clear()
     cached_device_detail.clear()
     cached_thread_list.clear()
@@ -494,6 +597,40 @@ def cached_example_runs() -> dict[str, dict[str, Any]]:
             out[p.stem] = json.loads(p.read_text(encoding="utf-8"))
         except Exception:  # noqa: BLE001
             continue
+    return out
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_eval_cases_meta() -> dict[str, dict[str, Any]]:
+    """Load case prompts and metadata from `evals/cases/*.yaml` ($0, read-only)."""
+    import yaml
+
+    cases_dir = REPO_ROOT / "evals" / "cases"
+    out: dict[str, dict[str, Any]] = {}
+    if not cases_dir.exists():
+        return out
+    for p in sorted(cases_dir.glob("*.yaml")):
+        try:
+            loaded = yaml.safe_load(p.read_text(encoding="utf-8")) or []
+        except Exception:  # noqa: BLE001
+            continue
+        if not isinstance(loaded, list):
+            continue
+        for item in loaded:
+            if not isinstance(item, dict) or not item.get("id"):
+                continue
+            cid = str(item["id"])
+            prompts = [
+                str(t["user"]).strip()
+                for t in (item.get("turns") or [])
+                if isinstance(t, dict) and t.get("user")
+            ]
+            out[cid] = {
+                "prompts": prompts,
+                "tenant": str(item.get("tenant") or ""),
+                "role": str(item.get("role") or ""),
+                "tags": list(item.get("tags") or []),
+            }
     return out
 
 

@@ -47,15 +47,19 @@ def render_sign_in_page() -> None:
             icon=":material/lock:",
         )
 
+    def _clear_signin_error() -> None:
+        st.session_state.pop("sign_in_error", None)
+
     code = st.text_input(
         "Access code",
         type="password",
         key="sign_in_access_code",
         placeholder="Enter your demo access code",
         disabled=locked,
+        on_change=_clear_signin_error,
     )
 
-    last_err = st.session_state.pop("sign_in_error", None)
+    last_err = st.session_state.get("sign_in_error")
     if last_err and not locked:
         st.error(str(last_err), icon=":material/error:")
 
@@ -96,6 +100,9 @@ def render_sign_in_page() -> None:
                     width="stretch",
                     disabled=locked,
                 ):
+                    if not code.strip():
+                        st.session_state["sign_in_error"] = "Enter your access code first."
+                        st.rerun()
                     try:
                         session = sign_in(code, spec.id, settings=container.settings)
                     except (DemoAuthError, Exception):  # noqa: BLE001
@@ -107,6 +114,7 @@ def render_sign_in_page() -> None:
                             st.session_state["sign_in_error"] = _GENERIC_SIGNIN_ERROR
                         st.rerun()
                     else:
+                        st.session_state.pop("sign_in_error", None)
                         set_session(session)
                         switch_to_page("home")
                         st.rerun()

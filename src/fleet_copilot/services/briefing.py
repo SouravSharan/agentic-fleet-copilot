@@ -9,7 +9,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from fleet_copilot.domain.models import DeviceState, PolicyValue, TenantContext
-from fleet_copilot.presentation.humanize import humanize_policy
+from fleet_copilot.presentation.humanize import humanize_check_name, humanize_policy
 from fleet_copilot.repositories.telemetry import TelemetryRepository
 from fleet_copilot.services.fleet import get_fleet_overview
 from fleet_copilot.services.policy import PolicyService
@@ -208,10 +208,12 @@ def _build_category_item(
             {str((ins.get("stats") or {}).get("check_id") or "compliance") for ins in insights}
         )
         lead_check = checks[0] if checks else "screen_lock"
-        title = f"{n} {plural} drifted into compliance failure ({', '.join(checks)})"
+        checks_pretty = [humanize_check_name(c) for c in checks]
+        title = f"{n} {plural} drifted into compliance failure ({', '.join(checks_pretty)})"
         explanation = (
             f"{n} {company_name} {plural} ({', '.join(hostnames)}) transitioned from pass to fail "
-            f"on {', '.join(checks)} within the 30-day window (Compliance drift · default policy)."
+            f"on {', '.join(checks_pretty)} within the 30-day window "
+            "(Compliance drift · default policy)."
         )
         prompt = (
             f"Which {company_name} devices drifted into compliance failure in the last 30 days?"
@@ -222,9 +224,11 @@ def _build_category_item(
             {str((ins.get("stats") or {}).get("check_id") or "compliance") for ins in insights}
         )
         lead_check = checks[0] if checks else "os_up_to_date"
-        title = f"{n} {plural} with chronic compliance failures ({', '.join(checks)})"
+        checks_pretty = [humanize_check_name(c) for c in checks]
+        title = f"{n} {plural} with chronic compliance failures ({', '.join(checks_pretty)})"
         explanation = (
-            f"{n} {company_name} {plural} ({', '.join(hostnames)}) failed {', '.join(checks)} "
+            f"{n} {company_name} {plural} ({', '.join(hostnames)}) failed "
+            f"{', '.join(checks_pretty)} "
             "on every snapshot in the 30-day window (Chronic compliance · default policy)."
         )
         prompt = f"Which {company_name} devices have chronic compliance check failures?"

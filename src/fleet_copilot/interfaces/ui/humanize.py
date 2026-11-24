@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from fleet_copilot.presentation.humanize import (
     SEEDED_POLICY_KEYS,
+    format_device_record_summary,
     humanize_actor_label,
     humanize_audit_event,
     humanize_caveat_text,
+    humanize_chart_title,
     humanize_check_name,
     humanize_policy,
     humanize_policy_source,
@@ -17,9 +19,11 @@ from fleet_copilot.presentation.humanize import (
 
 __all__ = [
     "SEEDED_POLICY_KEYS",
+    "format_device_record_summary",
     "humanize_actor_label",
     "humanize_audit_event",
     "humanize_caveat_text",
+    "humanize_chart_title",
     "humanize_check_name",
     "humanize_policy",
     "humanize_policy_source",

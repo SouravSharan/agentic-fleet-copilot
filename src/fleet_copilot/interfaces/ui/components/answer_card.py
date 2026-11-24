@@ -11,6 +11,8 @@ import streamlit as st
 
 from fleet_copilot.interfaces.ui.charts_ui import prepare_chart_spec_for_render
 from fleet_copilot.interfaces.ui.humanize import (
+    format_device_record_summary,
+    humanize_chart_title,
     humanize_check_name,
     humanize_source,
     humanize_tool_name,
@@ -50,16 +52,24 @@ def _render_citation_popover(
     ev: dict[str, Any],
     *,
     key: str,
+    device_summaries: Mapping[str, dict[str, Any]] | None = None,
 ) -> None:
     """Render a compact clickable `[E#]`/`[C#]`/`[Q#]` citation chip popover."""
     with st.popover(f"[{handle}]", type="tertiary", key=key):
         hostname = ev.get("hostname")
         device_id = str(ev.get("device_id") or "fleet")
         dev_label = f"{safe_md(hostname)} (`{device_id}`)" if hostname else f"`{device_id}`"
+        metric = str(ev.get("metric") or "—")
         st.markdown(f"**Evidence `[{handle}]`**")
         st.markdown(f"**Device:** {dev_label}")
-        st.markdown(f"**Metric:** `{ev.get('metric', '—')}`")
-        st.markdown(f"**Value:** {safe_md(fmt_number(ev.get('value'), ev.get('unit')))}")
+        if metric == "device_state":
+            cur_dev = (device_summaries or {}).get(device_id)
+            summary_line = format_device_record_summary(ev, cur_dev)
+            st.markdown("**Record:** Device record")
+            st.markdown(f"**Summary:** {safe_md(summary_line)}")
+        else:
+            st.markdown(f"**Metric:** `{metric}`")
+            st.markdown(f"**Value:** {safe_md(fmt_number(ev.get('value'), ev.get('unit')))}")
         st.markdown(f"**Snapshot ID:** `{ev.get('snapshot_id', '—')}`")
         st.markdown(f"**Collected at:** {fmt_as_of_full(ev.get('collected_at'))}")
         if ev.get("label"):
@@ -72,6 +82,7 @@ def _render_chart_card(
     chart: dict[str, Any],
     *,
     session: DemoSession,
+    hostname_map: Mapping[str, str] | None = None,
     turn_id: str,
     chart_idx: int,
     policies: Mapping[str, Any] | None = None,
@@ -79,7 +90,8 @@ def _render_chart_card(
 ) -> None:
     """Render one inline Vega-Lite chart with full container width, threshold rule & Pin button."""
     chart_id = str(chart.get("chart_id") or f"{turn_id}_c{chart_idx}")
-    title = str(chart.get("title") or "Chart")
+    raw_title = str(chart.get("title") or "Chart")
+    title = humanize_chart_title(raw_title, hostname_map)
     raw_spec = chart.get("vega_lite_spec")
     if not isinstance(raw_spec, dict):
         return
@@ -265,6 +277,7 @@ def render_answer_card(
     hostname_map: dict[str, str],
     turn_id: str,
     policies: Mapping[str, Any] | None = None,
+    device_summaries: Mapping[str, dict[str, Any]] | None = None,
     is_selected: bool = False,
     on_inspect_click: Any | None = None,
     read_only: bool = False,
@@ -346,6 +359,7 @@ def render_answer_card(
                                 h,
                                 cite_map[h],
                                 key=f"cite_{turn_id}_{c_idx}_{h_idx}_{h}",
+                                device_summaries=device_summaries,
                             )
         else:
             md = str(resp.get("answer_markdown") or "").strip()
@@ -359,6 +373,7 @@ def render_answer_card(
             _render_chart_card(
                 chart,
                 session=session,
+                hostname_map=hostname_map,
                 turn_id=turn_id,
                 chart_idx=ch_idx,
                 policies=policies,
@@ -376,6 +391,7 @@ def render_answer_card(
                 _render_chart_card(
                     ichart,
                     session=session,
+                    hostname_map=hostname_map,
                     turn_id=turn_id,
                     chart_idx=100 + ic_idx,
                     policies=policies,

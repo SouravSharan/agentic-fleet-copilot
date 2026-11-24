@@ -127,6 +127,16 @@ _BASE_CSS = """
     margin-top: -0.35rem;
     margin-bottom: 0.25rem;
 }
+.st-key-inspector_card_wrap [role="tablist"] {
+    gap: 0.45rem !important;
+}
+.st-key-inspector_card_wrap [role="tab"] {
+    padding-left: 0.1rem !important;
+    padding-right: 0.1rem !important;
+}
+.st-key-inspector_card_wrap [role="tab"] p {
+    font-size: 0.82rem !important;
+}
 </style>
 """
 

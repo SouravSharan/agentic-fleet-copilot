@@ -11,12 +11,14 @@ from fleet_copilot.interfaces.ui.components.answer_card import render_answer_car
 from fleet_copilot.interfaces.ui.components.proposal_card import render_proposal_cards
 from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.services import (
+    cached_eval_cases_meta,
     cached_eval_reports,
     cached_example_runs,
     cached_repo_doc,
     cached_telemetry_as_of,
     cached_thread_list,
     cached_thread_turns,
+    get_device_summaries,
     get_hostname_map,
     get_resolved_policies,
     get_ui_container,
@@ -357,23 +359,46 @@ def _infer_last_turn_nodes(session: DemoSession) -> set[str]:
     return visited
 
 
-def _agent_graph_dot(highlighted: set[str]) -> str:
+def _is_dark_theme() -> bool:
+    """Detect active Streamlit theme safely (falls back to light when unavailable)."""
+    try:
+        theme = getattr(st.context, "theme", None)
+        t_type = getattr(theme, "type", None) if theme is not None else None
+        return str(t_type or "").lower() == "dark"
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _agent_graph_dot(highlighted: set[str], *, dark: bool = False) -> str:
+    """Build theme-aware compact vertical Graphviz DOT for the LangGraph agent topology (W2)."""
+    if dark:
+        hi_fill, hi_border, hi_font = "#1D4ED8", "#60A5FA", "#FFFFFF"
+        bg_fill, bg_border, bg_font = "#1E293B", "#475569", "#F1F5F9"
+        edge_color, edge_font = "#94A3B8", "#E2E8F0"
+    else:
+        hi_fill, hi_border, hi_font = "#DBEAFE", "#2563EB", "#0F172A"
+        bg_fill, bg_border, bg_font = "#F8FAFC", "#CBD5E1", "#1E293B"
+        edge_color, edge_font = "#475569", "#1E293B"
+
     def _style(node: str, label: str) -> str:
         if node in highlighted:
             return (
                 f'  {node} [label="{label}", style="filled,rounded", shape=box, '
-                'fillcolor="#DBEAFE", color="#2563EB", penwidth=2.2, fontcolor="#0F172A"];'
+                f'fillcolor="{hi_fill}", color="{hi_border}", penwidth=2.2, '
+                f'fontcolor="{hi_font}"];'
             )
         return (
             f'  {node} [label="{label}", style="filled,rounded", shape=box, '
-            'fillcolor="#F8FAFC", color="#CBD5E1", penwidth=1.2, fontcolor="#334155"];'
+            f'fillcolor="{bg_fill}", color="{bg_border}", penwidth=1.3, '
+            f'fontcolor="{bg_font}"];'
         )
 
     lines = [
         "digraph AgentGraph {",
-        '  rankdir=LR; bgcolor="transparent"; fontname="Inter";',
-        '  node [fontname="Inter", fontsize=10];',
-        '  edge [fontname="Inter", fontsize=9, color="#64748B"];',
+        '  rankdir=TB; bgcolor="transparent"; fontname="Inter";',
+        "  ranksep=0.42; nodesep=0.40; pad=0.15;",
+        '  node [fontname="Inter", fontsize=12, margin="0.16,0.09"];',
+        f'  edge [fontname="Inter", fontsize=12, color="{edge_color}", fontcolor="{edge_font}"];',
         _style("load_context", "load_context"),
         _style("planner", "planner"),
         _style("refuse", "refuse"),
@@ -385,17 +410,20 @@ def _agent_graph_dot(highlighted: set[str]) -> str:
         _style("human_approval", "human_approval\\n(interrupt)"),
         _style("execute_decisions", "execute_decisions\\n(TOCTOU check)"),
         _style("finalize", "finalize"),
+        "  { rank=same; load_context; planner; refuse; }",
+        "  { rank=same; investigator; tools; synthesizer; verify_grounding; }",
+        "  { rank=same; stage_proposals; human_approval; execute_decisions; finalize; }",
         "  load_context -> planner;",
-        '  planner -> refuse [label="blocked"];',
+        '  planner -> refuse [label=" blocked "];',
         "  refuse -> finalize;",
-        '  planner -> investigator [label="ok"];',
+        '  planner -> investigator [label=" ok "];',
         "  investigator -> tools;",
         "  tools -> investigator;",
         "  investigator -> synthesizer;",
         "  synthesizer -> verify_grounding;",
-        '  verify_grounding -> synthesizer [label="retry 1x", style=dashed];',
-        '  verify_grounding -> stage_proposals [label="actions"];',
-        '  verify_grounding -> finalize [label="read-only"];',
+        '  verify_grounding -> synthesizer [label=" retry 1x ", style=dashed];',
+        '  verify_grounding -> stage_proposals [label=" actions "];',
+        '  verify_grounding -> finalize [label=" read-only "];',
         "  stage_proposals -> human_approval;",
         "  human_approval -> execute_decisions;",
         "  execute_decisions -> finalize;",
@@ -404,27 +432,52 @@ def _agent_graph_dot(highlighted: set[str]) -> str:
     return "\n".join(lines)
 
 
-def _system_graph_dot() -> str:
+def _system_graph_dot(*, dark: bool = False) -> str:
+    """Build theme-aware compact 2-row Graphviz DOT for system & tenancy architecture (W2)."""
+    if dark:
+        base_fill, base_border, base_font = "#1E293B", "#475569", "#F1F5F9"
+        blue_fill, blue_border, blue_font = "#1E3A8A", "#60A5FA", "#EFF6FF"
+        green_fill, green_border, green_font = "#064E3B", "#34D399", "#ECFDF5"
+        amber_fill, amber_border, amber_font = "#78350F", "#FBBF24", "#FFFBEB"
+        edge_color, edge_font = "#94A3B8", "#E2E8F0"
+    else:
+        base_fill, base_border, base_font = "#F8FAFC", "#CBD5E1", "#0F172A"
+        blue_fill, blue_border, blue_font = "#EFF6FF", "#2563EB", "#1E3A8A"
+        green_fill, green_border, green_font = "#ECFDF5", "#059669", "#064E3B"
+        amber_fill, amber_border, amber_font = "#FFFBEB", "#D97706", "#78350F"
+        edge_color, edge_font = "#475569", "#1E293B"
+
     return "\n".join(
         [
             "digraph SystemArch {",
-            '  rankdir=LR; bgcolor="transparent"; fontname="Inter";',
-            '  node [fontname="Inter", fontsize=10, style="filled,rounded", shape=box,',
-            '        fillcolor="#F8FAFC", color="#CBD5E1", fontcolor="#0F172A"];',
-            '  edge [fontname="Inter", fontsize=9, color="#64748B"];',
-            '  ui [label="Streamlit UI / FastAPI", fillcolor="#EFF6FF", color="#2563EB"];',
+            '  rankdir=TB; bgcolor="transparent"; fontname="Inter";',
+            "  ranksep=0.45; nodesep=0.35; pad=0.15;",
+            '  node [fontname="Inter", fontsize=12, style="filled,rounded", shape=box,',
+            f'        margin="0.16,0.09", fillcolor="{base_fill}", color="{base_border}",',
+            f'        fontcolor="{base_font}"];',
+            f'  edge [fontname="Inter", fontsize=12, color="{edge_color}",',
+            f'        fontcolor="{edge_font}"];',
+            f'  ui [label="Streamlit UI / FastAPI", fillcolor="{blue_fill}",',
+            f'      color="{blue_border}", fontcolor="{blue_font}"];',
             '  guarded [label="GuardedCopilot\\n(rate, turn & spend caps)",',
-            '           fillcolor="#EFF6FF", color="#2563EB"];',
+            f'           fillcolor="{blue_fill}", color="{blue_border}",',
+            f'           fontcolor="{blue_font}"];',
             '  copilot [label="CopilotService\\n(TurnJobs + leases)"];',
             '  agent_graph [label="LangGraph Agent\\n(Gemini 3.8 Flash)"];',
             '  tools [label="13 Governed Tools\\n(read / SQL / chart / action)"];',
             '  services [label="Domain Services\\n(briefing, trends, policy, actions)"];',
-            '  pg [label="PostgreSQL 16\\n(HMAC lock_tenant + RLS)",',
-            '      fillcolor="#ECFDF5", color="#059669"];',
-            '  outbox [label="Mock Adapters ->\\nIntegration Outbox",',
-            '          fillcolor="#FFFBEB", color="#D97706"];',
-            '  audit [label="Hash-Chained\\nAudit Log", fillcolor="#ECFDF5", color="#059669"];',
-            "  ui -> guarded -> copilot -> agent_graph -> tools -> services -> pg;",
+            f'  pg [label="PostgreSQL 16\\n(HMAC lock_tenant + RLS)", fillcolor="{green_fill}",',
+            f'      color="{green_border}", fontcolor="{green_font}"];',
+            f'  outbox [label="Mock Adapters ->\\nIntegration Outbox", fillcolor="{amber_fill}",',
+            f'          color="{amber_border}", fontcolor="{amber_font}"];',
+            f'  audit [label="Hash-Chained\\nAudit Log", fillcolor="{green_fill}",',
+            f'         color="{green_border}", fontcolor="{green_font}"];',
+            "  { rank=same; ui; guarded; copilot; agent_graph; }",
+            "  { rank=same; tools; services; }",
+            "  { rank=same; pg; outbox; audit; }",
+            "  ui -> guarded -> copilot -> agent_graph;",
+            "  agent_graph -> tools -> services;",
+            "  services -> pg;",
             "  services -> outbox;",
             "  services -> audit;",
             "}",
@@ -434,6 +487,7 @@ def _system_graph_dot() -> str:
 
 def _render_architecture_tab(session: DemoSession) -> None:
     highlighted = _infer_last_turn_nodes(session)
+    dark = _is_dark_theme()
     st.markdown("#### 1. Agent execution graph")
     if highlighted:
         st.caption(
@@ -442,7 +496,7 @@ def _render_architecture_tab(session: DemoSession) -> None:
     else:
         st.caption("Send a message in Copilot to highlight your last turn's exact execution path.")
 
-    st.graphviz_chart(_agent_graph_dot(highlighted), width="stretch")
+    st.graphviz_chart(_agent_graph_dot(highlighted, dark=dark), width="stretch")
 
     with st.expander("What each node does", expanded=False):
         for name, desc in _NODE_DESCRIPTIONS:
@@ -450,10 +504,78 @@ def _render_architecture_tab(session: DemoSession) -> None:
             st.markdown(f"- `{name}`{marker} — {desc}")
 
     st.markdown("#### 2. System & tenancy architecture")
-    st.graphviz_chart(_system_graph_dot(), width="stretch")
+    st.graphviz_chart(_system_graph_dot(dark=dark), width="stretch")
 
     st.markdown("#### 3. Tool catalog (13 tools)")
     st.dataframe(_TOOL_CATALOG, width="stretch", hide_index=True)
+
+
+def _company_friendly_name(company_id: str) -> str:
+    return {"acme-001": "Acme", "globex-002": "Globex", "initech-003": "Initech"}.get(
+        company_id, company_id.split("-")[0].title()
+    )
+
+
+def _render_guardrail_job_poller(session: DemoSession) -> None:
+    """Poll active Guardrails live job via `TurnJobs` so reruns never abort mid-turn (L2)."""
+    active_job = st.session_state.get("guardrail_active_job")
+    if not isinstance(active_job, dict) or not active_job.get("job_id"):
+        return
+
+    @st.fragment(run_every=0.75)
+    def _poll() -> None:
+        job_meta = st.session_state.get("guardrail_active_job")
+        if not isinstance(job_meta, dict) or not job_meta.get("job_id"):
+            return
+        container = get_ui_container()
+        snap = container.turn_jobs.get(str(job_meta["job_id"]))
+        if snap is None:
+            st.session_state.pop("guardrail_active_job", None)
+            return
+
+        if snap.status in ("queued", "running"):
+            with st.status("Running live guardrail check (about 15 seconds)…", state="running"):
+                if not snap.events:
+                    st.markdown(":material/hourglass_top: Starting guardrail check")
+                else:
+                    for ev in snap.events:
+                        st.markdown(f":material/check_small: {safe_md(ev.label)}")
+            return
+
+        # Completed or failed: hide the thread via GuardedCopilot and store result
+        st.session_state.pop("guardrail_active_job", None)
+        if snap.result is not None:
+            live_resp = snap.result
+            ctx = make_tenant_context(session)
+            try:
+                container.guarded.hide_thread(ctx, live_resp.thread_id, hidden=True)
+            except Exception:  # noqa: BLE001
+                pass
+            bump_thread_list_version()
+            st.session_state["guardrail_live_result"] = {
+                "attack_id": job_meta.get("attack_id"),
+                "status": live_resp.status,
+                "summary": (
+                    live_resp.answer.summary
+                    if live_resp.answer is not None
+                    else live_resp.answer_markdown
+                ),
+                "tools": [str(t.get("tool_name") or "") for t in live_resp.tool_trace],
+                "trace_id": live_resp.trace_id,
+                "cost_usd": live_resp.usage.cost_usd_est,
+            }
+        else:
+            st.session_state["guardrail_live_result"] = {
+                "attack_id": job_meta.get("attack_id"),
+                "status": "failed",
+                "summary": snap.error or "Live guardrail run failed.",
+                "tools": [],
+                "trace_id": "—",
+                "cost_usd": 0.0,
+            }
+        st.rerun()
+
+    _poll()
 
 
 def _render_guardrails_tab(session: DemoSession) -> None:
@@ -466,10 +588,11 @@ def _render_guardrails_tab(session: DemoSession) -> None:
         "hidden thread so your chat history stays clean."
     )
 
+    # 2-column button grid keeps all 8 attack labels unclipped at 1100 px & 1440 px (W11)
     selected_id = st.session_state.get("guardrail_selected_id", _GUARDRAIL_ATTACKS[0]["id"])
-    cols = st.columns(4, gap="small")
+    cols = st.columns(2, gap="small")
     for idx, atk in enumerate(_GUARDRAIL_ATTACKS):
-        with cols[idx % 4]:
+        with cols[idx % 2]:
             is_sel = selected_id == atk["id"]
             if st.button(
                 str(atk["title"]),
@@ -485,11 +608,17 @@ def _render_guardrails_tab(session: DemoSession) -> None:
         _GUARDRAIL_ATTACKS[0],
     )
     recorded = runs.get(str(active["case_id"]))
+    company_name = _company_friendly_name(session.company_id)
 
     with st.container(border=True):
         st.markdown(f"#### :material/shield: {active['title']}")
         st.markdown(f"**What it tests:** {active['tests']}")
         st.markdown(f"**Stopped by:** {active['layer']}")
+        if active["id"] == "cross_tenant":
+            st.caption(
+                f"You are signed in as **{company_name}**; this recorded run shows Globex asking "
+                "for Acme's data — the exact same tenant guard protects every company."
+            )
         st.caption(f"Expected audit trail event: `{active['audit_event']}` · Prompt:")
         st.code(str(active["prompt"]), language="text")
 
@@ -523,42 +652,42 @@ def _render_guardrails_tab(session: DemoSession) -> None:
             and session.company_id in active["live_companies"]
             and session.role in active["live_roles"]
         )
+        job_running = isinstance(st.session_state.get("guardrail_active_job"), dict)
         if can_run_live:
             if st.button(
                 "Run live (hidden thread)",
                 key=f"guardrail_live_{active['id']}",
                 type="secondary",
                 icon=":material/play_arrow:",
+                disabled=job_running,
             ):
                 ctx = make_tenant_context(session)
-                with st.spinner("Running live guardrail check in a hidden thread..."):
-                    live_resp = container.guarded.run_turn(ctx, None, str(active["prompt"]))
-                    try:
-                        container.guarded.hide_thread(ctx, live_resp.thread_id, hidden=True)
-                    except Exception:  # noqa: BLE001
-                        pass
-                    bump_thread_list_version()
-                st.session_state["guardrail_live_result"] = {
+                job_id = container.turn_jobs.submit(
+                    container.guarded,
+                    ctx,
+                    None,
+                    str(active["prompt"]),
+                )
+                st.session_state["guardrail_active_job"] = {
+                    "job_id": job_id,
                     "attack_id": active["id"],
-                    "status": live_resp.status,
-                    "summary": (
-                        live_resp.answer.summary
-                        if live_resp.answer is not None
-                        else live_resp.answer_markdown
-                    ),
-                    "tools": [str(t.get("tool_name") or "") for t in live_resp.tool_trace],
-                    "trace_id": live_resp.trace_id,
-                    "cost_usd": live_resp.usage.cost_usd_est,
                 }
                 st.rerun()
         elif mode != "live":
             st.caption("Live execution unavailable in Examples only mode.")
+        elif active["id"] == "cross_tenant":
+            st.caption(
+                f"You are signed in as {company_name}; switch to Globex or Initech to run this "
+                "Acme-targeted prompt live, or inspect the recorded run above."
+            )
         else:
             st.caption(
                 "Switch to a matching persona to test this attack live "
                 f"(companies: {', '.join(active['live_companies'])}; "
                 f"roles: {', '.join(active['live_roles'])})."
             )
+
+        _render_guardrail_job_poller(session)
 
         live_out = st.session_state.get("guardrail_live_result")
         if isinstance(live_out, dict) and live_out.get("attack_id") == active["id"]:
@@ -748,6 +877,51 @@ def _render_evaluation_tab() -> None:
             st.markdown(strip_mermaid_blocks(doc_06))
 
 
+def _example_grade_info(case_id: str, latest_report: dict[str, Any]) -> tuple[bool, str]:
+    """Return `(passed, one_line_reason)` for `case_id` from `evals/reports/latest.json` (W3)."""
+    case_row = next(
+        (c for c in (latest_report.get("cases") or []) if str(c.get("case_id") or "") == case_id),
+        None,
+    )
+    if case_row is None:
+        return True, "Recorded offline evaluation transcript ($0)."
+    passed = bool(case_row.get("pass_k", True))
+    repeats = int(case_row.get("repeats") or 1)
+    passed_rep = int(case_row.get("passed_repeats") or 0)
+    if passed:
+        if repeats > 1:
+            return True, f"Passed {passed_rep}/{repeats} consecutive runs (pass^{repeats})."
+        return True, "Passed correctness, citation validity, safety, audit, and privacy checks."
+
+    # Build concrete miss reason from the run details in latest.json
+    run_row = next(
+        (
+            r
+            for r in (latest_report.get("runs") or [])
+            if str(r.get("case_id") or "") == case_id and not r.get("case_passed", True)
+        ),
+        None,
+    )
+    if isinstance(run_row, dict):
+        corr = run_row.get("correctness")
+        if isinstance(corr, dict) and not corr.get("passed", True):
+            raw_det = corr.get("details")
+            det: dict[str, Any] = raw_det if isinstance(raw_det, dict) else {}
+            exp_devs = det.get("expected_devices")
+            got_devs = det.get("result_device_ids")
+            if exp_devs is not None and got_devs is not None:
+                return (
+                    False,
+                    f"Strict device-ID set grader expected {exp_devs}, got {got_devs} "
+                    "(hard safety/citation/audit gates still passed).",
+                )
+            return (
+                False,
+                "Missed correctness check (hard safety/citation/audit gates still passed).",
+            )
+    return False, f"Missed {repeats - passed_rep}/{repeats} eval run(s)."
+
+
 def render_example_case(
     case_id: str,
     resp: dict[str, Any],
@@ -755,14 +929,44 @@ def render_example_case(
     session: DemoSession,
     hostname_map: dict[str, str],
     policies: dict[str, Any],
+    prompts: list[str] | None = None,
+    grade: tuple[bool, str] | None = None,
+    device_summaries: dict[str, dict[str, Any]] | None = None,
 ) -> None:
-    """Render one recorded example run via the shared Answer & Proposal cards in read-only mode."""
+    """Render one recorded example with question header, grade badge, and read-only Answer card."""
+    if prompts is None:
+        meta = cached_eval_cases_meta().get(case_id) or {}
+        prompts = list(meta.get("prompts") or [])
+    if grade is None:
+        latest = cached_eval_reports().get("latest") or {}
+        grade = _example_grade_info(case_id, latest)
+
+    passed, grade_reason = grade
+    with st.container(border=True):
+        with st.container(
+            horizontal=True,
+            horizontal_alignment="distribute",
+            vertical_alignment="center",
+            gap="small",
+        ):
+            st.markdown(f"**Case:** `{case_id}`")
+            render_status_badge("ok" if passed else "medium", "Passed" if passed else "Missed")
+        st.caption(grade_reason)
+        if prompts:
+            if len(prompts) == 1:
+                st.markdown(f"**Question asked:** {safe_md(prompts[0])}")
+            else:
+                st.markdown("**Questions asked (multi-turn):**")
+                for idx, q_txt in enumerate(prompts, start=1):
+                    st.markdown(f"{idx}. {safe_md(q_txt)}")
+
     render_answer_card(
         resp,
         session=session,
         hostname_map=hostname_map,
         turn_id=f"ex_{case_id}",
         policies=policies,
+        device_summaries=device_summaries,
         read_only=True,
     )
     render_proposal_cards(
@@ -779,11 +983,15 @@ def _render_examples_tab(
     session: DemoSession,
     hostname_map: dict[str, str],
     policies: dict[str, Any],
+    device_summaries: dict[str, dict[str, Any]],
 ) -> None:
     runs = cached_example_runs()
     if not runs:
         st.info("No recorded example runs found in `evals/reports/runs/`.")
         return
+
+    cases_meta = cached_eval_cases_meta()
+    latest = cached_eval_reports().get("latest") or {}
 
     grouped: dict[str, list[str]] = {g: [] for g in _CAPABILITY_GROUPS}
     for cid in sorted(runs.keys()):
@@ -794,29 +1002,41 @@ def _render_examples_tab(
         "Rendered using the exact same Answer card component as live Copilot."
     )
 
+    available_groups = [g for g in _CAPABILITY_GROUPS if grouped.get(g)]
+    default_group_idx = available_groups.index("Insights") if "Insights" in available_groups else 0
+
     c_grp, c_case = st.columns([2.0, 4.0], gap="small")
     with c_grp:
-        available_groups = [g for g in _CAPABILITY_GROUPS if grouped.get(g)]
         sel_group = st.selectbox(
             "Capability",
             options=available_groups,
+            index=default_group_idx,
             key="examples_group_picker",
         )
     with c_case:
         group_cases = grouped.get(sel_group, [])
+        default_case_idx = (
+            group_cases.index("ins-acme-battery") if "ins-acme-battery" in group_cases else 0
+        )
         sel_case = st.selectbox(
             f"Recorded case ({len(group_cases)} in {sel_group})",
             options=group_cases,
+            index=default_case_idx,
             key="examples_case_picker",
         )
 
     if sel_case and sel_case in runs:
+        case_prompts = list((cases_meta.get(sel_case) or {}).get("prompts") or [])
+        case_grade = _example_grade_info(sel_case, latest)
         render_example_case(
             sel_case,
             runs[sel_case],
             session=session,
             hostname_map=hostname_map,
             policies=policies,
+            prompts=case_prompts,
+            grade=case_grade,
+            device_summaries=device_summaries,
         )
 
 
@@ -975,6 +1195,7 @@ def render_how_it_works_page() -> None:
     as_of_iso = cached_telemetry_as_of(session.company_id)
     hostname_map = get_hostname_map(session.company_id, as_of_iso)
     policies = get_resolved_policies(session.company_id, as_of_iso)
+    device_summaries = get_device_summaries(session.company_id, as_of_iso)
 
     st.markdown("## :material/psychology: How it works")
     st.caption(
@@ -1010,7 +1231,7 @@ def render_how_it_works_page() -> None:
         with tabs[2]:
             _render_evaluation_tab()
         with tabs[3]:
-            _render_examples_tab(session, hostname_map, policies)
+            _render_examples_tab(session, hostname_map, policies, device_summaries)
         with tabs[4]:
             _render_decisions_tab()
         if session.role == "it_admin" and len(tabs) > 5:

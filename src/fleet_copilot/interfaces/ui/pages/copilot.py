@@ -15,6 +15,7 @@ from fleet_copilot.interfaces.ui.services import (
     cached_telemetry_as_of,
     cached_thread_list,
     cached_thread_turns,
+    get_device_summaries,
     get_hostname_map,
     get_resolved_policies,
     get_ui_container,
@@ -279,6 +280,7 @@ def _render_transcript_zone(
     selected_turn_id: str | None,
     hostname_map: dict[str, str],
     policies: dict[str, Any],
+    device_summaries: dict[str, dict[str, Any]],
     examples_only: bool,
     inspector_open: bool,
 ) -> None:
@@ -370,6 +372,7 @@ def _render_transcript_zone(
                         hostname_map=hostname_map,
                         turn_id=turn_id,
                         policies=policies,
+                        device_summaries=device_summaries,
                         is_selected=(inspector_open and selected_turn_id == turn_id),
                         on_inspect_click=_on_inspect,
                     )
@@ -418,6 +421,8 @@ def render_copilot_page() -> None:
     as_of_iso = cached_telemetry_as_of(session.company_id)
     hostname_map = get_hostname_map(session.company_id, as_of_iso)
     policies = get_resolved_policies(session.company_id, as_of_iso)
+    device_summaries = get_device_summaries(session.company_id, as_of_iso)
+    st.session_state["_active_device_summaries"] = device_summaries
 
     search_q = str(st.session_state.get("thread_search_query") or "").strip() or None
     thread_ver = int(st.session_state.get("thread_list_version", 0))
@@ -443,7 +448,7 @@ def render_copilot_page() -> None:
     inspector_open = bool(st.session_state.get("inspector_open", False))
 
     if inspector_open:
-        col_main, col_insp = st.columns([6.4, 3.6], gap="medium")
+        col_main, col_insp = st.columns([5.4, 4.6], gap="medium")
         with col_main:
             _render_transcript_zone(
                 session=session,
@@ -452,6 +457,7 @@ def render_copilot_page() -> None:
                 selected_turn_id=selected_turn_id,
                 hostname_map=hostname_map,
                 policies=policies,
+                device_summaries=device_summaries,
                 examples_only=examples_only,
                 inspector_open=True,
             )
@@ -466,6 +472,7 @@ def render_copilot_page() -> None:
                 selected_turn_id=selected_turn_id,
                 hostname_map=hostname_map,
                 policies=policies,
+                device_summaries=device_summaries,
                 examples_only=examples_only,
                 inspector_open=False,
             )

@@ -10,7 +10,7 @@ from typing import Any
 import streamlit as st
 
 from fleet_copilot.interfaces.ui.charts_ui import prepare_chart_spec_for_render
-from fleet_copilot.interfaces.ui.humanize import humanize_tool_name
+from fleet_copilot.interfaces.ui.humanize import humanize_check_name, humanize_tool_name
 from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.services import (
     cached_device_detail,
@@ -98,10 +98,11 @@ def _compliance_timeline_spec(comp_rows: list[dict[str, Any]]) -> dict[str, Any]
     dedup: dict[tuple[str, str], dict[str, Any]] = {}
     for r in comp_rows:
         iso_date = str(r["date"])
-        dedup[(iso_date, str(r["check_id"]))] = {
+        check_id = str(r["check_id"])
+        dedup[(iso_date, check_id)] = {
             "date": iso_date[5:] if len(iso_date) == 10 else iso_date,
             "full_date": iso_date,
-            "check": str(r["check_id"]),
+            "check": humanize_check_name(check_id),
             "status": str(r["status"]),
         }
     vals = sorted(dedup.values(), key=lambda x: x["full_date"])
@@ -408,18 +409,34 @@ def _render_devices_tab(
             },
         )
 
-        # Sync dataframe row selection with device selector
+        # Sync dataframe row selection with device selector & detail panel (W1)
         sel_rows: list[int] = []
-        if hasattr(event, "selection") and isinstance(event.selection, dict):
-            sel_rows = list(event.selection.get("rows") or [])
-        if sel_rows and 0 <= sel_rows[0] < len(filtered):
-            st.session_state["selected_device_id"] = filtered[sel_rows[0]]["device_id"]
+        sel_obj = getattr(event, "selection", None)
+        if sel_obj is not None:
+            raw_rows = (
+                sel_obj.get("rows") if isinstance(sel_obj, dict) else getattr(sel_obj, "rows", None)
+            )
+            if raw_rows:
+                sel_rows = [int(r) for r in raw_rows]
 
         dev_options = [r["device_id"] for r in filtered]
         host_by_id = {r["device_id"]: r["hostname"] for r in filtered}
+
+        prev_table_rows = st.session_state.get("_fleet_last_table_rows")
+        if sel_rows != prev_table_rows:
+            st.session_state["_fleet_last_table_rows"] = list(sel_rows)
+            if sel_rows and 0 <= sel_rows[0] < len(filtered):
+                picked_from_table = filtered[sel_rows[0]]["device_id"]
+                perf_mark_start("select_device")
+                st.session_state["selected_device_id"] = picked_from_table
+                st.session_state["fleet_device_picker"] = picked_from_table
+
         current_dev = st.session_state.get("selected_device_id")
         if current_dev not in dev_options:
             current_dev = dev_options[0]
+            st.session_state["selected_device_id"] = current_dev
+        if st.session_state.get("fleet_device_picker") != current_dev:
+            st.session_state["fleet_device_picker"] = current_dev
 
         def _on_pick_device() -> None:
             perf_mark_start("select_device")
@@ -428,7 +445,6 @@ def _render_devices_tab(
         picked = st.selectbox(
             "Inspect device details",
             options=dev_options,
-            index=dev_options.index(current_dev),
             format_func=lambda did: f"{host_by_id.get(did, did)} ({did})",
             key="fleet_device_picker",
             on_change=_on_pick_device,
