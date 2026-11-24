@@ -10,6 +10,8 @@ Fleet Copilot answers telemetry questions using deterministic SQL/Python service
    - **Soft violations**: standalone numbers in claims or summary that do not match the evidence pool (within `±0.2` tolerance), coverage counts, policy thresholds, or prompt/date/version exemptions. Emits a transparent warning and audits `grounding_violation(outcome="warned")` without deleting valid claims.
    - **Zero-result honesty**: when 0 devices match a query (e.g. high-severity compliance failures at Acme), read tools still emit per-device pass evidence and list available checks so the synthesizer proves the zero result rather than substituting lower-severity rows.
 
+**Limitations:** The numeric verifier checks that every standalone number in the answer appears in some tool output (`±0.2` tolerance) or in the user's own message. It does not yet check that each number belongs to the specific device or metric of that claim. **Roadmap:** claim-level binding, requiring every number in a claim to come from the specific evidence handles that claim cites.
+
 Tested in [`tests/unit/test_grounding_verifier.py`](../tests/unit/test_grounding_verifier.py), [`tests/unit/test_charts.py`](../tests/unit/test_charts.py), and [`tests/graph/test_agent_graph.py`](../tests/graph/test_agent_graph.py).
 
 ## 2. Database-Enforced Tenant Isolation (Signed Lock + Advisory Marker + RLS)
