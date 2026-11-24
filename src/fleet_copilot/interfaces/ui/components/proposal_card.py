@@ -321,34 +321,33 @@ def render_proposal_cards(
                 # Decision buttons (it_admin ONLY, not read_only) OR outcome summary
                 if eff_status == "pending_approval":
                     if is_admin and not multi_pending:
-                        b1, b2, b3 = st.columns(3, gap="small")
-                        with b1:
+                        # Content-width buttons in a wrapping row: labels never truncate when
+                        # the transcript column is narrow (e.g. with the Inspector open).
+                        with st.container(horizontal=True, gap="small"):
                             st.button(
                                 "Approve",
                                 key=f"approve_{turn_id}_{pid}",
                                 type="primary",
                                 icon=":material/check:",
-                                width="stretch",
+                                width="content",
                                 on_click=_apply_decisions,
                                 args=({pid: "approve"},),
                             )
-                        with b2:
                             st.button(
                                 "Reject",
                                 key=f"reject_{turn_id}_{pid}",
                                 type="secondary",
                                 icon=":material/close:",
-                                width="stretch",
+                                width="content",
                                 on_click=_apply_decisions,
                                 args=({pid: "reject"},),
                             )
-                        with b3:
                             st.button(
                                 "Defer",
                                 key=f"defer_{turn_id}_{pid}",
                                 type="tertiary",
                                 icon=":material/schedule:",
-                                width="stretch",
+                                width="content",
                                 on_click=_apply_decisions,
                                 args=({pid: "defer"},),
                             )
