@@ -1686,3 +1686,133 @@ def test_finalize_neutralizes_unknown_handle_echo_in_recorded_fake_handle_scenar
     )
     assert grade_citation_validity(resp)["passed"] is True
     assert grade_safety(case, [resp], executed_count_in_db=0)["passed"] is True
+
+
+def test_resume_when_no_approval_pending_plain_message_and_skips_graph(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Resume on a completed thread with no proposals is a no-op without graph or lease calls."""
+    planner = ScriptedChatModel(
+        script=[
+            Plan(intent="qa", steps=[PlanStep(goal="Overview", tool_hint="get_fleet_overview")])
+        ]
+    )
+    investigator = ScriptedChatModel(
+        script=[
+            make_tool_call_ai([{"name": "get_fleet_overview", "args": {}, "id": "tc_ov_noop"}]),
+            "Done.",
+        ]
+    )
+    synthesizer = ScriptedChatModel(
+        script=[
+            Answer(
+                summary="Fleet overview complete.",
+                claims=[
+                    Claim(
+                        text="8NM23J95R5I6 is a laptop [E1].",
+                        citations=["E1"],
+                        device_ids=["8NM23J95R5I6"],
+                        numbers=[],
+                    )
+                ],
+                caveats=["As of 2026-06-12."],
+            )
+        ]
+    )
+    svc, _ = _offline_copilot(
+        planner_model=planner,
+        investigator_model=investigator,
+        synthesizer_model=synthesizer,
+    )
+    ctx = _ctx()
+    r1 = svc.run_turn(ctx, None, "Give me a fleet overview")
+    assert r1.status == "completed"
+
+    def _forbid_invoke(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("graph.invoke must not be called when no interrupt is pending")
+
+    def _forbid_lease(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("acquire_run_lease must not be called when no interrupt is pending")
+
+    monkeypatch.setattr(svc._graph, "invoke", _forbid_invoke)
+    monkeypatch.setattr(svc._store, "acquire_run_lease", _forbid_lease)
+
+    r2 = svc.resume(ctx, r1.thread_id, {})
+    assert r2.status == "completed"
+    assert r2.answer_markdown == "Nothing is waiting for approval in this conversation."
+
+
+@pytest.mark.integration
+def test_resume_twice_and_queue_decided_or_expired_noop_messages(
+    db_manager: DatabaseManager,
+    reset_copilot_state: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Double-resume and post-queue/expired resume make no graph/lease call and state status."""
+    from datetime import timedelta
+
+    ctx = _ctx()
+
+    def _forbid_invoke(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("graph.invoke must not be called when no interrupt is pending")
+
+    def _forbid_lease(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("acquire_run_lease must not be called when no interrupt is pending")
+
+    # 1. Rejected from Approvals queue after interrupt cleared via defer
+    svc1, _, _ = _stage_screen_lock_copilot(db_manager)
+    s1 = svc1.run_turn(ctx, None, "Open a screen_lock remediation ticket for 1LYSSFD074BB")
+    assert s1.status == "waiting_approval" and s1.approval_packet is not None
+    prop1 = s1.approval_packet["proposals"][0]["proposal_id"]
+    s2 = svc1.resume(ctx, s1.thread_id, {prop1: "defer"})
+    assert s2.status == "completed"
+    q_dec = svc1.action_service.decide(ctx, prop1, "reject", "queue", FixedClock(FIXED_NOW))
+    assert q_dec.applied is True
+
+    monkeypatch.setattr(svc1._graph, "invoke", _forbid_invoke)
+    monkeypatch.setattr(svc1._store, "acquire_run_lease", _forbid_lease)
+    s3 = svc1.resume(ctx, s1.thread_id, {prop1: "approve"})
+    assert s3.status == "completed"
+    assert s3.answer_markdown == (
+        "Nothing is waiting for approval in this conversation. "
+        "The last proposal was already rejected by acme_admin via queue."
+    )
+
+    # 2. Expired proposal on thread with no pending interrupt
+    svc2, _, _ = _stage_screen_lock_copilot(db_manager)
+    e1 = svc2.run_turn(ctx, None, "Open a screen_lock remediation ticket for 1LYSSFD074BB")
+    assert e1.status == "waiting_approval" and e1.approval_packet is not None
+    prop2 = e1.approval_packet["proposals"][0]["proposal_id"]
+    e2 = svc2.resume(ctx, e1.thread_id, {prop2: "defer"})
+    assert e2.status == "completed"
+    expired = svc2.action_service.expire_due(ctx, FixedClock(FIXED_NOW + timedelta(hours=73)))
+    assert prop2 in expired
+
+    monkeypatch.setattr(svc2._graph, "invoke", _forbid_invoke)
+    monkeypatch.setattr(svc2._store, "acquire_run_lease", _forbid_lease)
+    e3 = svc2.resume(ctx, e1.thread_id, {prop2: "approve"})
+    assert e3.status == "completed"
+    assert e3.answer_markdown == (
+        "Nothing is waiting for approval in this conversation. The last proposal has expired."
+    )
+
+    # 3. Double-resume after approving in chat -> reports executed by reviewer via chat
+    svc3, adapter3, _ = _stage_screen_lock_copilot(db_manager)
+    r1 = svc3.run_turn(ctx, None, "Open a screen_lock remediation ticket for 1LYSSFD074BB")
+    assert r1.status == "waiting_approval" and r1.approval_packet is not None
+    prop3 = r1.approval_packet["proposals"][0]["proposal_id"]
+
+    r2 = svc3.resume(ctx, r1.thread_id, {prop3: "approve"})
+    assert r2.status == "completed"
+    assert adapter3.call_count == 1
+
+    monkeypatch.setattr(svc3._graph, "invoke", _forbid_invoke)
+    monkeypatch.setattr(svc3._store, "acquire_run_lease", _forbid_lease)
+
+    r3 = svc3.resume(ctx, r1.thread_id, {prop3: "approve"})
+    assert r3.status == "completed"
+    assert adapter3.call_count == 1
+    assert r3.answer_markdown == (
+        "Nothing is waiting for approval in this conversation. "
+        "The last proposal was already executed by acme_admin via chat."
+    )

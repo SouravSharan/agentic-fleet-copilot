@@ -495,6 +495,7 @@ class PgCopilotStore:
         *,
         status: str | None = None,
         device_id: str | None = None,
+        thread_id: str | None = None,
     ) -> list[dict[str, Any]]:
         """List proposals for `company_id` ordered by `(created_at DESC, proposal_id)`."""
         clauses: list[sql.SQL] = [sql.SQL("1=1")]
@@ -505,6 +506,9 @@ class PgCopilotStore:
         if device_id is not None:
             clauses.append(sql.SQL("target_type = 'device' AND target_id = %s"))
             params.append(device_id)
+        if thread_id is not None:
+            clauses.append(sql.SQL("thread_id = %s"))
+            params.append(thread_id)
 
         query = sql.SQL(
             """

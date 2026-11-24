@@ -503,9 +503,24 @@ class InMemoryCopilotStore:
         return self.proposals.get(proposal_id)
 
     def list_proposals(
-        self, company_id: str, *, status: str | None = None, device_id: str | None = None
+        self,
+        company_id: str,
+        *,
+        status: str | None = None,
+        device_id: str | None = None,
+        thread_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        return list(self.proposals.values())
+        return [
+            p
+            for p in self.proposals.values()
+            if p.get("company_id", company_id) == company_id
+            and (status is None or p.get("status") == status)
+            and (
+                device_id is None
+                or (p.get("target_type") == "device" and p.get("target_id") == device_id)
+            )
+            and (thread_id is None or p.get("thread_id") == thread_id)
+        ]
 
 
 class InMemoryAuditService:

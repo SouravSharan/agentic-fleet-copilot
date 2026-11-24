@@ -613,6 +613,30 @@ class CopilotService:
             self._persist_response_json(ctx, resp)
             return resp
 
+    def _no_pending_approval_message(self, ctx: TenantContext, thread_id: str) -> str:
+        """Build a helpful no-op resume message summarizing the thread's latest proposal status."""
+        base = "Nothing is waiting for approval in this conversation."
+        proposals = self._store.list_proposals(ctx.company_id, thread_id=thread_id)
+        if not proposals:
+            return base
+        latest = proposals[0]
+        status = str(latest.get("status") or "")
+        if status == "expired":
+            return f"{base} The last proposal has expired."
+        if status in ("approved", "rejected", "executed", "failed", "stale_blocked"):
+            reviewer = latest.get("reviewer_id")
+            via = latest.get("decided_via")
+            parts: list[str] = []
+            if reviewer:
+                parts.append(f"by {reviewer}")
+            if via:
+                parts.append(f"via {via}")
+            suffix = f" {' '.join(parts)}" if parts else ""
+            if status == "stale_blocked":
+                return f"{base} The last proposal was blocked as stale{suffix}."
+            return f"{base} The last proposal was already {status}{suffix}."
+        return base
+
     def resume(
         self,
         ctx: TenantContext,
@@ -624,14 +648,32 @@ class CopilotService:
         """Resume a paused HITL interrupt with reviewer decisions (`approve|reject|defer`)."""
         with bind_trace_id(ctx.trace_id):
             t0 = time.monotonic()
-            self._assert_thread_owned(ctx, thread_id, require_existing=True)
+            existing = self._assert_thread_owned(ctx, thread_id, require_existing=True)
+            now = self._clock.now()
             config: dict[str, Any] = {
                 "configurable": {"thread_id": thread_id, "_turn_t0": t0},
                 "recursion_limit": self._runtime_cfg.budgets.recursion_limit,
             }
+            active_lease = existing.get("run_lease_until") if existing is not None else None
+            if active_lease is not None and active_lease > now:
+                return self._thread_busy_response(
+                    ctx=ctx,
+                    thread_id=thread_id,
+                    turn_id=self._paused_turn_id(config) or f"resume_{uuid.uuid4().hex[:8]}",
+                    t0=t0,
+                )
+            if self._pending_interrupt_packet(config) is None:
+                latency_ms = max(0, int((time.monotonic() - t0) * 1000))
+                return TurnResponse(
+                    thread_id=thread_id,
+                    turn_id=f"resume_{uuid.uuid4().hex[:8]}",
+                    trace_id=ctx.trace_id,
+                    status="completed",
+                    answer_markdown=self._no_pending_approval_message(ctx, thread_id),
+                    usage=TurnUsage(latency_ms=latency_ms),
+                )
             paused_turn_id = self._paused_turn_id(config) or f"resume_{uuid.uuid4().hex[:8]}"
 
-            now = self._clock.now()
             lease_until = now + timedelta(seconds=_RUN_LEASE_SECONDS)
             if not self._store.acquire_run_lease(
                 ctx.company_id,
