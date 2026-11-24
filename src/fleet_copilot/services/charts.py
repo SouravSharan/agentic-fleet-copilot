@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import uuid
 from collections import defaultdict
 from collections.abc import Sequence
@@ -31,6 +32,7 @@ from fleet_copilot.services.fleet import find_devices as svc_find_devices
 from fleet_copilot.services.policy import PolicyService
 
 VEGA_LITE_V5_SCHEMA = "https://vega.github.io/schema/vega-lite/v5.json"
+_CHART_ID_NAMESPACE = uuid.UUID("7d2b40e1-93c4-4f6a-9b81-52b917c4e019")
 
 # Unified status / series palette (10 §9)
 CHART_PALETTE: tuple[str, ...] = (
@@ -619,13 +621,22 @@ class ChartService:
         *,
         thread_id: str | None = None,
         turn_id: str | None = None,
+        tool_call_id: str | None = None,
         query_lookup: dict[str, dict[str, Any]] | None = None,
         persist: bool = True,
     ) -> ChartArtifact:
         """Compute, validate, optionally persist to `copilot.charts`, and audit a chart."""
         spec, data_rows, snap_ids, as_of = self._compute(ctx, req, query_lookup=query_lookup)
-        chart_id = f"chart_{uuid.uuid4().hex[:12]}"
         req_dump = req.model_dump(mode="json")
+        if thread_id and turn_id:
+            canonical = json.dumps(req_dump, sort_keys=True, separators=(",", ":"))
+            seed = (
+                f"{ctx.company_id}|{ctx.actor_id}|{thread_id}|{turn_id}|"
+                f"{tool_call_id or ''}|{canonical}"
+            )
+            chart_id = f"chart_{uuid.uuid5(_CHART_ID_NAMESPACE, seed).hex[:12]}"
+        else:
+            chart_id = f"chart_{uuid.uuid4().hex[:12]}"
 
         if persist and self._store is not None and hasattr(self._store, "insert_chart"):
             self._store.insert_chart(

@@ -263,3 +263,59 @@ def test_verifier_checks_claim_numbers_against_chart_data_rows() -> None:
     )
     assert hard2 == []
     assert any(v["code"] == "unverified_number" for v in soft2)
+
+
+def test_chart_id_is_deterministic_for_thread_turn_replay() -> None:
+    """B6: Identical chart requests in the same (tenant, actor, thread, turn, call) match."""
+    from fleet_copilot.domain.models import TenantContext
+    from fleet_copilot.services.charts import ChartService
+    from fleet_copilot.services.policy import PolicyService
+    from tests.graph.fakes import InMemoryCopilotStore, InMemoryTelemetryRepo
+
+    svc = ChartService(InMemoryTelemetryRepo(), PolicyService(InMemoryCopilotStore()))  # type: ignore[arg-type]
+    ctx = TenantContext(company_id="acme-001", actor_id="a", role="it_admin", trace_id="t")
+    req = ChartRequest(
+        title="Disk Free",
+        kind="metric_over_time",
+        metric="disk_free_pct",
+        low_disk_only=True,
+        chart_type="line",
+    )
+    a1 = svc.create(ctx, req, thread_id="acme-001:t1", turn_id="turn_1", tool_call_id="tc_1")
+    a2 = svc.create(ctx, req, thread_id="acme-001:t1", turn_id="turn_1", tool_call_id="tc_1")
+    a3 = svc.create(ctx, req, thread_id="acme-001:t1", turn_id="turn_2", tool_call_id="tc_1")
+    assert a1.chart_id == a2.chart_id
+    assert a1.chart_id != a3.chart_id
+
+
+def test_emit_strips_insight_chart_from_llm_payload_but_preserves_sink() -> None:
+    """B6: Insight auto-attached Vega-Lite specs stay on sink.insights, not LLM ToolMessage."""
+    import json
+    from types import SimpleNamespace
+
+    from fleet_copilot.domain.models import ToolResult
+    from fleet_copilot.tools.read_tools import _emit
+    from fleet_copilot.tools.registry import TurnToolSink
+
+    sink = TurnToolSink(ledger=EvidenceLedger())
+    runtime = SimpleNamespace(
+        config={"configurable": {"_turn_sink": sink}},
+        state={},
+        tool_call_id="tc_ins_1",
+    )
+    res = ToolResult(
+        tool_name="analyze_fleet_trends",
+        ok=True,
+        summary="1 insight",
+        data=[
+            {
+                "kind": "battery_eol_wear",
+                "title": "Battery wear",
+                "chart": {"spec": {"mark": "line"}, "data_rows": [{"x": 1}] * 25},
+            }
+        ],
+    )
+    out = json.loads(_emit(res, runtime, capture_insights=True))  # type: ignore[arg-type]
+    assert "chart" not in out["rows"][0]
+    assert out["rows"][0]["has_chart"] is True
+    assert sink.insights[0]["chart"]["spec"] == {"mark": "line"}

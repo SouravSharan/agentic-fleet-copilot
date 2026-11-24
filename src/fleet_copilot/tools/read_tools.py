@@ -49,7 +49,16 @@ def _emit(
     capture_insights: bool = False,
 ) -> str:
     sink, ledger = _sink_and_ledger(runtime)
-    out_json, ev_entries = format_tool_output(result, ledger)
+    llm_result = result
+    if capture_insights and result.ok and result.data:
+        # Keep full insight dicts (with auto-attached Vega-Lite chart) on sink.insights / UI,
+        # while omitting bulky chart payloads from the LLM ToolMessage to save context tokens.
+        slim_rows = [
+            {**{k: v for k, v in row.items() if k != "chart"}, "has_chart": bool(row.get("chart"))}
+            for row in result.data
+        ]
+        llm_result = result.model_copy(update={"data": slim_rows})
+    out_json, ev_entries = format_tool_output(llm_result, ledger)
     if sink is not None:
         if capture_insights and result.ok:
             sink.insights.extend(result.data)

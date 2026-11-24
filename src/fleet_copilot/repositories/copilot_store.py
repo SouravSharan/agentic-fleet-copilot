@@ -767,6 +767,12 @@ class PgCopilotStore:
                     %s, %s::jsonb, %s::jsonb, %s::jsonb,
                     %s::jsonb, %s, %s
                 )
+                ON CONFLICT (chart_id) DO UPDATE SET
+                    spec_json = EXCLUDED.spec_json,
+                    data_json = EXCLUDED.data_json,
+                    evidence_snapshot_ids = EXCLUDED.evidence_snapshot_ids,
+                    telemetry_as_of = EXCLUDED.telemetry_as_of,
+                    updated_at = now()
                 RETURNING *
                 """,
                 (

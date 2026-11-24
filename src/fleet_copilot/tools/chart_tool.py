@@ -126,6 +126,7 @@ def build_chart_tool_spec(deps: ToolDeps) -> ToolSpec:
                 req,
                 thread_id=str(state.get("thread_id") or "") or None,
                 turn_id=str(state.get("turn_id") or "") or None,
+                tool_call_id=runtime.tool_call_id,
                 query_lookup=q_lookup,
                 persist=True,
             )
