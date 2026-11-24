@@ -131,6 +131,27 @@ def _has_not_found_output(tool_outputs: list[dict[str, Any]]) -> bool:
     return False
 
 
+def _devices_by_handle(
+    evidence_map: dict[str, dict[str, Any]],
+    charts: list[dict[str, Any]],
+    queries: list[dict[str, Any]],
+) -> dict[str, set[str]]:
+    """Map every citation handle (`E#`, `C#`, `Q#`) to the device ids it grounds."""
+    out: dict[str, set[str]] = {}
+    for h, ev in evidence_map.items():
+        dev = ev.get("device_id")
+        if dev and str(dev) != "fleet":
+            out.setdefault(h, set()).add(str(dev))
+    for artifact, rows_key in [(c, "data_rows") for c in charts] + [(q, "rows") for q in queries]:
+        h = str(artifact.get("handle") or "")
+        if not h:
+            continue
+        for row in artifact.get(rows_key) or []:
+            if isinstance(row, dict) and row.get("device_id"):
+                out.setdefault(h, set()).add(str(row["device_id"]))
+    return out
+
+
 def verify_answer_grounding(
     answer: Answer,
     *,
@@ -450,11 +471,12 @@ def make_verify_grounding_node(deps: Any) -> Any:
             kept_claims: list[Claim] = [
                 c for i, c in enumerate(answer.claims) if i not in bad_claim_indices
             ]
+            # Devices may be grounded by snapshot evidence, chart rows or SQL rows.
+            handle_devices = _devices_by_handle(
+                evidence_map, state.get("charts") or [], state.get("queries") or []
+            )
             kept_cited_devs = {
-                str(evidence_map[h]["device_id"])
-                for c in kept_claims
-                for h in c.citations
-                if h in evidence_map and evidence_map[h].get("device_id")
+                dev for c in kept_claims for h in c.citations for dev in handle_devices.get(h, ())
             }
             kept_result_ids = [d for d in answer.result_device_ids if d in kept_cited_devs]
 

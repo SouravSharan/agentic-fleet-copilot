@@ -218,3 +218,80 @@ def test_finalize_neutralizes_unknown_handles_and_preserves_valid_handles() -> N
     assert "[E99]" not in clean_ans.claims[0].text and "[E88]" not in clean_ans.claims[0].text
     assert "[E1]" in clean_ans.claims[0].text
     assert "[E99]" not in clean_ans.caveats[0] and "E99" in clean_ans.caveats[0]
+
+
+def test_strip_keeps_devices_grounded_by_sql_and_chart_handles() -> None:
+    """After retries run out, devices cited only via `[Q#]`/`[C#]` rows survive the strip step."""
+    from types import SimpleNamespace
+
+    from fleet_copilot.agent.nodes.verify_grounding import make_verify_grounding_node
+    from fleet_copilot.domain.models import TenantContext
+
+    recorded: list[str] = []
+    deps = SimpleNamespace(
+        runtime_cfg=SimpleNamespace(budgets=SimpleNamespace(max_verifier_retries=1)),
+        audit_svc=SimpleNamespace(
+            record_standalone=lambda _ctx, event, _payload, **_kw: recorded.append(event)
+        ),
+    )
+    runtime = SimpleNamespace(
+        context=TenantContext(
+            company_id="acme-001", actor_id="t:admin", role="it_admin", trace_id="t-1"
+        )
+    )
+    answer = Answer(
+        summary="Two devices are relevant.",
+        result_device_ids=["8NM23J95R5I6", "MT7PJB7N5LRE"],
+        claims=[
+            Claim(
+                text="One device matched the query [Q1].",
+                citations=["Q1"],
+                device_ids=["8NM23J95R5I6"],
+            ),
+            Claim(
+                text="One device is shown in the chart [C1].",
+                citations=["C1"],
+                device_ids=["MT7PJB7N5LRE"],
+            ),
+            Claim(text="An unsupported statement [E9].", citations=["E9"], device_ids=[]),
+        ],
+    )
+    state = {
+        "answer": answer.model_dump(mode="json"),
+        # Multi-device chart/SQL artifacts are anchored to device "fleet" in the ledger;
+        # the devices they ground live in their rows.
+        "evidence": {
+            "Q1": {
+                "handle": "Q1",
+                "snapshot_id": "query_ab12",
+                "device_id": "fleet",
+                "metric": "sql_query",
+                "value": 2,
+            },
+            "C1": {
+                "handle": "C1",
+                "snapshot_id": "snap_c1",
+                "device_id": "fleet",
+                "metric": "chart:disk_free_pct",
+                "value": 60,
+            },
+        },
+        "queries": [
+            {"handle": "Q1", "rows": [{"device_id": "8NM23J95R5I6"}, {"device_id": "AAAA11112222"}]}
+        ],
+        "charts": [
+            {
+                "handle": "C1",
+                "data_rows": [{"device_id": "MT7PJB7N5LRE"}, {"device_id": "BBBB33334444"}],
+            }
+        ],
+        "verifier_retries": 1,
+        "user_message": "which devices",
+    }
+
+    out = make_verify_grounding_node(deps)(state, runtime)  # type: ignore[arg-type]
+
+    stripped = Answer.model_validate(out["answer"])
+    assert [c.citations for c in stripped.claims] == [["Q1"], ["C1"]]
+    assert sorted(stripped.result_device_ids) == ["8NM23J95R5I6", "MT7PJB7N5LRE"]
+    assert recorded == ["grounding_violation"]
