@@ -167,3 +167,54 @@ def test_verifier_checks_result_device_ids_in_cited_evidence() -> None:
         tenant_hostnames={"acme-thinkpad-8": "8NM23J95R5I6", "acme-macbook-4": "MT7PJB7N5LRE"},
     )
     assert any(v["code"] == "result_device_not_cited" for v in hard)
+
+
+def test_finalize_neutralizes_unknown_handles_and_preserves_valid_handles() -> None:
+    """Unknown bracketed handles [E99]/[C9]/[Q9] become plain text; valid ones stay intact."""
+    from fleet_copilot.agent.nodes.finalize import (
+        neutralize_answer_unknown_handles,
+        neutralize_unknown_handles,
+    )
+
+    ev_map = {
+        **_sample_evidence(),
+        "C1": {"handle": "C1", "device_id": "fleet", "snapshot_id": "snap_8nm2"},
+        "Q1": {"handle": "Q1", "device_id": "fleet", "snapshot_id": "query_1"},
+    }
+
+    # 1. Unknown handles neutralized
+    text_unk, changed_unk = neutralize_unknown_handles(
+        "The requested evidence handle [E99] does not exist, nor do [C9] or [Q42].",
+        ev_map,
+    )
+    assert changed_unk is True
+    assert text_unk == "The requested evidence handle E99 does not exist, nor do C9 or Q42."
+    assert "[E99]" not in text_unk
+
+    # 2. Valid handles untouched (byte-identical)
+    valid_str = "Disk is 2.6% [E1], chart [C1], query [Q1], combined [E1, E2]."
+    text_val, changed_val = neutralize_unknown_handles(valid_str, ev_map)
+    assert changed_val is False
+    assert text_val == valid_str
+
+    # 3. Mixed valid and unknown handles in text & Answer fields
+    ans = Answer(
+        summary="Device 8NM23J95R5I6 has 2.6% free disk [E1]; handle [E99] does not exist.",
+        result_device_ids=["8NM23J95R5I6"],
+        claims=[
+            Claim(
+                text="Free disk is 2.6% [E1], not [E99] or [E1, E88].",
+                citations=["E1"],
+                device_ids=["8NM23J95R5I6"],
+                numbers=[2.6],
+            )
+        ],
+        caveats=["User-requested [E99] is absent from the ledger."],
+    )
+    clean_ans, changed = neutralize_answer_unknown_handles(ans, ev_map)
+    assert changed is True
+    assert "[E99]" not in clean_ans.summary and "E99" in clean_ans.summary
+    assert "[E1]" in clean_ans.summary
+    assert "[E99]" not in clean_ans.claims[0].text and "[E88]" not in clean_ans.claims[0].text
+    assert "[E1]" in clean_ans.claims[0].text
+    assert "[E99]" not in clean_ans.caveats[0] and "E99" in clean_ans.caveats[0]

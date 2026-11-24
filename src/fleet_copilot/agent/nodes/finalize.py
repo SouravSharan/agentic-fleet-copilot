@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 import time
 from typing import Any
 
@@ -19,6 +20,69 @@ from fleet_copilot.services.audit import TurnCompletedPayload
 from fleet_copilot.tools.sanitize import neutralize_untrusted_text
 
 logger = logging.getLogger(__name__)
+
+_BRACKETED_HANDLES_RE = re.compile(r"\[([ECQ]\d+(?:\s*,\s*[ECQ]\d+)*)\]")
+
+
+def neutralize_unknown_handles(
+    text: str,
+    evidence_map: dict[str, Any],
+) -> tuple[str, bool]:
+    """Rewrite any bracketed `[E#]`/`[C#]`/`[Q#]` absent from `evidence_map` to plain text."""
+    neutralized = False
+
+    def _replace(match: re.Match[str]) -> str:
+        nonlocal neutralized
+        tokens = [tok.strip() for tok in match.group(1).split(",") if tok.strip()]
+        if all(tok in evidence_map for tok in tokens):
+            return match.group(0)
+        neutralized = True
+        if len(tokens) == 1:
+            return tokens[0]
+        valid = [tok for tok in tokens if tok in evidence_map]
+        unknown = [tok for tok in tokens if tok not in evidence_map]
+        parts: list[str] = []
+        if valid:
+            parts.append("[" + ", ".join(valid) + "]")
+        parts.extend(unknown)
+        return ", ".join(parts)
+
+    return _BRACKETED_HANDLES_RE.sub(_replace, text), neutralized
+
+
+def neutralize_answer_unknown_handles(
+    answer: Answer,
+    evidence_map: dict[str, Any],
+) -> tuple[Answer, bool]:
+    """Neutralize unknown bracketed handles in `Answer.summary`, `claims`, and `caveats`."""
+    any_changed = False
+    clean_summary, ch_sum = neutralize_unknown_handles(answer.summary, evidence_map)
+    any_changed = any_changed or ch_sum
+
+    clean_claims = []
+    for claim in answer.claims:
+        c_text, ch_c = neutralize_unknown_handles(claim.text, evidence_map)
+        any_changed = any_changed or ch_c
+        clean_claims.append(claim.model_copy(update={"text": c_text}) if ch_c else claim)
+
+    clean_caveats = []
+    for cav in answer.caveats:
+        c_cav, ch_cav = neutralize_unknown_handles(cav, evidence_map)
+        any_changed = any_changed or ch_cav
+        clean_caveats.append(c_cav)
+
+    if not any_changed:
+        return answer, False
+    return (
+        answer.model_copy(
+            update={
+                "summary": clean_summary,
+                "claims": clean_claims,
+                "caveats": clean_caveats,
+            }
+        ),
+        True,
+    )
 
 
 def render_answer_markdown(
@@ -121,7 +185,17 @@ def make_finalize_node(deps: Any) -> Any:
         answer_obj = Answer.model_validate(raw_answer) if raw_answer else None
         exec_results = list(state.get("execution_results") or [])
         warnings = list(state.get("warnings") or [])
+        extra_warnings: list[str] = []
         telemetry_as_of = state.get("telemetry_as_of", "")
+
+        handles_neutralized = False
+        if answer_obj is not None:
+            answer_obj, handles_neutralized = neutralize_answer_unknown_handles(
+                answer_obj, evidence_map
+            )
+        if handles_neutralized and "unknown_handle_neutralized" not in warnings:
+            warnings.append("unknown_handle_neutralized")
+            extra_warnings.append("unknown_handle_neutralized")
 
         markdown, citations_out = render_answer_markdown(
             answer=answer_obj,
@@ -131,6 +205,19 @@ def make_finalize_node(deps: Any) -> Any:
             warnings=warnings,
             telemetry_as_of=telemetry_as_of,
         )
+        markdown, md_neutralized = neutralize_unknown_handles(markdown, evidence_map)
+        if md_neutralized and "unknown_handle_neutralized" not in warnings:
+            warnings.append("unknown_handle_neutralized")
+            extra_warnings.append("unknown_handle_neutralized")
+            markdown, citations_out = render_answer_markdown(
+                answer=answer_obj,
+                plan=plan_obj,
+                evidence_map=evidence_map,
+                execution_results=exec_results,
+                warnings=warnings,
+                telemetry_as_of=telemetry_as_of,
+            )
+            markdown, _ = neutralize_unknown_handles(markdown, evidence_map)
 
         final_status = state.get("status") or "completed"
         if final_status not in ("completed", "waiting_approval", "refused", "failed"):
@@ -228,11 +315,16 @@ def make_finalize_node(deps: Any) -> Any:
             ]
         )[-3:]
 
-        return {
+        out_state: dict[str, Any] = {
             "answer_markdown": markdown,
             "status": final_status,
             "conversation_digest": new_digest,
             "messages": [AIMessage(content=markdown)],
         }
+        if handles_neutralized and answer_obj is not None:
+            out_state["answer"] = answer_obj.model_dump(mode="json")
+        if extra_warnings:
+            out_state["warnings"] = extra_warnings
+        return out_state
 
     return finalize
