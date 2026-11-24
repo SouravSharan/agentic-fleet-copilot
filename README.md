@@ -9,6 +9,10 @@ Built with Python 3.12, LangGraph, Gemini 3.8 Flash, PostgreSQL 16 (row-level se
 
 **Author:** Sourav Sharan ([@SouravSharan](https://github.com/SouravSharan)) — take-home for the Senior Agentic AI Engineer role at Rayda.
 
+![Demo: ask a question, open a citation and the Inspector, propose and approve a ticket, verify the audit chain](docs/screenshots/demo.gif)
+
+*Live demo recording (sped up): grounded answer with citations → evidence popover → Inspector (plan, tools, evidence, verifier) → proposed ticket with its policy checklist → human approval → hash-chained audit log verified.*
+
 | | |
 |---|---|
 | ![Home briefing](docs/screenshots/02-home-briefing.png) | ![Grounded answer with citations](docs/screenshots/03-copilot-citation-popover.png) |
