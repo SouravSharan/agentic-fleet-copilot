@@ -271,7 +271,7 @@ class InMemoryTelemetryRepo:
         valid_ids = {d.device_id for d in self.latest_states(company_id)}
         return [
             s
-            for s in self._software
+            for s in getattr(self, "_software", ())
             if s.device_id in valid_ids and (device_ids is None or s.device_id in device_ids)
         ]
 
