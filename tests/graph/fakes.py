@@ -147,6 +147,7 @@ class InMemoryTelemetryRepo:
     """Minimal deterministic telemetry repo for offline graph tests."""
 
     def __init__(self) -> None:
+        self._software: list[SoftwareRecord] = []
         self._devices = [
             DeviceState(
                 snapshot_id="snap_mt7p_latest",
@@ -266,7 +267,13 @@ class InMemoryTelemetryRepo:
         latest_only: bool = False,
         device_ids: Sequence[str] | None = None,
     ) -> list[SoftwareRecord]:
-        return []
+        _ = (since, latest_only)
+        valid_ids = {d.device_id for d in self.latest_states(company_id)}
+        return [
+            s
+            for s in self._software
+            if s.device_id in valid_ids and (device_ids is None or s.device_id in device_ids)
+        ]
 
     def resolve_device(self, company_id: str, identifier: str) -> DeviceState | None:
         for d in self.latest_states(company_id):
@@ -293,6 +300,7 @@ class InMemoryCopilotStore:
         self.proposals: dict[str, dict[str, Any]] = {}
         self.spend_ledger: list[dict[str, Any]] = []
         self.outbox: list[dict[str, Any]] = []
+        self.charts: dict[str, dict[str, Any]] = {}
 
     def policies(self, company_id: str) -> list[PolicyRow]:
         defaults = {
@@ -591,15 +599,176 @@ class InMemoryCopilotStore:
         ]
         return rows[:limit]
 
+    def insert_chart(
+        self,
+        company_id: str,
+        *,
+        chart_id: str,
+        owner_actor_id: str,
+        title: str,
+        request_json: dict[str, Any],
+        spec_json: dict[str, Any],
+        data_json: list[dict[str, Any]],
+        evidence_snapshot_ids: list[str],
+        telemetry_as_of: datetime,
+        thread_id: str | None = None,
+        turn_id: str | None = None,
+        pinned: bool = False,
+    ) -> dict[str, Any]:
+        row = {
+            "chart_id": chart_id,
+            "company_id": company_id,
+            "owner_actor_id": owner_actor_id,
+            "title": title,
+            "request_json": dict(request_json),
+            "spec_json": dict(spec_json),
+            "data_json": list(data_json),
+            "evidence_snapshot_ids": list(evidence_snapshot_ids),
+            "telemetry_as_of": telemetry_as_of,
+            "thread_id": thread_id,
+            "turn_id": turn_id,
+            "pinned": pinned,
+        }
+        self.charts[chart_id] = row
+        return dict(row)
+
+    def list_charts(
+        self,
+        company_id: str,
+        *,
+        owner_actor_id: str,
+        pinned_only: bool = False,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        rows = [
+            dict(r)
+            for r in self.charts.values()
+            if r.get("company_id") == company_id
+            and r.get("owner_actor_id") == owner_actor_id
+            and (not pinned_only or bool(r.get("pinned", False)))
+        ]
+        return rows[:limit]
+
+    def get_chart(
+        self,
+        company_id: str,
+        chart_id: str,
+        *,
+        owner_actor_id: str,
+    ) -> dict[str, Any] | None:
+        r = self.charts.get(chart_id)
+        if r is None or r.get("company_id") != company_id:
+            return None
+        if r.get("owner_actor_id") != owner_actor_id:
+            return None
+        return dict(r)
+
+    def pin_chart(
+        self,
+        company_id: str,
+        chart_id: str,
+        *,
+        owner_actor_id: str,
+        pinned: bool = True,
+    ) -> dict[str, Any] | None:
+        r = self.charts.get(chart_id)
+        if r is None or r.get("company_id") != company_id:
+            return None
+        if r.get("owner_actor_id") != owner_actor_id:
+            return None
+        r["pinned"] = pinned
+        return dict(r)
+
+    def update_chart_in_place(
+        self,
+        company_id: str,
+        chart_id: str,
+        *,
+        owner_actor_id: str,
+        spec_json: dict[str, Any],
+        data_json: list[dict[str, Any]],
+        evidence_snapshot_ids: list[str],
+        telemetry_as_of: datetime,
+    ) -> dict[str, Any] | None:
+        r = self.charts.get(chart_id)
+        if r is None or r.get("company_id") != company_id:
+            return None
+        if r.get("owner_actor_id") != owner_actor_id:
+            return None
+        r["spec_json"] = dict(spec_json)
+        r["data_json"] = list(data_json)
+        r["evidence_snapshot_ids"] = list(evidence_snapshot_ids)
+        r["telemetry_as_of"] = telemetry_as_of
+        return dict(r)
+
+    def delete_chart(
+        self,
+        company_id: str,
+        chart_id: str,
+        *,
+        owner_actor_id: str,
+    ) -> bool:
+        r = self.charts.get(chart_id)
+        if r is None or r.get("company_id") != company_id:
+            return False
+        if r.get("owner_actor_id") != owner_actor_id:
+            return False
+        del self.charts[chart_id]
+        return True
+
 
 class InMemoryAuditService:
     """In-memory audit recorder for offline graph tests."""
 
     def __init__(self) -> None:
         self.events: list[tuple[str, Any]] = []
+        self.records: list[dict[str, Any]] = []
 
     def record_standalone(
         self, ctx: Any, event_type: str, payload: Any, *, thread_id: str | None = None
     ) -> int:
         self.events.append((event_type, payload))
-        return len(self.events)
+        seq = len(self.events)
+        payload_dict = (
+            payload.model_dump(mode="json") if hasattr(payload, "model_dump") else payload
+        )
+        self.records.append(
+            {
+                "audit_id": seq,
+                "seq_no": seq,
+                "trace_id": getattr(ctx, "trace_id", "trace-test"),
+                "thread_id": thread_id,
+                "company_id": getattr(ctx, "company_id", "acme-001"),
+                "actor_id": getattr(ctx, "actor_id", "rev_test:acme_admin"),
+                "actor_role": getattr(ctx, "role", "it_admin"),
+                "event_type": event_type,
+                "payload_json": payload_dict,
+                "created_at": AS_OF,
+            }
+        )
+        return seq
+
+    def list(
+        self,
+        ctx: Any,
+        *,
+        event_type: str | None = None,
+        trace_id: str | None = None,
+        thread_id: str | None = None,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        rows = [
+            dict(r)
+            for r in self.records
+            if r["company_id"] == getattr(ctx, "company_id", "")
+            and (event_type is None or r["event_type"] == event_type)
+            and (trace_id is None or r["trace_id"] == trace_id)
+            and (thread_id is None or r["thread_id"] == thread_id)
+        ]
+        return rows[:limit]
+
+    def verify(self, ctx: Any) -> dict[str, Any]:
+        company_rows = [
+            r for r in self.records if r["company_id"] == getattr(ctx, "company_id", "")
+        ]
+        return {"ok": True, "rows_checked": len(company_rows), "first_bad_seq": None}

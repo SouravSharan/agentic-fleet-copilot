@@ -90,7 +90,7 @@ def _render_pending_tab(
                     st.markdown("**Recent approval outcomes**")
                     if st.button("Dismiss", key="queue_dismiss_outcomes", type="tertiary"):
                         st.session_state.pop("queue_decision_outcomes", None)
-                        st.rerun(scope="fragment")
+                        st.rerun()
                 for pid_out, info in outcomes.items():
                     st_out = str(info.get("status") or "")
                     rcpt_id = info.get("receipt_id")

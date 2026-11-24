@@ -352,7 +352,7 @@ def _render_transcript_zone(
                 ):
                     expanded_threads.add(tid_key)
                     st.session_state["expanded_thread_ids"] = expanded_threads
-                    st.rerun(scope="fragment")
+                    st.rerun()
 
             for idx, turn_row in enumerate(visible_turns):
                 turn_id = str(turn_row.get("turn_id") or f"turn_{idx}")

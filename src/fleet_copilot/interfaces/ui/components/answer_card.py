@@ -131,7 +131,7 @@ def _render_chart_card(
                                 )
                                 updated.add(chart_id)
                                 st.session_state["pinned_chart_ids"] = updated
-                                st.rerun(scope="fragment")
+                                st.rerun()
                             else:
                                 st.caption("Saved chart unavailable for historical replay.")
 

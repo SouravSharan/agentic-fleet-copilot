@@ -515,7 +515,7 @@ def _render_saved_charts_tab(
                             ctx_ref = make_tenant_context(session)
                             container.chart_svc.refresh_chart(ctx_ref, chart_id)
                             st.toast(f"Refreshed '{title}' on latest telemetry.")
-                            st.rerun(scope="fragment")
+                            st.rerun()
                     else:
                         st.caption("Frozen SQL snapshot")
 
@@ -557,14 +557,14 @@ def _render_saved_charts_tab(
                             ctx_del = make_tenant_context(session)
                             container.chart_svc.delete_chart(ctx_del, chart_id)
                             st.session_state.pop("confirm_delete_chart_id", None)
-                            st.rerun(scope="fragment")
+                            st.rerun()
                         if st.button(
                             "Cancel",
                             key=f"saved_cancel_del_{chart_id}",
                             type="tertiary",
                         ):
                             st.session_state.pop("confirm_delete_chart_id", None)
-                            st.rerun(scope="fragment")
+                            st.rerun()
                     else:
                         if st.button(
                             "Delete",
@@ -573,7 +573,7 @@ def _render_saved_charts_tab(
                             icon=":material/delete:",
                         ):
                             st.session_state["confirm_delete_chart_id"] = chart_id
-                            st.rerun(scope="fragment")
+                            st.rerun()
 
     _charts_fragment()
 
