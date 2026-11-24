@@ -1,4 +1,4 @@
-"""Unit tests for pricing calibration (M5), hashed software insight_id (L3), and truncation (L5)."""
+"""Unit tests for pricing calibration, hashed software insight_id, and truncation."""
 
 from __future__ import annotations
 

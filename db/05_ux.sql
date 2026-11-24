@@ -3,7 +3,7 @@
 -- personal saved charts (`copilot.charts`), and future Phase D tables (added idempotently).
 
 -- ---------------------------------------------------------------------------
--- (a) Chat History Columns (Phase B1)
+-- (a) Chat History Columns
 -- ---------------------------------------------------------------------------
 
 ALTER TABLE copilot.threads
@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_copilot_threads_tenant_actor_visible
     WHERE hidden = false;
 
 -- ---------------------------------------------------------------------------
--- (b) Personal Saved Charts (Phase B2; RLS by company, personal owner_actor_id)
+-- (b) Personal Saved Charts (RLS by company, personal owner_actor_id)
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS copilot.charts (

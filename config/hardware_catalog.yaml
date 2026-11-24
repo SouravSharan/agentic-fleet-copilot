@@ -1,5 +1,5 @@
 # Platform hardware upgradability catalog (seeded into copilot.hardware_catalog by scripts/db_setup.py).
-# Sources verified in audit/03 §4. Unknown models fall back to allow_with_warnings at the policy gate.
+# Specs verified against vendor documentation (see source_urls per model). Unknown models fall back to allow_with_warnings at the policy gate.
 models:
   - model_identifier: "21CB"
     model_name: "ThinkPad X1 Carbon Gen 11"

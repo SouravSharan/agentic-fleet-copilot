@@ -24,7 +24,7 @@ def with_database(url: str, dbname: str) -> str:
 
 
 class Settings(BaseSettings):
-    """Configuration for local dev, CI, and Railway deployments."""
+    """Configuration for local dev, CI, and Docker deployments."""
 
     model_config = SettingsConfigDict(
         env_file=(str(_REPO_ENV), ".env"),

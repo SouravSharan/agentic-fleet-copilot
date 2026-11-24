@@ -650,7 +650,7 @@ VALUES
     ('*', 'global', '', 'require_distinct_approver',        'false'::jsonb,'system')
 ON CONFLICT (company_id, scope_type, scope_value, metric_key) DO NOTHING;
 
--- Sync global tool-config seeds to the exact 13-tool catalog (11 §2 B4).
+-- Sync global tool-config seeds to the exact 13-tool catalog.
 DELETE FROM copilot.tenant_tool_configs
 WHERE company_id = '*'
   AND tool_name NOT IN (

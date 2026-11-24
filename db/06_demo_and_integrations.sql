@@ -1,5 +1,5 @@
 -- 06_demo_and_integrations.sql
--- Phase D1 operational tables and hardened SECURITY DEFINER helpers:
+-- Demo/ops operational tables and hardened SECURITY DEFINER helpers:
 --   (a) copilot.spend_ledger + aggregate/write-only SECURITY DEFINER accessors
 
 -- ---------------------------------------------------------------------------

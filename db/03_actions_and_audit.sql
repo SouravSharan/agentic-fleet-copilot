@@ -1,5 +1,5 @@
 -- 03_actions_and_audit.sql
--- Step 4 schema upgrades: hardware catalog, immutable proposal lifecycle + dedupe index,
+-- Action-layer schema: hardware catalog, immutable proposal lifecycle + dedupe index,
 -- per-tenant tamper-evident audit hash chain, and turn metadata columns.
 
 -- ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ BEGIN
             USING ERRCODE = '42501';
     END IF;
 
-    -- 3. Enforce legal status transitions per 05 §3.6.
+    -- 3. Enforce legal status transitions.
     IF NEW.status IS DISTINCT FROM OLD.status THEN
         IF OLD.status = 'pending_approval'
            AND NEW.status IN ('approved', 'rejected', 'expired') THEN
@@ -169,7 +169,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_copilot_proposals_active_dedupe
     WHERE status IN ('pending_approval', 'approved', 'executing');
 
 -- ---------------------------------------------------------------------------
--- (e) Per-Tenant Tamper-Evident Audit Hash Chain (05 §3.9.3)
+-- (e) Per-Tenant Tamper-Evident Audit Hash Chain
 -- ---------------------------------------------------------------------------
 
 ALTER TABLE copilot.audit_logs
@@ -381,7 +381,7 @@ REVOKE ALL ON FUNCTION copilot.verify_audit_chain()
 GRANT EXECUTE ON FUNCTION copilot.verify_audit_chain() TO copilot_app;
 
 -- ---------------------------------------------------------------------------
--- (f) Turns Table Metadata Columns (05 §3.7)
+-- (f) Turns Table Metadata Columns
 -- ---------------------------------------------------------------------------
 
 ALTER TABLE copilot.turns
@@ -402,7 +402,7 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- (g) Threads Run Lease & Turn Redaction Support (Phase A3)
+-- (g) Threads Run Lease & Turn Redaction Support
 -- ---------------------------------------------------------------------------
 
 ALTER TABLE copilot.threads
