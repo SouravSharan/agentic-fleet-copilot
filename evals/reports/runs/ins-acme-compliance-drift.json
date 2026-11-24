@@ -1,0 +1,3784 @@
+{
+  "thread_id": "acme-001:eval_ins-acme-compliance-drift_r1",
+  "turn_id": "turn_ins-acme-compliance-drift_r1_t1",
+  "trace_id": "eval-ins-acme-compliance-drift-r1-t1",
+  "status": "completed",
+  "answer_markdown": "Over the last 30 days, 5 devices drifted from passing to failing screen_lock compliance: 1LYSSFD074BB (on 2026-05-22T09:41:00Z), MT7PJB7N5LRE (on 2026-05-28T09:32:00Z), 8NM23J95R5I6 (on 2026-05-30T08:38:00Z), DLT35MHGTH2D (on 2026-06-01T10:14:00Z), and DSYPSES7SKBB (on 2026-06-01T10:20:00Z).\n\n- Device 1LYSSFD074BB (acme-macbook-2) passed screen_lock on 2026-05-14T09:54:00Z [E1], drifted to fail on 2026-05-22T09:41:00Z [E2], and remained failing at 2026-06-12T09:47:00Z [E3].\n- Device 8NM23J95R5I6 (acme-thinkpad-8) passed screen_lock on 2026-05-14T10:10:00Z [E4], drifted to fail on 2026-05-30T08:38:00Z [E5], and remained failing at 2026-06-12T09:02:00Z [E6].\n- Device DLT35MHGTH2D (acme-mac-5) passed screen_lock on 2026-05-14T10:10:00Z [E7], drifted to fail on 2026-06-01T10:14:00Z [E8], and remained failing at 2026-06-12T09:36:00Z [E9].\n- Device DSYPSES7SKBB (acme-macbook-3) passed screen_lock on 2026-05-14T10:39:00Z [E10], drifted to fail on 2026-06-01T10:20:00Z [E11], and remained failing at 2026-06-12T10:57:00Z [E12].\n- Device MT7PJB7N5LRE (acme-macbook-4) passed screen_lock on 2026-05-14T11:14:00Z [E13], drifted to fail on 2026-05-28T09:32:00Z [E14], and remained failing at 2026-06-12T08:39:00Z [E15].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T11:00:00+00:00\n- Evaluated 10 devices across the fleet for compliance drift over a 30-day window\n- Drift identification is limited to devices having an initial passing snapshot within the 30-day observation horizon\n\n**Evidence:**\n- `[E1]` `snap_7a70155f743f2189` · `1LYSSFD074BB` (acme-macbook-2) · First pass for screen_lock on 2026-05-14 · 2026-05-14T09:54:00\n- `[E2]` `snap_ba6d47c0f099189c` · `1LYSSFD074BB` (acme-macbook-2) · Transition pass->fail for screen_lock on 2026-05-22 · 2026-05-22T09:41:00\n- `[E3]` `snap_bb784a054ec16657` · `1LYSSFD074BB` (acme-macbook-2) · Latest screen_lock status: fail · 2026-06-12T09:47:00\n- `[E4]` `snap_e0918c3d573c39f9` · `8NM23J95R5I6` (acme-thinkpad-8) · First pass for screen_lock on 2026-05-14 · 2026-05-14T10:10:00\n- `[E5]` `snap_ce1a1a26c18fe8b0` · `8NM23J95R5I6` (acme-thinkpad-8) · Transition pass->fail for screen_lock on 2026-05-30 · 2026-05-30T08:38:00\n- `[E6]` `snap_e1d70fe2e26e48da` · `8NM23J95R5I6` (acme-thinkpad-8) · Latest screen_lock status: fail · 2026-06-12T09:02:00\n- `[E7]` `snap_3b7b5f36d1953613` · `DLT35MHGTH2D` (acme-mac-5) · First pass for screen_lock on 2026-05-14 · 2026-05-14T10:10:00\n- `[E8]` `snap_ed435ac5bfb5907e` · `DLT35MHGTH2D` (acme-mac-5) · Transition pass->fail for screen_lock on 2026-06-01 · 2026-06-01T10:14:00\n- `[E9]` `snap_887a52cbf5387832` · `DLT35MHGTH2D` (acme-mac-5) · Latest screen_lock status: fail · 2026-06-12T09:36:00\n- `[E10]` `snap_c91848abd3f6c394` · `DSYPSES7SKBB` (acme-macbook-3) · First pass for screen_lock on 2026-05-14 · 2026-05-14T10:39:00\n- `[E11]` `snap_247815e67a5046bd` · `DSYPSES7SKBB` (acme-macbook-3) · Transition pass->fail for screen_lock on 2026-06-01 · 2026-06-01T10:20:00\n- `[E12]` `snap_3bc7c2d26a551dce` · `DSYPSES7SKBB` (acme-macbook-3) · Latest screen_lock status: fail · 2026-06-12T10:57:00\n- `[E13]` `snap_b996cebe5fbdb8de` · `MT7PJB7N5LRE` (acme-macbook-4) · First pass for screen_lock on 2026-05-14 · 2026-05-14T11:14:00\n- `[E14]` `snap_314d8e2c3c3de16d` · `MT7PJB7N5LRE` (acme-macbook-4) · Transition pass->fail for screen_lock on 2026-05-28 · 2026-05-28T09:32:00\n- `[E15]` `snap_de2da5a8a102d45b` · `MT7PJB7N5LRE` (acme-macbook-4) · Latest screen_lock status: fail · 2026-06-12T08:39:00",
+  "answer": {
+    "summary": "Over the last 30 days, 5 devices drifted from passing to failing screen_lock compliance: 1LYSSFD074BB (on 2026-05-22T09:41:00Z), MT7PJB7N5LRE (on 2026-05-28T09:32:00Z), 8NM23J95R5I6 (on 2026-05-30T08:38:00Z), DLT35MHGTH2D (on 2026-06-01T10:14:00Z), and DSYPSES7SKBB (on 2026-06-01T10:20:00Z).",
+    "result_device_ids": [
+      "1LYSSFD074BB",
+      "8NM23J95R5I6",
+      "DLT35MHGTH2D",
+      "DSYPSES7SKBB",
+      "MT7PJB7N5LRE"
+    ],
+    "claims": [
+      {
+        "text": "Device 1LYSSFD074BB (acme-macbook-2) passed screen_lock on 2026-05-14T09:54:00Z [E1], drifted to fail on 2026-05-22T09:41:00Z [E2], and remained failing at 2026-06-12T09:47:00Z [E3].",
+        "citations": [
+          "E1",
+          "E2",
+          "E3"
+        ],
+        "device_ids": [
+          "1LYSSFD074BB"
+        ],
+        "numbers": []
+      },
+      {
+        "text": "Device 8NM23J95R5I6 (acme-thinkpad-8) passed screen_lock on 2026-05-14T10:10:00Z [E4], drifted to fail on 2026-05-30T08:38:00Z [E5], and remained failing at 2026-06-12T09:02:00Z [E6].",
+        "citations": [
+          "E4",
+          "E5",
+          "E6"
+        ],
+        "device_ids": [
+          "8NM23J95R5I6"
+        ],
+        "numbers": []
+      },
+      {
+        "text": "Device DLT35MHGTH2D (acme-mac-5) passed screen_lock on 2026-05-14T10:10:00Z [E7], drifted to fail on 2026-06-01T10:14:00Z [E8], and remained failing at 2026-06-12T09:36:00Z [E9].",
+        "citations": [
+          "E7",
+          "E8",
+          "E9"
+        ],
+        "device_ids": [
+          "DLT35MHGTH2D"
+        ],
+        "numbers": []
+      },
+      {
+        "text": "Device DSYPSES7SKBB (acme-macbook-3) passed screen_lock on 2026-05-14T10:39:00Z [E10], drifted to fail on 2026-06-01T10:20:00Z [E11], and remained failing at 2026-06-12T10:57:00Z [E12].",
+        "citations": [
+          "E10",
+          "E11",
+          "E12"
+        ],
+        "device_ids": [
+          "DSYPSES7SKBB"
+        ],
+        "numbers": []
+      },
+      {
+        "text": "Device MT7PJB7N5LRE (acme-macbook-4) passed screen_lock on 2026-05-14T11:14:00Z [E13], drifted to fail on 2026-05-28T09:32:00Z [E14], and remained failing at 2026-06-12T08:39:00Z [E15].",
+        "citations": [
+          "E13",
+          "E14",
+          "E15"
+        ],
+        "device_ids": [
+          "MT7PJB7N5LRE"
+        ],
+        "numbers": []
+      }
+    ],
+    "insight_refs": [
+      "compliance_drift:1LYSSFD074BB:screen_lock",
+      "compliance_drift:8NM23J95R5I6:screen_lock",
+      "compliance_drift:DLT35MHGTH2D:screen_lock",
+      "compliance_drift:DSYPSES7SKBB:screen_lock",
+      "compliance_drift:MT7PJB7N5LRE:screen_lock"
+    ],
+    "proposal_refs": [],
+    "caveats": [
+      "telemetry_as_of: 2026-06-12T11:00:00+00:00",
+      "Evaluated 10 devices across the fleet for compliance drift over a 30-day window",
+      "Drift identification is limited to devices having an initial passing snapshot within the 30-day observation horizon"
+    ]
+  },
+  "citations": [
+    {
+      "handle": "E1",
+      "snapshot_id": "snap_7a70155f743f2189",
+      "device_id": "1LYSSFD074BB",
+      "hostname": "acme-macbook-2",
+      "collected_at": "2026-05-14T09:54:00Z",
+      "metric": "compliance:screen_lock:first",
+      "value": "pass",
+      "unit": null,
+      "label": "First pass for screen_lock on 2026-05-14"
+    },
+    {
+      "handle": "E2",
+      "snapshot_id": "snap_ba6d47c0f099189c",
+      "device_id": "1LYSSFD074BB",
+      "hostname": "acme-macbook-2",
+      "collected_at": "2026-05-22T09:41:00Z",
+      "metric": "compliance:screen_lock:transition",
+      "value": "fail",
+      "unit": null,
+      "label": "Transition pass->fail for screen_lock on 2026-05-22"
+    },
+    {
+      "handle": "E3",
+      "snapshot_id": "snap_bb784a054ec16657",
+      "device_id": "1LYSSFD074BB",
+      "hostname": "acme-macbook-2",
+      "collected_at": "2026-06-12T09:47:00Z",
+      "metric": "compliance:screen_lock",
+      "value": "fail",
+      "unit": null,
+      "label": "Latest screen_lock status: fail"
+    },
+    {
+      "handle": "E4",
+      "snapshot_id": "snap_e0918c3d573c39f9",
+      "device_id": "8NM23J95R5I6",
+      "hostname": "acme-thinkpad-8",
+      "collected_at": "2026-05-14T10:10:00Z",
+      "metric": "compliance:screen_lock:first",
+      "value": "pass",
+      "unit": null,
+      "label": "First pass for screen_lock on 2026-05-14"
+    },
+    {
+      "handle": "E5",
+      "snapshot_id": "snap_ce1a1a26c18fe8b0",
+      "device_id": "8NM23J95R5I6",
+      "hostname": "acme-thinkpad-8",
+      "collected_at": "2026-05-30T08:38:00Z",
+      "metric": "compliance:screen_lock:transition",
+      "value": "fail",
+      "unit": null,
+      "label": "Transition pass->fail for screen_lock on 2026-05-30"
+    },
+    {
+      "handle": "E6",
+      "snapshot_id": "snap_e1d70fe2e26e48da",
+      "device_id": "8NM23J95R5I6",
+      "hostname": "acme-thinkpad-8",
+      "collected_at": "2026-06-12T09:02:00Z",
+      "metric": "compliance:screen_lock",
+      "value": "fail",
+      "unit": null,
+      "label": "Latest screen_lock status: fail"
+    },
+    {
+      "handle": "E7",
+      "snapshot_id": "snap_3b7b5f36d1953613",
+      "device_id": "DLT35MHGTH2D",
+      "hostname": "acme-mac-5",
+      "collected_at": "2026-05-14T10:10:00Z",
+      "metric": "compliance:screen_lock:first",
+      "value": "pass",
+      "unit": null,
+      "label": "First pass for screen_lock on 2026-05-14"
+    },
+    {
+      "handle": "E8",
+      "snapshot_id": "snap_ed435ac5bfb5907e",
+      "device_id": "DLT35MHGTH2D",
+      "hostname": "acme-mac-5",
+      "collected_at": "2026-06-01T10:14:00Z",
+      "metric": "compliance:screen_lock:transition",
+      "value": "fail",
+      "unit": null,
+      "label": "Transition pass->fail for screen_lock on 2026-06-01"
+    },
+    {
+      "handle": "E9",
+      "snapshot_id": "snap_887a52cbf5387832",
+      "device_id": "DLT35MHGTH2D",
+      "hostname": "acme-mac-5",
+      "collected_at": "2026-06-12T09:36:00Z",
+      "metric": "compliance:screen_lock",
+      "value": "fail",
+      "unit": null,
+      "label": "Latest screen_lock status: fail"
+    },
+    {
+      "handle": "E10",
+      "snapshot_id": "snap_c91848abd3f6c394",
+      "device_id": "DSYPSES7SKBB",
+      "hostname": "acme-macbook-3",
+      "collected_at": "2026-05-14T10:39:00Z",
+      "metric": "compliance:screen_lock:first",
+      "value": "pass",
+      "unit": null,
+      "label": "First pass for screen_lock on 2026-05-14"
+    },
+    {
+      "handle": "E11",
+      "snapshot_id": "snap_247815e67a5046bd",
+      "device_id": "DSYPSES7SKBB",
+      "hostname": "acme-macbook-3",
+      "collected_at": "2026-06-01T10:20:00Z",
+      "metric": "compliance:screen_lock:transition",
+      "value": "fail",
+      "unit": null,
+      "label": "Transition pass->fail for screen_lock on 2026-06-01"
+    },
+    {
+      "handle": "E12",
+      "snapshot_id": "snap_3bc7c2d26a551dce",
+      "device_id": "DSYPSES7SKBB",
+      "hostname": "acme-macbook-3",
+      "collected_at": "2026-06-12T10:57:00Z",
+      "metric": "compliance:screen_lock",
+      "value": "fail",
+      "unit": null,
+      "label": "Latest screen_lock status: fail"
+    },
+    {
+      "handle": "E13",
+      "snapshot_id": "snap_b996cebe5fbdb8de",
+      "device_id": "MT7PJB7N5LRE",
+      "hostname": "acme-macbook-4",
+      "collected_at": "2026-05-14T11:14:00Z",
+      "metric": "compliance:screen_lock:first",
+      "value": "pass",
+      "unit": null,
+      "label": "First pass for screen_lock on 2026-05-14"
+    },
+    {
+      "handle": "E14",
+      "snapshot_id": "snap_314d8e2c3c3de16d",
+      "device_id": "MT7PJB7N5LRE",
+      "hostname": "acme-macbook-4",
+      "collected_at": "2026-05-28T09:32:00Z",
+      "metric": "compliance:screen_lock:transition",
+      "value": "fail",
+      "unit": null,
+      "label": "Transition pass->fail for screen_lock on 2026-05-28"
+    },
+    {
+      "handle": "E15",
+      "snapshot_id": "snap_de2da5a8a102d45b",
+      "device_id": "MT7PJB7N5LRE",
+      "hostname": "acme-macbook-4",
+      "collected_at": "2026-06-12T08:39:00Z",
+      "metric": "compliance:screen_lock",
+      "value": "fail",
+      "unit": null,
+      "label": "Latest screen_lock status: fail"
+    }
+  ],
+  "insights": [
+    {
+      "insight_id": "compliance_drift:1LYSSFD074BB:screen_lock",
+      "category": "compliance_drift",
+      "severity": "medium",
+      "device_id": "1LYSSFD074BB",
+      "employee_id": "emp-acme-1001",
+      "finding": "Compliance drift on acme-macbook-2: screen_lock (medium) flipped pass->fail on 2026-05-22.",
+      "explanation": "screen_lock passed on 2026-05-14, flipped to fail on 2026-05-22 (22/30 failing snapshots), and remains failing as of latest snapshot.",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_7a70155f743f2189",
+          "device_id": "1LYSSFD074BB",
+          "hostname": "acme-macbook-2",
+          "collected_at": "2026-05-14T09:54:00Z",
+          "metric": "compliance:screen_lock:first",
+          "value": "pass",
+          "unit": null,
+          "label": "First pass for screen_lock on 2026-05-14"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_ba6d47c0f099189c",
+          "device_id": "1LYSSFD074BB",
+          "hostname": "acme-macbook-2",
+          "collected_at": "2026-05-22T09:41:00Z",
+          "metric": "compliance:screen_lock:transition",
+          "value": "fail",
+          "unit": null,
+          "label": "Transition pass->fail for screen_lock on 2026-05-22"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_bb784a054ec16657",
+          "device_id": "1LYSSFD074BB",
+          "hostname": "acme-macbook-2",
+          "collected_at": "2026-06-12T09:47:00Z",
+          "metric": "compliance:screen_lock",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest screen_lock status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "drift",
+        "check_id": "screen_lock",
+        "check_severity": "medium",
+        "first_fail_date": "2026-05-22",
+        "recovered": false,
+        "recovered_date": null,
+        "fail_count": 22,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "1LYSSFD074BB",
+          "check_id": "screen_lock"
+        },
+        "reason": "screen_lock drifted to failing and has not recovered"
+      },
+      "chart": {
+        "title": "1LYSSFD074BB · Compliance Drift",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "1LYSSFD074BB · Compliance Drift",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_7a70155f743f2189"
+              },
+              {
+                "date": "2026-05-15",
+                "value": 1.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_d28ba05e0674c042"
+              },
+              {
+                "date": "2026-05-16",
+                "value": 1.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_0256958d002687aa"
+              },
+              {
+                "date": "2026-05-17",
+                "value": 1.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_1a9214b3bcd3bf67"
+              },
+              {
+                "date": "2026-05-18",
+                "value": 1.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_70ad0b31467dec15"
+              },
+              {
+                "date": "2026-05-19",
+                "value": 1.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_0680566d6fc4a88c"
+              },
+              {
+                "date": "2026-05-20",
+                "value": 1.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_ef277964079b6623"
+              },
+              {
+                "date": "2026-05-21",
+                "value": 1.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_fcf4d2b296944b01"
+              },
+              {
+                "date": "2026-05-22",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_ba6d47c0f099189c"
+              },
+              {
+                "date": "2026-05-23",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_840ef59c45779d8b"
+              },
+              {
+                "date": "2026-05-24",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_6bbabfc336558338"
+              },
+              {
+                "date": "2026-05-25",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_7ea81b67233b70b2"
+              },
+              {
+                "date": "2026-05-26",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_092f3876066f31e6"
+              },
+              {
+                "date": "2026-05-27",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_c4926e324691d2d3"
+              },
+              {
+                "date": "2026-05-28",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_31d1110e671c9617"
+              },
+              {
+                "date": "2026-05-29",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_9a0f08bfa2df1fb5"
+              },
+              {
+                "date": "2026-05-30",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_cdaf05420f37dcda"
+              },
+              {
+                "date": "2026-05-31",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_3c1a5bb198d8cf98"
+              },
+              {
+                "date": "2026-06-01",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_faa508345b90d33e"
+              },
+              {
+                "date": "2026-06-02",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_6bbe1a2d50ea31ed"
+              },
+              {
+                "date": "2026-06-03",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_19992e2243c3f01f"
+              },
+              {
+                "date": "2026-06-04",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_bbb5d0effd8c64d1"
+              },
+              {
+                "date": "2026-06-05",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_27b679ca469c2284"
+              },
+              {
+                "date": "2026-06-06",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_90c2f0ae6bc87efd"
+              },
+              {
+                "date": "2026-06-07",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_d14b20ebe2e5e829"
+              },
+              {
+                "date": "2026-06-08",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_034fb89e21955d3f"
+              },
+              {
+                "date": "2026-06-09",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_de41e0507fa8bd9d"
+              },
+              {
+                "date": "2026-06-10",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_c22a1626c85cf3bb"
+              },
+              {
+                "date": "2026-06-11",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_5a549cd8e7c13e29"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 0.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_bb784a054ec16657"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Pass (1) / Fail (0)"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_7a70155f743f2189"
+          },
+          {
+            "date": "2026-05-15",
+            "value": 1.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_d28ba05e0674c042"
+          },
+          {
+            "date": "2026-05-16",
+            "value": 1.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_0256958d002687aa"
+          },
+          {
+            "date": "2026-05-17",
+            "value": 1.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_1a9214b3bcd3bf67"
+          },
+          {
+            "date": "2026-05-18",
+            "value": 1.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_70ad0b31467dec15"
+          },
+          {
+            "date": "2026-05-19",
+            "value": 1.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_0680566d6fc4a88c"
+          },
+          {
+            "date": "2026-05-20",
+            "value": 1.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_ef277964079b6623"
+          },
+          {
+            "date": "2026-05-21",
+            "value": 1.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_fcf4d2b296944b01"
+          },
+          {
+            "date": "2026-05-22",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_ba6d47c0f099189c"
+          },
+          {
+            "date": "2026-05-23",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_840ef59c45779d8b"
+          },
+          {
+            "date": "2026-05-24",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_6bbabfc336558338"
+          },
+          {
+            "date": "2026-05-25",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_7ea81b67233b70b2"
+          },
+          {
+            "date": "2026-05-26",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_092f3876066f31e6"
+          },
+          {
+            "date": "2026-05-27",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_c4926e324691d2d3"
+          },
+          {
+            "date": "2026-05-28",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_31d1110e671c9617"
+          },
+          {
+            "date": "2026-05-29",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_9a0f08bfa2df1fb5"
+          },
+          {
+            "date": "2026-05-30",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_cdaf05420f37dcda"
+          },
+          {
+            "date": "2026-05-31",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_3c1a5bb198d8cf98"
+          },
+          {
+            "date": "2026-06-01",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_faa508345b90d33e"
+          },
+          {
+            "date": "2026-06-02",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_6bbe1a2d50ea31ed"
+          },
+          {
+            "date": "2026-06-03",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_19992e2243c3f01f"
+          },
+          {
+            "date": "2026-06-04",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_bbb5d0effd8c64d1"
+          },
+          {
+            "date": "2026-06-05",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_27b679ca469c2284"
+          },
+          {
+            "date": "2026-06-06",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_90c2f0ae6bc87efd"
+          },
+          {
+            "date": "2026-06-07",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_d14b20ebe2e5e829"
+          },
+          {
+            "date": "2026-06-08",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_034fb89e21955d3f"
+          },
+          {
+            "date": "2026-06-09",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_de41e0507fa8bd9d"
+          },
+          {
+            "date": "2026-06-10",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_c22a1626c85cf3bb"
+          },
+          {
+            "date": "2026-06-11",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_5a549cd8e7c13e29"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 0.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_bb784a054ec16657"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_0256958d002687aa",
+          "snap_034fb89e21955d3f",
+          "snap_0680566d6fc4a88c",
+          "snap_092f3876066f31e6",
+          "snap_19992e2243c3f01f",
+          "snap_1a9214b3bcd3bf67",
+          "snap_27b679ca469c2284",
+          "snap_31d1110e671c9617",
+          "snap_3c1a5bb198d8cf98",
+          "snap_5a549cd8e7c13e29",
+          "snap_6bbabfc336558338",
+          "snap_6bbe1a2d50ea31ed",
+          "snap_70ad0b31467dec15",
+          "snap_7a70155f743f2189",
+          "snap_7ea81b67233b70b2",
+          "snap_840ef59c45779d8b",
+          "snap_90c2f0ae6bc87efd",
+          "snap_9a0f08bfa2df1fb5",
+          "snap_ba6d47c0f099189c",
+          "snap_bb784a054ec16657",
+          "snap_bbb5d0effd8c64d1",
+          "snap_c22a1626c85cf3bb",
+          "snap_c4926e324691d2d3",
+          "snap_cdaf05420f37dcda",
+          "snap_d14b20ebe2e5e829",
+          "snap_d28ba05e0674c042",
+          "snap_de41e0507fa8bd9d",
+          "snap_ef277964079b6623",
+          "snap_faa508345b90d33e",
+          "snap_fcf4d2b296944b01"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_drift:8NM23J95R5I6:screen_lock",
+      "category": "compliance_drift",
+      "severity": "medium",
+      "device_id": "8NM23J95R5I6",
+      "employee_id": "emp-acme-1005",
+      "finding": "Compliance drift on acme-thinkpad-8: screen_lock (medium) flipped pass->fail on 2026-05-30.",
+      "explanation": "screen_lock passed on 2026-05-14, flipped to fail on 2026-05-30 (14/30 failing snapshots), and remains failing as of latest snapshot.",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_e0918c3d573c39f9",
+          "device_id": "8NM23J95R5I6",
+          "hostname": "acme-thinkpad-8",
+          "collected_at": "2026-05-14T10:10:00Z",
+          "metric": "compliance:screen_lock:first",
+          "value": "pass",
+          "unit": null,
+          "label": "First pass for screen_lock on 2026-05-14"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_ce1a1a26c18fe8b0",
+          "device_id": "8NM23J95R5I6",
+          "hostname": "acme-thinkpad-8",
+          "collected_at": "2026-05-30T08:38:00Z",
+          "metric": "compliance:screen_lock:transition",
+          "value": "fail",
+          "unit": null,
+          "label": "Transition pass->fail for screen_lock on 2026-05-30"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_e1d70fe2e26e48da",
+          "device_id": "8NM23J95R5I6",
+          "hostname": "acme-thinkpad-8",
+          "collected_at": "2026-06-12T09:02:00Z",
+          "metric": "compliance:screen_lock",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest screen_lock status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "drift",
+        "check_id": "screen_lock",
+        "check_severity": "medium",
+        "first_fail_date": "2026-05-30",
+        "recovered": false,
+        "recovered_date": null,
+        "fail_count": 14,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "8NM23J95R5I6",
+          "check_id": "screen_lock"
+        },
+        "reason": "screen_lock drifted to failing and has not recovered"
+      },
+      "chart": {
+        "title": "8NM23J95R5I6 · Compliance Drift",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "8NM23J95R5I6 · Compliance Drift",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_e0918c3d573c39f9"
+              },
+              {
+                "date": "2026-05-15",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_877050623f4f4a73"
+              },
+              {
+                "date": "2026-05-16",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_58cc7b1d24806125"
+              },
+              {
+                "date": "2026-05-17",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_8bc1984fd1cc7a07"
+              },
+              {
+                "date": "2026-05-18",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_2c1c8cc7df54879b"
+              },
+              {
+                "date": "2026-05-19",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_45a85d31732f0351"
+              },
+              {
+                "date": "2026-05-20",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_603335f870ef4dfb"
+              },
+              {
+                "date": "2026-05-21",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_56075c4f895b1e84"
+              },
+              {
+                "date": "2026-05-22",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_a3998ed6baeb6143"
+              },
+              {
+                "date": "2026-05-23",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_4bc8c30312b0137a"
+              },
+              {
+                "date": "2026-05-24",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_470286face534a21"
+              },
+              {
+                "date": "2026-05-25",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_89e02649949aea9a"
+              },
+              {
+                "date": "2026-05-26",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_5d4f7d97bd45de2d"
+              },
+              {
+                "date": "2026-05-27",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_d817b7df6ee2ec78"
+              },
+              {
+                "date": "2026-05-28",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_cbe96dcc3656d086"
+              },
+              {
+                "date": "2026-05-29",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_2210326a05f3a79f"
+              },
+              {
+                "date": "2026-05-30",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_ce1a1a26c18fe8b0"
+              },
+              {
+                "date": "2026-05-31",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_077c3626380c3710"
+              },
+              {
+                "date": "2026-06-01",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_9b69089870170376"
+              },
+              {
+                "date": "2026-06-02",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_d1af246280b3ad36"
+              },
+              {
+                "date": "2026-06-03",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_12afe5970c9eab95"
+              },
+              {
+                "date": "2026-06-04",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_c58ef5bc7a5e8a94"
+              },
+              {
+                "date": "2026-06-05",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_f135b8e91a947b2c"
+              },
+              {
+                "date": "2026-06-06",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_4ae1d44cb02567a9"
+              },
+              {
+                "date": "2026-06-07",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_a1b4bd8743cb9d7a"
+              },
+              {
+                "date": "2026-06-08",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_102b2c9f4847fd4a"
+              },
+              {
+                "date": "2026-06-09",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_eb0d40661e62ac3b"
+              },
+              {
+                "date": "2026-06-10",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_b596684050181deb"
+              },
+              {
+                "date": "2026-06-11",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_27b86cdbc63ae6bc"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 0.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_e1d70fe2e26e48da"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Pass (1) / Fail (0)"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_e0918c3d573c39f9"
+          },
+          {
+            "date": "2026-05-15",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_877050623f4f4a73"
+          },
+          {
+            "date": "2026-05-16",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_58cc7b1d24806125"
+          },
+          {
+            "date": "2026-05-17",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_8bc1984fd1cc7a07"
+          },
+          {
+            "date": "2026-05-18",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_2c1c8cc7df54879b"
+          },
+          {
+            "date": "2026-05-19",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_45a85d31732f0351"
+          },
+          {
+            "date": "2026-05-20",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_603335f870ef4dfb"
+          },
+          {
+            "date": "2026-05-21",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_56075c4f895b1e84"
+          },
+          {
+            "date": "2026-05-22",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_a3998ed6baeb6143"
+          },
+          {
+            "date": "2026-05-23",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_4bc8c30312b0137a"
+          },
+          {
+            "date": "2026-05-24",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_470286face534a21"
+          },
+          {
+            "date": "2026-05-25",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_89e02649949aea9a"
+          },
+          {
+            "date": "2026-05-26",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_5d4f7d97bd45de2d"
+          },
+          {
+            "date": "2026-05-27",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_d817b7df6ee2ec78"
+          },
+          {
+            "date": "2026-05-28",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_cbe96dcc3656d086"
+          },
+          {
+            "date": "2026-05-29",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_2210326a05f3a79f"
+          },
+          {
+            "date": "2026-05-30",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_ce1a1a26c18fe8b0"
+          },
+          {
+            "date": "2026-05-31",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_077c3626380c3710"
+          },
+          {
+            "date": "2026-06-01",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_9b69089870170376"
+          },
+          {
+            "date": "2026-06-02",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_d1af246280b3ad36"
+          },
+          {
+            "date": "2026-06-03",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_12afe5970c9eab95"
+          },
+          {
+            "date": "2026-06-04",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_c58ef5bc7a5e8a94"
+          },
+          {
+            "date": "2026-06-05",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_f135b8e91a947b2c"
+          },
+          {
+            "date": "2026-06-06",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_4ae1d44cb02567a9"
+          },
+          {
+            "date": "2026-06-07",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_a1b4bd8743cb9d7a"
+          },
+          {
+            "date": "2026-06-08",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_102b2c9f4847fd4a"
+          },
+          {
+            "date": "2026-06-09",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_eb0d40661e62ac3b"
+          },
+          {
+            "date": "2026-06-10",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_b596684050181deb"
+          },
+          {
+            "date": "2026-06-11",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_27b86cdbc63ae6bc"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 0.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_e1d70fe2e26e48da"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_077c3626380c3710",
+          "snap_102b2c9f4847fd4a",
+          "snap_12afe5970c9eab95",
+          "snap_2210326a05f3a79f",
+          "snap_27b86cdbc63ae6bc",
+          "snap_2c1c8cc7df54879b",
+          "snap_45a85d31732f0351",
+          "snap_470286face534a21",
+          "snap_4ae1d44cb02567a9",
+          "snap_4bc8c30312b0137a",
+          "snap_56075c4f895b1e84",
+          "snap_58cc7b1d24806125",
+          "snap_5d4f7d97bd45de2d",
+          "snap_603335f870ef4dfb",
+          "snap_877050623f4f4a73",
+          "snap_89e02649949aea9a",
+          "snap_8bc1984fd1cc7a07",
+          "snap_9b69089870170376",
+          "snap_a1b4bd8743cb9d7a",
+          "snap_a3998ed6baeb6143",
+          "snap_b596684050181deb",
+          "snap_c58ef5bc7a5e8a94",
+          "snap_cbe96dcc3656d086",
+          "snap_ce1a1a26c18fe8b0",
+          "snap_d1af246280b3ad36",
+          "snap_d817b7df6ee2ec78",
+          "snap_e0918c3d573c39f9",
+          "snap_e1d70fe2e26e48da",
+          "snap_eb0d40661e62ac3b",
+          "snap_f135b8e91a947b2c"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_drift:DLT35MHGTH2D:screen_lock",
+      "category": "compliance_drift",
+      "severity": "medium",
+      "device_id": "DLT35MHGTH2D",
+      "employee_id": "emp-acme-1003",
+      "finding": "Compliance drift on acme-mac-5: screen_lock (medium) flipped pass->fail on 2026-06-01.",
+      "explanation": "screen_lock passed on 2026-05-14, flipped to fail on 2026-06-01 (12/30 failing snapshots), and remains failing as of latest snapshot.",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_3b7b5f36d1953613",
+          "device_id": "DLT35MHGTH2D",
+          "hostname": "acme-mac-5",
+          "collected_at": "2026-05-14T10:10:00Z",
+          "metric": "compliance:screen_lock:first",
+          "value": "pass",
+          "unit": null,
+          "label": "First pass for screen_lock on 2026-05-14"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_ed435ac5bfb5907e",
+          "device_id": "DLT35MHGTH2D",
+          "hostname": "acme-mac-5",
+          "collected_at": "2026-06-01T10:14:00Z",
+          "metric": "compliance:screen_lock:transition",
+          "value": "fail",
+          "unit": null,
+          "label": "Transition pass->fail for screen_lock on 2026-06-01"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_887a52cbf5387832",
+          "device_id": "DLT35MHGTH2D",
+          "hostname": "acme-mac-5",
+          "collected_at": "2026-06-12T09:36:00Z",
+          "metric": "compliance:screen_lock",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest screen_lock status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "drift",
+        "check_id": "screen_lock",
+        "check_severity": "medium",
+        "first_fail_date": "2026-06-01",
+        "recovered": false,
+        "recovered_date": null,
+        "fail_count": 12,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "DLT35MHGTH2D",
+          "check_id": "screen_lock"
+        },
+        "reason": "screen_lock drifted to failing and has not recovered"
+      },
+      "chart": {
+        "title": "DLT35MHGTH2D · Compliance Drift",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "DLT35MHGTH2D · Compliance Drift",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_3b7b5f36d1953613"
+              },
+              {
+                "date": "2026-05-15",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_bff7bc7fec0d6e82"
+              },
+              {
+                "date": "2026-05-16",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_f5dcf9189b32a29b"
+              },
+              {
+                "date": "2026-05-17",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_8f5b461b603f58c2"
+              },
+              {
+                "date": "2026-05-18",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_751d3112b55d84c3"
+              },
+              {
+                "date": "2026-05-19",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_5adf859821f4f170"
+              },
+              {
+                "date": "2026-05-20",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_6c5adb82d504f9c3"
+              },
+              {
+                "date": "2026-05-21",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_1ebf13fa25c76c6b"
+              },
+              {
+                "date": "2026-05-22",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_ec73a4f31deba763"
+              },
+              {
+                "date": "2026-05-23",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_e9ced02759563022"
+              },
+              {
+                "date": "2026-05-24",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_c272f269a0c1b7d1"
+              },
+              {
+                "date": "2026-05-25",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_c962dc112327c1c5"
+              },
+              {
+                "date": "2026-05-26",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_ceab0d63cfdd5cdc"
+              },
+              {
+                "date": "2026-05-27",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_8a0dd176f8c19c91"
+              },
+              {
+                "date": "2026-05-28",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_94d713fe30bf1220"
+              },
+              {
+                "date": "2026-05-29",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_186543ec4538f21c"
+              },
+              {
+                "date": "2026-05-30",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_e93edf42487cad05"
+              },
+              {
+                "date": "2026-05-31",
+                "value": 1.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_c2ebe252deac2830"
+              },
+              {
+                "date": "2026-06-01",
+                "value": 0.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_ed435ac5bfb5907e"
+              },
+              {
+                "date": "2026-06-02",
+                "value": 0.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_f063a3036352c4b5"
+              },
+              {
+                "date": "2026-06-03",
+                "value": 0.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_e2acd707cc233b9a"
+              },
+              {
+                "date": "2026-06-04",
+                "value": 0.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_1e8e315cfed32d9e"
+              },
+              {
+                "date": "2026-06-05",
+                "value": 0.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_a547b2ac92772510"
+              },
+              {
+                "date": "2026-06-06",
+                "value": 0.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_5e6e247069fa68ed"
+              },
+              {
+                "date": "2026-06-07",
+                "value": 0.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_cd595a2a8f4b6547"
+              },
+              {
+                "date": "2026-06-08",
+                "value": 0.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_07f8e4309cf21980"
+              },
+              {
+                "date": "2026-06-09",
+                "value": 0.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_63c4d6ed1f77bac2"
+              },
+              {
+                "date": "2026-06-10",
+                "value": 0.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_6540cb6335b13520"
+              },
+              {
+                "date": "2026-06-11",
+                "value": 0.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_75767f7369c19f34"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 0.0,
+                "device_id": "DLT35MHGTH2D",
+                "snapshot_id": "snap_887a52cbf5387832"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Pass (1) / Fail (0)"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_3b7b5f36d1953613"
+          },
+          {
+            "date": "2026-05-15",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_bff7bc7fec0d6e82"
+          },
+          {
+            "date": "2026-05-16",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_f5dcf9189b32a29b"
+          },
+          {
+            "date": "2026-05-17",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_8f5b461b603f58c2"
+          },
+          {
+            "date": "2026-05-18",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_751d3112b55d84c3"
+          },
+          {
+            "date": "2026-05-19",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_5adf859821f4f170"
+          },
+          {
+            "date": "2026-05-20",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_6c5adb82d504f9c3"
+          },
+          {
+            "date": "2026-05-21",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_1ebf13fa25c76c6b"
+          },
+          {
+            "date": "2026-05-22",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_ec73a4f31deba763"
+          },
+          {
+            "date": "2026-05-23",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_e9ced02759563022"
+          },
+          {
+            "date": "2026-05-24",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_c272f269a0c1b7d1"
+          },
+          {
+            "date": "2026-05-25",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_c962dc112327c1c5"
+          },
+          {
+            "date": "2026-05-26",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_ceab0d63cfdd5cdc"
+          },
+          {
+            "date": "2026-05-27",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_8a0dd176f8c19c91"
+          },
+          {
+            "date": "2026-05-28",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_94d713fe30bf1220"
+          },
+          {
+            "date": "2026-05-29",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_186543ec4538f21c"
+          },
+          {
+            "date": "2026-05-30",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_e93edf42487cad05"
+          },
+          {
+            "date": "2026-05-31",
+            "value": 1.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_c2ebe252deac2830"
+          },
+          {
+            "date": "2026-06-01",
+            "value": 0.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_ed435ac5bfb5907e"
+          },
+          {
+            "date": "2026-06-02",
+            "value": 0.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_f063a3036352c4b5"
+          },
+          {
+            "date": "2026-06-03",
+            "value": 0.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_e2acd707cc233b9a"
+          },
+          {
+            "date": "2026-06-04",
+            "value": 0.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_1e8e315cfed32d9e"
+          },
+          {
+            "date": "2026-06-05",
+            "value": 0.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_a547b2ac92772510"
+          },
+          {
+            "date": "2026-06-06",
+            "value": 0.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_5e6e247069fa68ed"
+          },
+          {
+            "date": "2026-06-07",
+            "value": 0.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_cd595a2a8f4b6547"
+          },
+          {
+            "date": "2026-06-08",
+            "value": 0.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_07f8e4309cf21980"
+          },
+          {
+            "date": "2026-06-09",
+            "value": 0.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_63c4d6ed1f77bac2"
+          },
+          {
+            "date": "2026-06-10",
+            "value": 0.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_6540cb6335b13520"
+          },
+          {
+            "date": "2026-06-11",
+            "value": 0.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_75767f7369c19f34"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 0.0,
+            "device_id": "DLT35MHGTH2D",
+            "snapshot_id": "snap_887a52cbf5387832"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_07f8e4309cf21980",
+          "snap_186543ec4538f21c",
+          "snap_1e8e315cfed32d9e",
+          "snap_1ebf13fa25c76c6b",
+          "snap_3b7b5f36d1953613",
+          "snap_5adf859821f4f170",
+          "snap_5e6e247069fa68ed",
+          "snap_63c4d6ed1f77bac2",
+          "snap_6540cb6335b13520",
+          "snap_6c5adb82d504f9c3",
+          "snap_751d3112b55d84c3",
+          "snap_75767f7369c19f34",
+          "snap_887a52cbf5387832",
+          "snap_8a0dd176f8c19c91",
+          "snap_8f5b461b603f58c2",
+          "snap_94d713fe30bf1220",
+          "snap_a547b2ac92772510",
+          "snap_bff7bc7fec0d6e82",
+          "snap_c272f269a0c1b7d1",
+          "snap_c2ebe252deac2830",
+          "snap_c962dc112327c1c5",
+          "snap_cd595a2a8f4b6547",
+          "snap_ceab0d63cfdd5cdc",
+          "snap_e2acd707cc233b9a",
+          "snap_e93edf42487cad05",
+          "snap_e9ced02759563022",
+          "snap_ec73a4f31deba763",
+          "snap_ed435ac5bfb5907e",
+          "snap_f063a3036352c4b5",
+          "snap_f5dcf9189b32a29b"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_drift:DSYPSES7SKBB:screen_lock",
+      "category": "compliance_drift",
+      "severity": "medium",
+      "device_id": "DSYPSES7SKBB",
+      "employee_id": "emp-acme-1002",
+      "finding": "Compliance drift on acme-macbook-3: screen_lock (medium) flipped pass->fail on 2026-06-01.",
+      "explanation": "screen_lock passed on 2026-05-14, flipped to fail on 2026-06-01 (12/30 failing snapshots), and remains failing as of latest snapshot.",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_c91848abd3f6c394",
+          "device_id": "DSYPSES7SKBB",
+          "hostname": "acme-macbook-3",
+          "collected_at": "2026-05-14T10:39:00Z",
+          "metric": "compliance:screen_lock:first",
+          "value": "pass",
+          "unit": null,
+          "label": "First pass for screen_lock on 2026-05-14"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_247815e67a5046bd",
+          "device_id": "DSYPSES7SKBB",
+          "hostname": "acme-macbook-3",
+          "collected_at": "2026-06-01T10:20:00Z",
+          "metric": "compliance:screen_lock:transition",
+          "value": "fail",
+          "unit": null,
+          "label": "Transition pass->fail for screen_lock on 2026-06-01"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_3bc7c2d26a551dce",
+          "device_id": "DSYPSES7SKBB",
+          "hostname": "acme-macbook-3",
+          "collected_at": "2026-06-12T10:57:00Z",
+          "metric": "compliance:screen_lock",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest screen_lock status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "drift",
+        "check_id": "screen_lock",
+        "check_severity": "medium",
+        "first_fail_date": "2026-06-01",
+        "recovered": false,
+        "recovered_date": null,
+        "fail_count": 12,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "DSYPSES7SKBB",
+          "check_id": "screen_lock"
+        },
+        "reason": "screen_lock drifted to failing and has not recovered"
+      },
+      "chart": {
+        "title": "DSYPSES7SKBB · Compliance Drift",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "DSYPSES7SKBB · Compliance Drift",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_c91848abd3f6c394"
+              },
+              {
+                "date": "2026-05-15",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_0f90cfd3426dfbc2"
+              },
+              {
+                "date": "2026-05-16",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_8972a07c86b4351a"
+              },
+              {
+                "date": "2026-05-17",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_9f46d33de04f2361"
+              },
+              {
+                "date": "2026-05-18",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_de69cde1d5b12b83"
+              },
+              {
+                "date": "2026-05-19",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_2c0d3f30c0163af4"
+              },
+              {
+                "date": "2026-05-20",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_fb4533f6a3b8b3b0"
+              },
+              {
+                "date": "2026-05-21",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_a2a64589a3395c2e"
+              },
+              {
+                "date": "2026-05-22",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_629b0ee0b0b04f03"
+              },
+              {
+                "date": "2026-05-23",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_e11895f01fa0929c"
+              },
+              {
+                "date": "2026-05-24",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_7ec604a98ee66152"
+              },
+              {
+                "date": "2026-05-25",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_852e58bc4c765499"
+              },
+              {
+                "date": "2026-05-26",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_f563356f34fcdbea"
+              },
+              {
+                "date": "2026-05-27",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_516166ee86e0f9d0"
+              },
+              {
+                "date": "2026-05-28",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_5557fe08b74a0499"
+              },
+              {
+                "date": "2026-05-29",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_233dc8d4f2543729"
+              },
+              {
+                "date": "2026-05-30",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_b0574eda8dd44144"
+              },
+              {
+                "date": "2026-05-31",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_435582df043e7461"
+              },
+              {
+                "date": "2026-06-01",
+                "value": 0.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_247815e67a5046bd"
+              },
+              {
+                "date": "2026-06-02",
+                "value": 0.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_113be9fb31826658"
+              },
+              {
+                "date": "2026-06-03",
+                "value": 0.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_ce63fe93a5306491"
+              },
+              {
+                "date": "2026-06-04",
+                "value": 0.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_3c9068e0c205dc40"
+              },
+              {
+                "date": "2026-06-05",
+                "value": 0.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_aa6dc431e3cf9349"
+              },
+              {
+                "date": "2026-06-06",
+                "value": 0.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_453db133b881923e"
+              },
+              {
+                "date": "2026-06-07",
+                "value": 0.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_14ac96f52e67fddd"
+              },
+              {
+                "date": "2026-06-08",
+                "value": 0.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_ea38004aaa75f7a0"
+              },
+              {
+                "date": "2026-06-09",
+                "value": 0.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_3b8ab758ace91eb2"
+              },
+              {
+                "date": "2026-06-10",
+                "value": 0.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_5f020a0cf0c2d1a2"
+              },
+              {
+                "date": "2026-06-11",
+                "value": 0.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_d872889400c6d3e4"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 0.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_3bc7c2d26a551dce"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Pass (1) / Fail (0)"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_c91848abd3f6c394"
+          },
+          {
+            "date": "2026-05-15",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_0f90cfd3426dfbc2"
+          },
+          {
+            "date": "2026-05-16",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_8972a07c86b4351a"
+          },
+          {
+            "date": "2026-05-17",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_9f46d33de04f2361"
+          },
+          {
+            "date": "2026-05-18",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_de69cde1d5b12b83"
+          },
+          {
+            "date": "2026-05-19",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_2c0d3f30c0163af4"
+          },
+          {
+            "date": "2026-05-20",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_fb4533f6a3b8b3b0"
+          },
+          {
+            "date": "2026-05-21",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_a2a64589a3395c2e"
+          },
+          {
+            "date": "2026-05-22",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_629b0ee0b0b04f03"
+          },
+          {
+            "date": "2026-05-23",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_e11895f01fa0929c"
+          },
+          {
+            "date": "2026-05-24",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_7ec604a98ee66152"
+          },
+          {
+            "date": "2026-05-25",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_852e58bc4c765499"
+          },
+          {
+            "date": "2026-05-26",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_f563356f34fcdbea"
+          },
+          {
+            "date": "2026-05-27",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_516166ee86e0f9d0"
+          },
+          {
+            "date": "2026-05-28",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_5557fe08b74a0499"
+          },
+          {
+            "date": "2026-05-29",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_233dc8d4f2543729"
+          },
+          {
+            "date": "2026-05-30",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_b0574eda8dd44144"
+          },
+          {
+            "date": "2026-05-31",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_435582df043e7461"
+          },
+          {
+            "date": "2026-06-01",
+            "value": 0.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_247815e67a5046bd"
+          },
+          {
+            "date": "2026-06-02",
+            "value": 0.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_113be9fb31826658"
+          },
+          {
+            "date": "2026-06-03",
+            "value": 0.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_ce63fe93a5306491"
+          },
+          {
+            "date": "2026-06-04",
+            "value": 0.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_3c9068e0c205dc40"
+          },
+          {
+            "date": "2026-06-05",
+            "value": 0.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_aa6dc431e3cf9349"
+          },
+          {
+            "date": "2026-06-06",
+            "value": 0.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_453db133b881923e"
+          },
+          {
+            "date": "2026-06-07",
+            "value": 0.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_14ac96f52e67fddd"
+          },
+          {
+            "date": "2026-06-08",
+            "value": 0.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_ea38004aaa75f7a0"
+          },
+          {
+            "date": "2026-06-09",
+            "value": 0.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_3b8ab758ace91eb2"
+          },
+          {
+            "date": "2026-06-10",
+            "value": 0.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_5f020a0cf0c2d1a2"
+          },
+          {
+            "date": "2026-06-11",
+            "value": 0.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_d872889400c6d3e4"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 0.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_3bc7c2d26a551dce"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_0f90cfd3426dfbc2",
+          "snap_113be9fb31826658",
+          "snap_14ac96f52e67fddd",
+          "snap_233dc8d4f2543729",
+          "snap_247815e67a5046bd",
+          "snap_2c0d3f30c0163af4",
+          "snap_3b8ab758ace91eb2",
+          "snap_3bc7c2d26a551dce",
+          "snap_3c9068e0c205dc40",
+          "snap_435582df043e7461",
+          "snap_453db133b881923e",
+          "snap_516166ee86e0f9d0",
+          "snap_5557fe08b74a0499",
+          "snap_5f020a0cf0c2d1a2",
+          "snap_629b0ee0b0b04f03",
+          "snap_7ec604a98ee66152",
+          "snap_852e58bc4c765499",
+          "snap_8972a07c86b4351a",
+          "snap_9f46d33de04f2361",
+          "snap_a2a64589a3395c2e",
+          "snap_aa6dc431e3cf9349",
+          "snap_b0574eda8dd44144",
+          "snap_c91848abd3f6c394",
+          "snap_ce63fe93a5306491",
+          "snap_d872889400c6d3e4",
+          "snap_de69cde1d5b12b83",
+          "snap_e11895f01fa0929c",
+          "snap_ea38004aaa75f7a0",
+          "snap_f563356f34fcdbea",
+          "snap_fb4533f6a3b8b3b0"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_drift:MT7PJB7N5LRE:screen_lock",
+      "category": "compliance_drift",
+      "severity": "medium",
+      "device_id": "MT7PJB7N5LRE",
+      "employee_id": "emp-acme-1003",
+      "finding": "Compliance drift on acme-macbook-4: screen_lock (medium) flipped pass->fail on 2026-05-28.",
+      "explanation": "screen_lock passed on 2026-05-14, flipped to fail on 2026-05-28 (16/30 failing snapshots), and remains failing as of latest snapshot.",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_b996cebe5fbdb8de",
+          "device_id": "MT7PJB7N5LRE",
+          "hostname": "acme-macbook-4",
+          "collected_at": "2026-05-14T11:14:00Z",
+          "metric": "compliance:screen_lock:first",
+          "value": "pass",
+          "unit": null,
+          "label": "First pass for screen_lock on 2026-05-14"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_314d8e2c3c3de16d",
+          "device_id": "MT7PJB7N5LRE",
+          "hostname": "acme-macbook-4",
+          "collected_at": "2026-05-28T09:32:00Z",
+          "metric": "compliance:screen_lock:transition",
+          "value": "fail",
+          "unit": null,
+          "label": "Transition pass->fail for screen_lock on 2026-05-28"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_de2da5a8a102d45b",
+          "device_id": "MT7PJB7N5LRE",
+          "hostname": "acme-macbook-4",
+          "collected_at": "2026-06-12T08:39:00Z",
+          "metric": "compliance:screen_lock",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest screen_lock status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "drift",
+        "check_id": "screen_lock",
+        "check_severity": "medium",
+        "first_fail_date": "2026-05-28",
+        "recovered": false,
+        "recovered_date": null,
+        "fail_count": 16,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "MT7PJB7N5LRE",
+          "check_id": "screen_lock"
+        },
+        "reason": "screen_lock drifted to failing and has not recovered"
+      },
+      "chart": {
+        "title": "MT7PJB7N5LRE · Compliance Drift",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "MT7PJB7N5LRE · Compliance Drift",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_b996cebe5fbdb8de"
+              },
+              {
+                "date": "2026-05-15",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_e2cc1084ac454383"
+              },
+              {
+                "date": "2026-05-16",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_18c749c0db9a7b96"
+              },
+              {
+                "date": "2026-05-17",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_7d974e69bc8ed53e"
+              },
+              {
+                "date": "2026-05-18",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_16f1b38a8f48c44a"
+              },
+              {
+                "date": "2026-05-19",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_144cac1de6824b1f"
+              },
+              {
+                "date": "2026-05-20",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_f577cf70bfa8afec"
+              },
+              {
+                "date": "2026-05-21",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_015e8c80b871afdd"
+              },
+              {
+                "date": "2026-05-22",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_d98b4bbe8fdc07f3"
+              },
+              {
+                "date": "2026-05-23",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_f5b6f358b42512a0"
+              },
+              {
+                "date": "2026-05-24",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_146d4429d19234aa"
+              },
+              {
+                "date": "2026-05-25",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_8ff141dfd2b860f1"
+              },
+              {
+                "date": "2026-05-26",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_eff4680587546627"
+              },
+              {
+                "date": "2026-05-27",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_ba04dabb4b950478"
+              },
+              {
+                "date": "2026-05-28",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_314d8e2c3c3de16d"
+              },
+              {
+                "date": "2026-05-29",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_77a6d3d326dcce86"
+              },
+              {
+                "date": "2026-05-30",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_c76b76630c1b5088"
+              },
+              {
+                "date": "2026-05-31",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_59844f04f81c7cde"
+              },
+              {
+                "date": "2026-06-01",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_8d11b96db4258e54"
+              },
+              {
+                "date": "2026-06-02",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_0afa1b7a41109de7"
+              },
+              {
+                "date": "2026-06-03",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_038d3a66b30da8a1"
+              },
+              {
+                "date": "2026-06-04",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_0f3bb28880559abc"
+              },
+              {
+                "date": "2026-06-05",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_c1ec4073acee28d9"
+              },
+              {
+                "date": "2026-06-06",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_e8446e1ee20949c7"
+              },
+              {
+                "date": "2026-06-07",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_3e73cbfcbd6c7b99"
+              },
+              {
+                "date": "2026-06-08",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_268754ac04150aad"
+              },
+              {
+                "date": "2026-06-09",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_ccd5a3182052ce0f"
+              },
+              {
+                "date": "2026-06-10",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_afa566d86cb855e7"
+              },
+              {
+                "date": "2026-06-11",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_db074660ae3a0f11"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 0.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_de2da5a8a102d45b"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Pass (1) / Fail (0)"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_b996cebe5fbdb8de"
+          },
+          {
+            "date": "2026-05-15",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_e2cc1084ac454383"
+          },
+          {
+            "date": "2026-05-16",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_18c749c0db9a7b96"
+          },
+          {
+            "date": "2026-05-17",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_7d974e69bc8ed53e"
+          },
+          {
+            "date": "2026-05-18",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_16f1b38a8f48c44a"
+          },
+          {
+            "date": "2026-05-19",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_144cac1de6824b1f"
+          },
+          {
+            "date": "2026-05-20",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_f577cf70bfa8afec"
+          },
+          {
+            "date": "2026-05-21",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_015e8c80b871afdd"
+          },
+          {
+            "date": "2026-05-22",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_d98b4bbe8fdc07f3"
+          },
+          {
+            "date": "2026-05-23",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_f5b6f358b42512a0"
+          },
+          {
+            "date": "2026-05-24",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_146d4429d19234aa"
+          },
+          {
+            "date": "2026-05-25",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_8ff141dfd2b860f1"
+          },
+          {
+            "date": "2026-05-26",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_eff4680587546627"
+          },
+          {
+            "date": "2026-05-27",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_ba04dabb4b950478"
+          },
+          {
+            "date": "2026-05-28",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_314d8e2c3c3de16d"
+          },
+          {
+            "date": "2026-05-29",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_77a6d3d326dcce86"
+          },
+          {
+            "date": "2026-05-30",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_c76b76630c1b5088"
+          },
+          {
+            "date": "2026-05-31",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_59844f04f81c7cde"
+          },
+          {
+            "date": "2026-06-01",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_8d11b96db4258e54"
+          },
+          {
+            "date": "2026-06-02",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_0afa1b7a41109de7"
+          },
+          {
+            "date": "2026-06-03",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_038d3a66b30da8a1"
+          },
+          {
+            "date": "2026-06-04",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_0f3bb28880559abc"
+          },
+          {
+            "date": "2026-06-05",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_c1ec4073acee28d9"
+          },
+          {
+            "date": "2026-06-06",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_e8446e1ee20949c7"
+          },
+          {
+            "date": "2026-06-07",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_3e73cbfcbd6c7b99"
+          },
+          {
+            "date": "2026-06-08",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_268754ac04150aad"
+          },
+          {
+            "date": "2026-06-09",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_ccd5a3182052ce0f"
+          },
+          {
+            "date": "2026-06-10",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_afa566d86cb855e7"
+          },
+          {
+            "date": "2026-06-11",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_db074660ae3a0f11"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 0.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_de2da5a8a102d45b"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_015e8c80b871afdd",
+          "snap_038d3a66b30da8a1",
+          "snap_0afa1b7a41109de7",
+          "snap_0f3bb28880559abc",
+          "snap_144cac1de6824b1f",
+          "snap_146d4429d19234aa",
+          "snap_16f1b38a8f48c44a",
+          "snap_18c749c0db9a7b96",
+          "snap_268754ac04150aad",
+          "snap_314d8e2c3c3de16d",
+          "snap_3e73cbfcbd6c7b99",
+          "snap_59844f04f81c7cde",
+          "snap_77a6d3d326dcce86",
+          "snap_7d974e69bc8ed53e",
+          "snap_8d11b96db4258e54",
+          "snap_8ff141dfd2b860f1",
+          "snap_afa566d86cb855e7",
+          "snap_b996cebe5fbdb8de",
+          "snap_ba04dabb4b950478",
+          "snap_c1ec4073acee28d9",
+          "snap_c76b76630c1b5088",
+          "snap_ccd5a3182052ce0f",
+          "snap_d98b4bbe8fdc07f3",
+          "snap_db074660ae3a0f11",
+          "snap_de2da5a8a102d45b",
+          "snap_e2cc1084ac454383",
+          "snap_e8446e1ee20949c7",
+          "snap_eff4680587546627",
+          "snap_f577cf70bfa8afec",
+          "snap_f5b6f358b42512a0"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_chronic:1LYSSFD074BB:os_up_to_date",
+      "category": "compliance_chronic",
+      "severity": "low",
+      "device_id": "1LYSSFD074BB",
+      "employee_id": "emp-acme-1001",
+      "finding": "Chronic compliance failure on acme-macbook-2: os_up_to_date (medium) failed all 30 snapshots.",
+      "explanation": "os_up_to_date failed on every snapshot in the 30-day window (chronic failure, not pass->fail drift).",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_7a70155f743f2189",
+          "device_id": "1LYSSFD074BB",
+          "hostname": "acme-macbook-2",
+          "collected_at": "2026-05-14T09:54:00Z",
+          "metric": "compliance:os_up_to_date:first",
+          "value": "fail",
+          "unit": null,
+          "label": "First window os_up_to_date status: fail"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_bb784a054ec16657",
+          "device_id": "1LYSSFD074BB",
+          "hostname": "acme-macbook-2",
+          "collected_at": "2026-06-12T09:47:00Z",
+          "metric": "compliance:os_up_to_date",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest os_up_to_date status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "chronic",
+        "check_id": "os_up_to_date",
+        "check_severity": "medium",
+        "fail_count": 30,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "1LYSSFD074BB",
+          "check_id": "os_up_to_date"
+        },
+        "reason": "os_up_to_date is chronically failing"
+      },
+      "chart": {
+        "title": "1LYSSFD074BB · Compliance Chronic",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "1LYSSFD074BB · Compliance Chronic",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_7a70155f743f2189",
+                "label": "First window os_up_to_date status: fail"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 2.0,
+                "device_id": "1LYSSFD074BB",
+                "snapshot_id": "snap_bb784a054ec16657",
+                "label": "Latest os_up_to_date status: fail"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Observed"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_7a70155f743f2189",
+            "label": "First window os_up_to_date status: fail"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 2.0,
+            "device_id": "1LYSSFD074BB",
+            "snapshot_id": "snap_bb784a054ec16657",
+            "label": "Latest os_up_to_date status: fail"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_7a70155f743f2189",
+          "snap_bb784a054ec16657"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_chronic:7VP16KHV88LM:os_up_to_date",
+      "category": "compliance_chronic",
+      "severity": "low",
+      "device_id": "7VP16KHV88LM",
+      "employee_id": "emp-acme-1000",
+      "finding": "Chronic compliance failure on acme-macbook-1: os_up_to_date (medium) failed all 30 snapshots.",
+      "explanation": "os_up_to_date failed on every snapshot in the 30-day window (chronic failure, not pass->fail drift).",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_193f2024a9411c0d",
+          "device_id": "7VP16KHV88LM",
+          "hostname": "acme-macbook-1",
+          "collected_at": "2026-05-14T11:09:00Z",
+          "metric": "compliance:os_up_to_date:first",
+          "value": "fail",
+          "unit": null,
+          "label": "First window os_up_to_date status: fail"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_3b8594133404afb5",
+          "device_id": "7VP16KHV88LM",
+          "hostname": "acme-macbook-1",
+          "collected_at": "2026-06-12T10:41:00Z",
+          "metric": "compliance:os_up_to_date",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest os_up_to_date status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "chronic",
+        "check_id": "os_up_to_date",
+        "check_severity": "medium",
+        "fail_count": 30,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "7VP16KHV88LM",
+          "check_id": "os_up_to_date"
+        },
+        "reason": "os_up_to_date is chronically failing"
+      },
+      "chart": {
+        "title": "7VP16KHV88LM · Compliance Chronic",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "7VP16KHV88LM · Compliance Chronic",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_193f2024a9411c0d",
+                "label": "First window os_up_to_date status: fail"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 2.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_3b8594133404afb5",
+                "label": "Latest os_up_to_date status: fail"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Observed"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_193f2024a9411c0d",
+            "label": "First window os_up_to_date status: fail"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 2.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_3b8594133404afb5",
+            "label": "Latest os_up_to_date status: fail"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_193f2024a9411c0d",
+          "snap_3b8594133404afb5"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_chronic:8NM23J95R5I6:os_up_to_date",
+      "category": "compliance_chronic",
+      "severity": "low",
+      "device_id": "8NM23J95R5I6",
+      "employee_id": "emp-acme-1005",
+      "finding": "Chronic compliance failure on acme-thinkpad-8: os_up_to_date (medium) failed all 30 snapshots.",
+      "explanation": "os_up_to_date failed on every snapshot in the 30-day window (chronic failure, not pass->fail drift).",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_e0918c3d573c39f9",
+          "device_id": "8NM23J95R5I6",
+          "hostname": "acme-thinkpad-8",
+          "collected_at": "2026-05-14T10:10:00Z",
+          "metric": "compliance:os_up_to_date:first",
+          "value": "fail",
+          "unit": null,
+          "label": "First window os_up_to_date status: fail"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_e1d70fe2e26e48da",
+          "device_id": "8NM23J95R5I6",
+          "hostname": "acme-thinkpad-8",
+          "collected_at": "2026-06-12T09:02:00Z",
+          "metric": "compliance:os_up_to_date",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest os_up_to_date status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "chronic",
+        "check_id": "os_up_to_date",
+        "check_severity": "medium",
+        "fail_count": 30,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "8NM23J95R5I6",
+          "check_id": "os_up_to_date"
+        },
+        "reason": "os_up_to_date is chronically failing"
+      },
+      "chart": {
+        "title": "8NM23J95R5I6 · Compliance Chronic",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "8NM23J95R5I6 · Compliance Chronic",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_e0918c3d573c39f9",
+                "label": "First window os_up_to_date status: fail"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 2.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_e1d70fe2e26e48da",
+                "label": "Latest os_up_to_date status: fail"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Observed"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_e0918c3d573c39f9",
+            "label": "First window os_up_to_date status: fail"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 2.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_e1d70fe2e26e48da",
+            "label": "Latest os_up_to_date status: fail"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_e0918c3d573c39f9",
+          "snap_e1d70fe2e26e48da"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_chronic:9MXJVZ1I0DKA:os_up_to_date",
+      "category": "compliance_chronic",
+      "severity": "low",
+      "device_id": "9MXJVZ1I0DKA",
+      "employee_id": "emp-acme-1003",
+      "finding": "Chronic compliance failure on acme-thinkpad-10: os_up_to_date (medium) failed all 30 snapshots.",
+      "explanation": "os_up_to_date failed on every snapshot in the 30-day window (chronic failure, not pass->fail drift).",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_d2596f0edcdfe308",
+          "device_id": "9MXJVZ1I0DKA",
+          "hostname": "acme-thinkpad-10",
+          "collected_at": "2026-05-14T08:59:00Z",
+          "metric": "compliance:os_up_to_date:first",
+          "value": "fail",
+          "unit": null,
+          "label": "First window os_up_to_date status: fail"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_e29201b493beeb3a",
+          "device_id": "9MXJVZ1I0DKA",
+          "hostname": "acme-thinkpad-10",
+          "collected_at": "2026-06-12T09:13:00Z",
+          "metric": "compliance:os_up_to_date",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest os_up_to_date status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "chronic",
+        "check_id": "os_up_to_date",
+        "check_severity": "medium",
+        "fail_count": 30,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "9MXJVZ1I0DKA",
+          "check_id": "os_up_to_date"
+        },
+        "reason": "os_up_to_date is chronically failing"
+      },
+      "chart": {
+        "title": "9MXJVZ1I0DKA · Compliance Chronic",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "9MXJVZ1I0DKA · Compliance Chronic",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "9MXJVZ1I0DKA",
+                "snapshot_id": "snap_d2596f0edcdfe308",
+                "label": "First window os_up_to_date status: fail"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 2.0,
+                "device_id": "9MXJVZ1I0DKA",
+                "snapshot_id": "snap_e29201b493beeb3a",
+                "label": "Latest os_up_to_date status: fail"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Observed"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "9MXJVZ1I0DKA",
+            "snapshot_id": "snap_d2596f0edcdfe308",
+            "label": "First window os_up_to_date status: fail"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 2.0,
+            "device_id": "9MXJVZ1I0DKA",
+            "snapshot_id": "snap_e29201b493beeb3a",
+            "label": "Latest os_up_to_date status: fail"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_d2596f0edcdfe308",
+          "snap_e29201b493beeb3a"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_chronic:DSYPSES7SKBB:os_up_to_date",
+      "category": "compliance_chronic",
+      "severity": "low",
+      "device_id": "DSYPSES7SKBB",
+      "employee_id": "emp-acme-1002",
+      "finding": "Chronic compliance failure on acme-macbook-3: os_up_to_date (medium) failed all 30 snapshots.",
+      "explanation": "os_up_to_date failed on every snapshot in the 30-day window (chronic failure, not pass->fail drift).",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_c91848abd3f6c394",
+          "device_id": "DSYPSES7SKBB",
+          "hostname": "acme-macbook-3",
+          "collected_at": "2026-05-14T10:39:00Z",
+          "metric": "compliance:os_up_to_date:first",
+          "value": "fail",
+          "unit": null,
+          "label": "First window os_up_to_date status: fail"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_3bc7c2d26a551dce",
+          "device_id": "DSYPSES7SKBB",
+          "hostname": "acme-macbook-3",
+          "collected_at": "2026-06-12T10:57:00Z",
+          "metric": "compliance:os_up_to_date",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest os_up_to_date status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "chronic",
+        "check_id": "os_up_to_date",
+        "check_severity": "medium",
+        "fail_count": 30,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "DSYPSES7SKBB",
+          "check_id": "os_up_to_date"
+        },
+        "reason": "os_up_to_date is chronically failing"
+      },
+      "chart": {
+        "title": "DSYPSES7SKBB · Compliance Chronic",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "DSYPSES7SKBB · Compliance Chronic",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_c91848abd3f6c394",
+                "label": "First window os_up_to_date status: fail"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 2.0,
+                "device_id": "DSYPSES7SKBB",
+                "snapshot_id": "snap_3bc7c2d26a551dce",
+                "label": "Latest os_up_to_date status: fail"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Observed"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_c91848abd3f6c394",
+            "label": "First window os_up_to_date status: fail"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 2.0,
+            "device_id": "DSYPSES7SKBB",
+            "snapshot_id": "snap_3bc7c2d26a551dce",
+            "label": "Latest os_up_to_date status: fail"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_3bc7c2d26a551dce",
+          "snap_c91848abd3f6c394"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_chronic:M4XVHUV1MEPZ:os_up_to_date",
+      "category": "compliance_chronic",
+      "severity": "low",
+      "device_id": "M4XVHUV1MEPZ",
+      "employee_id": "emp-acme-1002",
+      "finding": "Chronic compliance failure on acme-dell-9: os_up_to_date (medium) failed all 30 snapshots.",
+      "explanation": "os_up_to_date failed on every snapshot in the 30-day window (chronic failure, not pass->fail drift).",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_74e74922ca7b9e67",
+          "device_id": "M4XVHUV1MEPZ",
+          "hostname": "acme-dell-9",
+          "collected_at": "2026-05-14T08:40:00Z",
+          "metric": "compliance:os_up_to_date:first",
+          "value": "fail",
+          "unit": null,
+          "label": "First window os_up_to_date status: fail"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_4aae53539e92986c",
+          "device_id": "M4XVHUV1MEPZ",
+          "hostname": "acme-dell-9",
+          "collected_at": "2026-06-12T11:00:00Z",
+          "metric": "compliance:os_up_to_date",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest os_up_to_date status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "chronic",
+        "check_id": "os_up_to_date",
+        "check_severity": "medium",
+        "fail_count": 30,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "M4XVHUV1MEPZ",
+          "check_id": "os_up_to_date"
+        },
+        "reason": "os_up_to_date is chronically failing"
+      },
+      "chart": {
+        "title": "M4XVHUV1MEPZ · Compliance Chronic",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "M4XVHUV1MEPZ · Compliance Chronic",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_74e74922ca7b9e67",
+                "label": "First window os_up_to_date status: fail"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 2.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_4aae53539e92986c",
+                "label": "Latest os_up_to_date status: fail"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Observed"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_74e74922ca7b9e67",
+            "label": "First window os_up_to_date status: fail"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 2.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_4aae53539e92986c",
+            "label": "Latest os_up_to_date status: fail"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_4aae53539e92986c",
+          "snap_74e74922ca7b9e67"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_chronic:MT7PJB7N5LRE:os_up_to_date",
+      "category": "compliance_chronic",
+      "severity": "low",
+      "device_id": "MT7PJB7N5LRE",
+      "employee_id": "emp-acme-1003",
+      "finding": "Chronic compliance failure on acme-macbook-4: os_up_to_date (medium) failed all 30 snapshots.",
+      "explanation": "os_up_to_date failed on every snapshot in the 30-day window (chronic failure, not pass->fail drift).",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_b996cebe5fbdb8de",
+          "device_id": "MT7PJB7N5LRE",
+          "hostname": "acme-macbook-4",
+          "collected_at": "2026-05-14T11:14:00Z",
+          "metric": "compliance:os_up_to_date:first",
+          "value": "fail",
+          "unit": null,
+          "label": "First window os_up_to_date status: fail"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_de2da5a8a102d45b",
+          "device_id": "MT7PJB7N5LRE",
+          "hostname": "acme-macbook-4",
+          "collected_at": "2026-06-12T08:39:00Z",
+          "metric": "compliance:os_up_to_date",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest os_up_to_date status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "chronic",
+        "check_id": "os_up_to_date",
+        "check_severity": "medium",
+        "fail_count": 30,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "MT7PJB7N5LRE",
+          "check_id": "os_up_to_date"
+        },
+        "reason": "os_up_to_date is chronically failing"
+      },
+      "chart": {
+        "title": "MT7PJB7N5LRE · Compliance Chronic",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "MT7PJB7N5LRE · Compliance Chronic",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_b996cebe5fbdb8de",
+                "label": "First window os_up_to_date status: fail"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 2.0,
+                "device_id": "MT7PJB7N5LRE",
+                "snapshot_id": "snap_de2da5a8a102d45b",
+                "label": "Latest os_up_to_date status: fail"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Observed"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_b996cebe5fbdb8de",
+            "label": "First window os_up_to_date status: fail"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 2.0,
+            "device_id": "MT7PJB7N5LRE",
+            "snapshot_id": "snap_de2da5a8a102d45b",
+            "label": "Latest os_up_to_date status: fail"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_b996cebe5fbdb8de",
+          "snap_de2da5a8a102d45b"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_chronic:Q3VUITEGQ400:os_up_to_date",
+      "category": "compliance_chronic",
+      "severity": "low",
+      "device_id": "Q3VUITEGQ400",
+      "employee_id": "emp-acme-1000",
+      "finding": "Chronic compliance failure on acme-macbook-7: os_up_to_date (medium) failed all 30 snapshots.",
+      "explanation": "os_up_to_date failed on every snapshot in the 30-day window (chronic failure, not pass->fail drift).",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_2375d7f44eaeb9b3",
+          "device_id": "Q3VUITEGQ400",
+          "hostname": "acme-macbook-7",
+          "collected_at": "2026-05-14T10:57:00Z",
+          "metric": "compliance:os_up_to_date:first",
+          "value": "fail",
+          "unit": null,
+          "label": "First window os_up_to_date status: fail"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_be9fb0339fc0e8dc",
+          "device_id": "Q3VUITEGQ400",
+          "hostname": "acme-macbook-7",
+          "collected_at": "2026-06-12T09:26:00Z",
+          "metric": "compliance:os_up_to_date",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest os_up_to_date status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "chronic",
+        "check_id": "os_up_to_date",
+        "check_severity": "medium",
+        "fail_count": 30,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "Q3VUITEGQ400",
+          "check_id": "os_up_to_date"
+        },
+        "reason": "os_up_to_date is chronically failing"
+      },
+      "chart": {
+        "title": "Q3VUITEGQ400 · Compliance Chronic",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "Q3VUITEGQ400 · Compliance Chronic",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "Q3VUITEGQ400",
+                "snapshot_id": "snap_2375d7f44eaeb9b3",
+                "label": "First window os_up_to_date status: fail"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 2.0,
+                "device_id": "Q3VUITEGQ400",
+                "snapshot_id": "snap_be9fb0339fc0e8dc",
+                "label": "Latest os_up_to_date status: fail"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Observed"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "Q3VUITEGQ400",
+            "snapshot_id": "snap_2375d7f44eaeb9b3",
+            "label": "First window os_up_to_date status: fail"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 2.0,
+            "device_id": "Q3VUITEGQ400",
+            "snapshot_id": "snap_be9fb0339fc0e8dc",
+            "label": "Latest os_up_to_date status: fail"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_2375d7f44eaeb9b3",
+          "snap_be9fb0339fc0e8dc"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "compliance_chronic:XSU9UUDGU6AC:os_up_to_date",
+      "category": "compliance_chronic",
+      "severity": "low",
+      "device_id": "XSU9UUDGU6AC",
+      "employee_id": "emp-acme-1002",
+      "finding": "Chronic compliance failure on acme-macbook-6: os_up_to_date (medium) failed all 30 snapshots.",
+      "explanation": "os_up_to_date failed on every snapshot in the 30-day window (chronic failure, not pass->fail drift).",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_d1e1a5e34a333ee8",
+          "device_id": "XSU9UUDGU6AC",
+          "hostname": "acme-macbook-6",
+          "collected_at": "2026-05-14T09:11:00Z",
+          "metric": "compliance:os_up_to_date:first",
+          "value": "fail",
+          "unit": null,
+          "label": "First window os_up_to_date status: fail"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_3dfc515a67ea9272",
+          "device_id": "XSU9UUDGU6AC",
+          "hostname": "acme-macbook-6",
+          "collected_at": "2026-06-12T09:52:00Z",
+          "metric": "compliance:os_up_to_date",
+          "value": "fail",
+          "unit": null,
+          "label": "Latest os_up_to_date status: fail"
+        }
+      ],
+      "stats": {
+        "kind": "chronic",
+        "check_id": "os_up_to_date",
+        "check_severity": "medium",
+        "fail_count": 30,
+        "total_snapshots": 30
+      },
+      "suggested_action": {
+        "tool": "open_remediation_ticket",
+        "args_hint": {
+          "device_id": "XSU9UUDGU6AC",
+          "check_id": "os_up_to_date"
+        },
+        "reason": "os_up_to_date is chronically failing"
+      },
+      "chart": {
+        "title": "XSU9UUDGU6AC · Compliance Chronic",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "XSU9UUDGU6AC · Compliance Chronic",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1.0,
+                "device_id": "XSU9UUDGU6AC",
+                "snapshot_id": "snap_d1e1a5e34a333ee8",
+                "label": "First window os_up_to_date status: fail"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 2.0,
+                "device_id": "XSU9UUDGU6AC",
+                "snapshot_id": "snap_3dfc515a67ea9272",
+                "label": "Latest os_up_to_date status: fail"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Observed"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1.0,
+            "device_id": "XSU9UUDGU6AC",
+            "snapshot_id": "snap_d1e1a5e34a333ee8",
+            "label": "First window os_up_to_date status: fail"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 2.0,
+            "device_id": "XSU9UUDGU6AC",
+            "snapshot_id": "snap_3dfc515a67ea9272",
+            "label": "Latest os_up_to_date status: fail"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_3dfc515a67ea9272",
+          "snap_d1e1a5e34a333ee8"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    }
+  ],
+  "charts": [],
+  "queries": [],
+  "proposals": [],
+  "verdicts": [],
+  "approval_packet": null,
+  "plan": {
+    "intent": "insight",
+    "refers_to_other_org": false,
+    "role_violation": false,
+    "needs_clarification": null,
+    "steps": [
+      {
+        "goal": "Identify devices that transitioned from passing to failing screen_lock compliance over the last 30 days and determine the timestamp of drift",
+        "tool_hint": "run_readonly_sql"
+      }
+    ]
+  },
+  "tool_trace": [
+    {
+      "tool_call_id": "call_12834060376346108895",
+      "tool_name": "analyze_fleet_trends",
+      "args": {
+        "categories": [
+          "compliance_drift"
+        ]
+      },
+      "ok": true,
+      "evaluated": 10,
+      "matched": 10,
+      "evidence_count": 33,
+      "duration_ms": 195,
+      "summary": "Analyzed 10 device(s) across compliance_drift as of 2026-06-12: 14 insight(s)."
+    }
+  ],
+  "telemetry_as_of": "2026-06-12T11:00:00+00:00",
+  "usage": {
+    "input_tokens": 33433,
+    "output_tokens": 1498,
+    "total_tokens": 34931,
+    "cost_usd_est": 0.030692,
+    "latency_ms": 21124
+  },
+  "warnings": []
+}

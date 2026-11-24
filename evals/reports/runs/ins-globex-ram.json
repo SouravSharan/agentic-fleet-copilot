@@ -1,0 +1,1099 @@
+{
+  "thread_id": "globex-002:eval_ins-globex-ram_r1",
+  "turn_id": "turn_ins-globex-ram_r1_t1",
+  "trace_id": "eval-ins-globex-ram-r1-t1",
+  "status": "completed",
+  "answer_markdown": "A 30-day memory pressure trend analysis evaluated 8 devices and identified 2 ThinkPad laptops with sustained high RAM utilization: globex-thinkpad-6 (CUXW0BQSV1B7) and globex-thinkpad-8 (JRZSGXVMKE6M). Both laptops consistently exceeded the 80.0% policy threshold over the 30-day window, reaching peaks of 92.83% and 94.07% respectively.\n\n- Device globex-thinkpad-6 (CUXW0BQSV1B7) experienced peak RAM utilization of 92.83% [E1] and latest RAM utilization of 87.65% [E2].\n- Device globex-thinkpad-8 (JRZSGXVMKE6M) experienced peak RAM utilization of 94.07% [E3] and latest RAM utilization of 88.81% [E4].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T10:47:00+00:00\n- Policy thresholds applied: high_ram_used_pct = 80.0% (global), ram_sustained_ratio = 0.7 (global).\n- Analysis evaluated 8 total fleet devices over a 30-day observation window, matching 2 devices with sustained RAM pressure.\n\n**Evidence:**\n- `[E1]` `snap_d0182b86b5a0ce86` · `CUXW0BQSV1B7` (globex-thinkpad-6) · Peak RAM utilization 92.83% · 2026-06-10T10:17:00\n- `[E2]` `snap_2f02a113afd6b4e9` · `CUXW0BQSV1B7` (globex-thinkpad-6) · Latest RAM utilization 87.65% · 2026-06-12T10:47:00\n- `[E3]` `snap_23c09dae9110752f` · `JRZSGXVMKE6M` (globex-thinkpad-8) · Peak RAM utilization 94.07% · 2026-06-07T11:14:00\n- `[E4]` `snap_4fa2b3129caa9b9b` · `JRZSGXVMKE6M` (globex-thinkpad-8) · Latest RAM utilization 88.81% · 2026-06-12T10:46:00",
+  "answer": {
+    "summary": "A 30-day memory pressure trend analysis evaluated 8 devices and identified 2 ThinkPad laptops with sustained high RAM utilization: globex-thinkpad-6 (CUXW0BQSV1B7) and globex-thinkpad-8 (JRZSGXVMKE6M). Both laptops consistently exceeded the 80.0% policy threshold over the 30-day window, reaching peaks of 92.83% and 94.07% respectively.",
+    "result_device_ids": [
+      "CUXW0BQSV1B7",
+      "JRZSGXVMKE6M"
+    ],
+    "claims": [
+      {
+        "text": "Device globex-thinkpad-6 (CUXW0BQSV1B7) experienced peak RAM utilization of 92.83% [E1] and latest RAM utilization of 87.65% [E2].",
+        "citations": [
+          "E1",
+          "E2"
+        ],
+        "device_ids": [
+          "CUXW0BQSV1B7"
+        ],
+        "numbers": [
+          92.83,
+          87.65
+        ]
+      },
+      {
+        "text": "Device globex-thinkpad-8 (JRZSGXVMKE6M) experienced peak RAM utilization of 94.07% [E3] and latest RAM utilization of 88.81% [E4].",
+        "citations": [
+          "E3",
+          "E4"
+        ],
+        "device_ids": [
+          "JRZSGXVMKE6M"
+        ],
+        "numbers": [
+          94.07,
+          88.81
+        ]
+      }
+    ],
+    "insight_refs": [
+      "ram:CUXW0BQSV1B7",
+      "ram:JRZSGXVMKE6M"
+    ],
+    "proposal_refs": [],
+    "caveats": [
+      "telemetry_as_of: 2026-06-12T10:47:00+00:00",
+      "Policy thresholds applied: high_ram_used_pct = 80.0% (global), ram_sustained_ratio = 0.7 (global).",
+      "Analysis evaluated 8 total fleet devices over a 30-day observation window, matching 2 devices with sustained RAM pressure."
+    ]
+  },
+  "citations": [
+    {
+      "handle": "E1",
+      "snapshot_id": "snap_d0182b86b5a0ce86",
+      "device_id": "CUXW0BQSV1B7",
+      "hostname": "globex-thinkpad-6",
+      "collected_at": "2026-06-10T10:17:00Z",
+      "metric": "ram_used_pct_peak",
+      "value": 92.83,
+      "unit": "%",
+      "label": "Peak RAM utilization 92.83%"
+    },
+    {
+      "handle": "E2",
+      "snapshot_id": "snap_2f02a113afd6b4e9",
+      "device_id": "CUXW0BQSV1B7",
+      "hostname": "globex-thinkpad-6",
+      "collected_at": "2026-06-12T10:47:00Z",
+      "metric": "ram_used_pct",
+      "value": 87.65,
+      "unit": "%",
+      "label": "Latest RAM utilization 87.65%"
+    },
+    {
+      "handle": "E3",
+      "snapshot_id": "snap_23c09dae9110752f",
+      "device_id": "JRZSGXVMKE6M",
+      "hostname": "globex-thinkpad-8",
+      "collected_at": "2026-06-07T11:14:00Z",
+      "metric": "ram_used_pct_peak",
+      "value": 94.07,
+      "unit": "%",
+      "label": "Peak RAM utilization 94.07%"
+    },
+    {
+      "handle": "E4",
+      "snapshot_id": "snap_4fa2b3129caa9b9b",
+      "device_id": "JRZSGXVMKE6M",
+      "hostname": "globex-thinkpad-8",
+      "collected_at": "2026-06-12T10:46:00Z",
+      "metric": "ram_used_pct",
+      "value": 88.81,
+      "unit": "%",
+      "label": "Latest RAM utilization 88.81%"
+    }
+  ],
+  "insights": [
+    {
+      "insight_id": "ram:CUXW0BQSV1B7",
+      "category": "ram",
+      "severity": "medium",
+      "device_id": "CUXW0BQSV1B7",
+      "employee_id": "emp-globex-1004",
+      "finding": "Sustained high RAM usage on globex-thinkpad-6: 93% of snapshots >= 80% (p50=84.19%).",
+      "explanation": "Across 30 snapshots in the 30-day window, RAM utilization averaged 84.98% (p50=84.19%, p95=90.66%, max=92.83%), meeting or exceeding 80.0% on 93.3% of snapshots (policy threshold >= 70%).",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_d0182b86b5a0ce86",
+          "device_id": "CUXW0BQSV1B7",
+          "hostname": "globex-thinkpad-6",
+          "collected_at": "2026-06-10T10:17:00Z",
+          "metric": "ram_used_pct_peak",
+          "value": 92.83,
+          "unit": "%",
+          "label": "Peak RAM utilization 92.83%"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_2f02a113afd6b4e9",
+          "device_id": "CUXW0BQSV1B7",
+          "hostname": "globex-thinkpad-6",
+          "collected_at": "2026-06-12T10:47:00Z",
+          "metric": "ram_used_pct",
+          "value": 87.65,
+          "unit": "%",
+          "label": "Latest RAM utilization 87.65%"
+        }
+      ],
+      "stats": {
+        "avg": 84.98,
+        "p50": 84.19,
+        "p95": 90.66,
+        "max": 92.83,
+        "share": 0.9333,
+        "snapshots": 30,
+        "ram_total_gb": 16.0
+      },
+      "suggested_action": {
+        "tool": "create_upgrade_order",
+        "args_hint": {
+          "device_id": "CUXW0BQSV1B7",
+          "component": "ram"
+        },
+        "reason": "Sustained high RAM utilization over the analysis window"
+      },
+      "chart": {
+        "title": "CUXW0BQSV1B7 · Ram",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "CUXW0BQSV1B7 · Ram",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 87.92,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_dcbaea4194a543f8"
+              },
+              {
+                "date": "2026-05-15",
+                "value": 80.08,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_0a50c6c070c838f9"
+              },
+              {
+                "date": "2026-05-16",
+                "value": 81.24,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_48ab77426ad5a1d4"
+              },
+              {
+                "date": "2026-05-17",
+                "value": 77.8,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_a221abe8dde51daa"
+              },
+              {
+                "date": "2026-05-18",
+                "value": 82.94,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_74d8b051a3086d5f"
+              },
+              {
+                "date": "2026-05-19",
+                "value": 87.25,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_93a82ffd5283a8e3"
+              },
+              {
+                "date": "2026-05-20",
+                "value": 83.25,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_a2bfcd84dddd56e4"
+              },
+              {
+                "date": "2026-05-21",
+                "value": 78.2,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_94b5c8f4fdfd95da"
+              },
+              {
+                "date": "2026-05-22",
+                "value": 83.6,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_34b3681004c3eb61"
+              },
+              {
+                "date": "2026-05-23",
+                "value": 87.36,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_457f147a48f3d52e"
+              },
+              {
+                "date": "2026-05-24",
+                "value": 82.7,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_e568075a5cb94604"
+              },
+              {
+                "date": "2026-05-25",
+                "value": 80.3,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_a4a4fe035d82bbcf"
+              },
+              {
+                "date": "2026-05-26",
+                "value": 89.71,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_89938270353c51ab"
+              },
+              {
+                "date": "2026-05-27",
+                "value": 88.86,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_b07707ec363c3aed"
+              },
+              {
+                "date": "2026-05-28",
+                "value": 84.38,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_304e0f2d0176cde0"
+              },
+              {
+                "date": "2026-05-29",
+                "value": 87.67,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_2d45df718b1f6a76"
+              },
+              {
+                "date": "2026-05-30",
+                "value": 91.31,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_83df2f66dc6b3bf0"
+              },
+              {
+                "date": "2026-05-31",
+                "value": 84.1,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_910c78d718cfbbba"
+              },
+              {
+                "date": "2026-06-01",
+                "value": 84.0,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_eb01fb7f6c9fdce7"
+              },
+              {
+                "date": "2026-06-02",
+                "value": 82.48,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_84fc0ad75bd8609d"
+              },
+              {
+                "date": "2026-06-03",
+                "value": 80.77,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_4e837884fb7a54c4"
+              },
+              {
+                "date": "2026-06-04",
+                "value": 85.49,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_e9ce95efc6ea3dab"
+              },
+              {
+                "date": "2026-06-05",
+                "value": 89.09,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_cad333703e2af3fe"
+              },
+              {
+                "date": "2026-06-06",
+                "value": 83.02,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_2436d3deb5d92833"
+              },
+              {
+                "date": "2026-06-07",
+                "value": 82.31,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_3c99fcb1d124d358"
+              },
+              {
+                "date": "2026-06-08",
+                "value": 89.86,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_3903877829245e57"
+              },
+              {
+                "date": "2026-06-09",
+                "value": 84.27,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_45029194fcfefb48"
+              },
+              {
+                "date": "2026-06-10",
+                "value": 92.83,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_d0182b86b5a0ce86"
+              },
+              {
+                "date": "2026-06-11",
+                "value": 88.98,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_19cf481ae3feb691"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 87.65,
+                "device_id": "CUXW0BQSV1B7",
+                "snapshot_id": "snap_2f02a113afd6b4e9"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "RAM Used (%)"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 87.92,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_dcbaea4194a543f8"
+          },
+          {
+            "date": "2026-05-15",
+            "value": 80.08,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_0a50c6c070c838f9"
+          },
+          {
+            "date": "2026-05-16",
+            "value": 81.24,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_48ab77426ad5a1d4"
+          },
+          {
+            "date": "2026-05-17",
+            "value": 77.8,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_a221abe8dde51daa"
+          },
+          {
+            "date": "2026-05-18",
+            "value": 82.94,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_74d8b051a3086d5f"
+          },
+          {
+            "date": "2026-05-19",
+            "value": 87.25,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_93a82ffd5283a8e3"
+          },
+          {
+            "date": "2026-05-20",
+            "value": 83.25,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_a2bfcd84dddd56e4"
+          },
+          {
+            "date": "2026-05-21",
+            "value": 78.2,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_94b5c8f4fdfd95da"
+          },
+          {
+            "date": "2026-05-22",
+            "value": 83.6,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_34b3681004c3eb61"
+          },
+          {
+            "date": "2026-05-23",
+            "value": 87.36,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_457f147a48f3d52e"
+          },
+          {
+            "date": "2026-05-24",
+            "value": 82.7,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_e568075a5cb94604"
+          },
+          {
+            "date": "2026-05-25",
+            "value": 80.3,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_a4a4fe035d82bbcf"
+          },
+          {
+            "date": "2026-05-26",
+            "value": 89.71,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_89938270353c51ab"
+          },
+          {
+            "date": "2026-05-27",
+            "value": 88.86,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_b07707ec363c3aed"
+          },
+          {
+            "date": "2026-05-28",
+            "value": 84.38,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_304e0f2d0176cde0"
+          },
+          {
+            "date": "2026-05-29",
+            "value": 87.67,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_2d45df718b1f6a76"
+          },
+          {
+            "date": "2026-05-30",
+            "value": 91.31,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_83df2f66dc6b3bf0"
+          },
+          {
+            "date": "2026-05-31",
+            "value": 84.1,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_910c78d718cfbbba"
+          },
+          {
+            "date": "2026-06-01",
+            "value": 84.0,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_eb01fb7f6c9fdce7"
+          },
+          {
+            "date": "2026-06-02",
+            "value": 82.48,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_84fc0ad75bd8609d"
+          },
+          {
+            "date": "2026-06-03",
+            "value": 80.77,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_4e837884fb7a54c4"
+          },
+          {
+            "date": "2026-06-04",
+            "value": 85.49,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_e9ce95efc6ea3dab"
+          },
+          {
+            "date": "2026-06-05",
+            "value": 89.09,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_cad333703e2af3fe"
+          },
+          {
+            "date": "2026-06-06",
+            "value": 83.02,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_2436d3deb5d92833"
+          },
+          {
+            "date": "2026-06-07",
+            "value": 82.31,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_3c99fcb1d124d358"
+          },
+          {
+            "date": "2026-06-08",
+            "value": 89.86,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_3903877829245e57"
+          },
+          {
+            "date": "2026-06-09",
+            "value": 84.27,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_45029194fcfefb48"
+          },
+          {
+            "date": "2026-06-10",
+            "value": 92.83,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_d0182b86b5a0ce86"
+          },
+          {
+            "date": "2026-06-11",
+            "value": 88.98,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_19cf481ae3feb691"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 87.65,
+            "device_id": "CUXW0BQSV1B7",
+            "snapshot_id": "snap_2f02a113afd6b4e9"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_0a50c6c070c838f9",
+          "snap_19cf481ae3feb691",
+          "snap_2436d3deb5d92833",
+          "snap_2d45df718b1f6a76",
+          "snap_2f02a113afd6b4e9",
+          "snap_304e0f2d0176cde0",
+          "snap_34b3681004c3eb61",
+          "snap_3903877829245e57",
+          "snap_3c99fcb1d124d358",
+          "snap_45029194fcfefb48",
+          "snap_457f147a48f3d52e",
+          "snap_48ab77426ad5a1d4",
+          "snap_4e837884fb7a54c4",
+          "snap_74d8b051a3086d5f",
+          "snap_83df2f66dc6b3bf0",
+          "snap_84fc0ad75bd8609d",
+          "snap_89938270353c51ab",
+          "snap_910c78d718cfbbba",
+          "snap_93a82ffd5283a8e3",
+          "snap_94b5c8f4fdfd95da",
+          "snap_a221abe8dde51daa",
+          "snap_a2bfcd84dddd56e4",
+          "snap_a4a4fe035d82bbcf",
+          "snap_b07707ec363c3aed",
+          "snap_cad333703e2af3fe",
+          "snap_d0182b86b5a0ce86",
+          "snap_dcbaea4194a543f8",
+          "snap_e568075a5cb94604",
+          "snap_e9ce95efc6ea3dab",
+          "snap_eb01fb7f6c9fdce7"
+        ],
+        "telemetry_as_of": "2026-06-12T10:47:00+00:00"
+      }
+    },
+    {
+      "insight_id": "ram:JRZSGXVMKE6M",
+      "category": "ram",
+      "severity": "medium",
+      "device_id": "JRZSGXVMKE6M",
+      "employee_id": "emp-globex-1005",
+      "finding": "Sustained high RAM usage on globex-thinkpad-8: 97% of snapshots >= 80% (p50=87.92%).",
+      "explanation": "Across 30 snapshots in the 30-day window, RAM utilization averaged 87.56% (p50=87.92%, p95=93.29%, max=94.07%), meeting or exceeding 80.0% on 96.7% of snapshots (policy threshold >= 70%).",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_23c09dae9110752f",
+          "device_id": "JRZSGXVMKE6M",
+          "hostname": "globex-thinkpad-8",
+          "collected_at": "2026-06-07T11:14:00Z",
+          "metric": "ram_used_pct_peak",
+          "value": 94.07,
+          "unit": "%",
+          "label": "Peak RAM utilization 94.07%"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_4fa2b3129caa9b9b",
+          "device_id": "JRZSGXVMKE6M",
+          "hostname": "globex-thinkpad-8",
+          "collected_at": "2026-06-12T10:46:00Z",
+          "metric": "ram_used_pct",
+          "value": 88.81,
+          "unit": "%",
+          "label": "Latest RAM utilization 88.81%"
+        }
+      ],
+      "stats": {
+        "avg": 87.56,
+        "p50": 87.92,
+        "p95": 93.29,
+        "max": 94.07,
+        "share": 0.9667,
+        "snapshots": 30,
+        "ram_total_gb": 16.0
+      },
+      "suggested_action": {
+        "tool": "create_upgrade_order",
+        "args_hint": {
+          "device_id": "JRZSGXVMKE6M",
+          "component": "ram"
+        },
+        "reason": "Sustained high RAM utilization over the analysis window"
+      },
+      "chart": {
+        "title": "JRZSGXVMKE6M · Ram",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "JRZSGXVMKE6M · Ram",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 86.24,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_9eb448669d3d3deb"
+              },
+              {
+                "date": "2026-05-15",
+                "value": 82.23,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_31fb1061bd9e1f7f"
+              },
+              {
+                "date": "2026-05-16",
+                "value": 79.47,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_c83d502e2fd0d95d"
+              },
+              {
+                "date": "2026-05-17",
+                "value": 82.45,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_db0f3c8d34f71119"
+              },
+              {
+                "date": "2026-05-18",
+                "value": 86.41,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_dedf7f62aefac6b0"
+              },
+              {
+                "date": "2026-05-19",
+                "value": 88.32,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_c78a97ce4a1605e7"
+              },
+              {
+                "date": "2026-05-20",
+                "value": 85.54,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_6943b3007f751b7a"
+              },
+              {
+                "date": "2026-05-21",
+                "value": 90.78,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_3b9fea9a792a1774"
+              },
+              {
+                "date": "2026-05-22",
+                "value": 85.37,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_d0837717655c7b86"
+              },
+              {
+                "date": "2026-05-23",
+                "value": 90.27,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_c0ba8f26ae66962b"
+              },
+              {
+                "date": "2026-05-24",
+                "value": 80.91,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_0a6ae793276fa937"
+              },
+              {
+                "date": "2026-05-25",
+                "value": 88.23,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_50fb52bc34c12c52"
+              },
+              {
+                "date": "2026-05-26",
+                "value": 89.76,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_d212200bbd70a243"
+              },
+              {
+                "date": "2026-05-27",
+                "value": 90.24,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_dd6b2031e0d38652"
+              },
+              {
+                "date": "2026-05-28",
+                "value": 89.51,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_12738fa8916f6dfe"
+              },
+              {
+                "date": "2026-05-29",
+                "value": 84.44,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_de546fa56d65eec7"
+              },
+              {
+                "date": "2026-05-30",
+                "value": 84.12,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_28fcc01c9beb8817"
+              },
+              {
+                "date": "2026-05-31",
+                "value": 86.35,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_7d0fb6fd65554c8f"
+              },
+              {
+                "date": "2026-06-01",
+                "value": 84.72,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_385eee6924aed436"
+              },
+              {
+                "date": "2026-06-02",
+                "value": 87.61,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_c457294dc00953f4"
+              },
+              {
+                "date": "2026-06-03",
+                "value": 91.35,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_867cdc6ce08925bd"
+              },
+              {
+                "date": "2026-06-04",
+                "value": 85.74,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_d1c02e12798dc934"
+              },
+              {
+                "date": "2026-06-05",
+                "value": 85.31,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_39f9223b1489385b"
+              },
+              {
+                "date": "2026-06-06",
+                "value": 89.02,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_73874f198f1ae7f9"
+              },
+              {
+                "date": "2026-06-07",
+                "value": 94.07,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_23c09dae9110752f"
+              },
+              {
+                "date": "2026-06-08",
+                "value": 89.84,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_de7115e68d4a3415"
+              },
+              {
+                "date": "2026-06-09",
+                "value": 93.42,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_09722f8b3057c942"
+              },
+              {
+                "date": "2026-06-10",
+                "value": 93.13,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_6c9ca4a9b2201fe3"
+              },
+              {
+                "date": "2026-06-11",
+                "value": 93.0,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_139fcd98fd089ef6"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 88.81,
+                "device_id": "JRZSGXVMKE6M",
+                "snapshot_id": "snap_4fa2b3129caa9b9b"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "RAM Used (%)"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 86.24,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_9eb448669d3d3deb"
+          },
+          {
+            "date": "2026-05-15",
+            "value": 82.23,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_31fb1061bd9e1f7f"
+          },
+          {
+            "date": "2026-05-16",
+            "value": 79.47,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_c83d502e2fd0d95d"
+          },
+          {
+            "date": "2026-05-17",
+            "value": 82.45,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_db0f3c8d34f71119"
+          },
+          {
+            "date": "2026-05-18",
+            "value": 86.41,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_dedf7f62aefac6b0"
+          },
+          {
+            "date": "2026-05-19",
+            "value": 88.32,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_c78a97ce4a1605e7"
+          },
+          {
+            "date": "2026-05-20",
+            "value": 85.54,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_6943b3007f751b7a"
+          },
+          {
+            "date": "2026-05-21",
+            "value": 90.78,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_3b9fea9a792a1774"
+          },
+          {
+            "date": "2026-05-22",
+            "value": 85.37,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_d0837717655c7b86"
+          },
+          {
+            "date": "2026-05-23",
+            "value": 90.27,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_c0ba8f26ae66962b"
+          },
+          {
+            "date": "2026-05-24",
+            "value": 80.91,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_0a6ae793276fa937"
+          },
+          {
+            "date": "2026-05-25",
+            "value": 88.23,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_50fb52bc34c12c52"
+          },
+          {
+            "date": "2026-05-26",
+            "value": 89.76,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_d212200bbd70a243"
+          },
+          {
+            "date": "2026-05-27",
+            "value": 90.24,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_dd6b2031e0d38652"
+          },
+          {
+            "date": "2026-05-28",
+            "value": 89.51,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_12738fa8916f6dfe"
+          },
+          {
+            "date": "2026-05-29",
+            "value": 84.44,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_de546fa56d65eec7"
+          },
+          {
+            "date": "2026-05-30",
+            "value": 84.12,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_28fcc01c9beb8817"
+          },
+          {
+            "date": "2026-05-31",
+            "value": 86.35,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_7d0fb6fd65554c8f"
+          },
+          {
+            "date": "2026-06-01",
+            "value": 84.72,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_385eee6924aed436"
+          },
+          {
+            "date": "2026-06-02",
+            "value": 87.61,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_c457294dc00953f4"
+          },
+          {
+            "date": "2026-06-03",
+            "value": 91.35,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_867cdc6ce08925bd"
+          },
+          {
+            "date": "2026-06-04",
+            "value": 85.74,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_d1c02e12798dc934"
+          },
+          {
+            "date": "2026-06-05",
+            "value": 85.31,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_39f9223b1489385b"
+          },
+          {
+            "date": "2026-06-06",
+            "value": 89.02,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_73874f198f1ae7f9"
+          },
+          {
+            "date": "2026-06-07",
+            "value": 94.07,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_23c09dae9110752f"
+          },
+          {
+            "date": "2026-06-08",
+            "value": 89.84,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_de7115e68d4a3415"
+          },
+          {
+            "date": "2026-06-09",
+            "value": 93.42,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_09722f8b3057c942"
+          },
+          {
+            "date": "2026-06-10",
+            "value": 93.13,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_6c9ca4a9b2201fe3"
+          },
+          {
+            "date": "2026-06-11",
+            "value": 93.0,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_139fcd98fd089ef6"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 88.81,
+            "device_id": "JRZSGXVMKE6M",
+            "snapshot_id": "snap_4fa2b3129caa9b9b"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_09722f8b3057c942",
+          "snap_0a6ae793276fa937",
+          "snap_12738fa8916f6dfe",
+          "snap_139fcd98fd089ef6",
+          "snap_23c09dae9110752f",
+          "snap_28fcc01c9beb8817",
+          "snap_31fb1061bd9e1f7f",
+          "snap_385eee6924aed436",
+          "snap_39f9223b1489385b",
+          "snap_3b9fea9a792a1774",
+          "snap_4fa2b3129caa9b9b",
+          "snap_50fb52bc34c12c52",
+          "snap_6943b3007f751b7a",
+          "snap_6c9ca4a9b2201fe3",
+          "snap_73874f198f1ae7f9",
+          "snap_7d0fb6fd65554c8f",
+          "snap_867cdc6ce08925bd",
+          "snap_9eb448669d3d3deb",
+          "snap_c0ba8f26ae66962b",
+          "snap_c457294dc00953f4",
+          "snap_c78a97ce4a1605e7",
+          "snap_c83d502e2fd0d95d",
+          "snap_d0837717655c7b86",
+          "snap_d1c02e12798dc934",
+          "snap_d212200bbd70a243",
+          "snap_db0f3c8d34f71119",
+          "snap_dd6b2031e0d38652",
+          "snap_de546fa56d65eec7",
+          "snap_de7115e68d4a3415",
+          "snap_dedf7f62aefac6b0"
+        ],
+        "telemetry_as_of": "2026-06-12T10:47:00+00:00"
+      }
+    }
+  ],
+  "charts": [],
+  "queries": [],
+  "proposals": [],
+  "verdicts": [],
+  "approval_packet": null,
+  "plan": {
+    "intent": "insight",
+    "refers_to_other_org": false,
+    "role_violation": false,
+    "needs_clarification": null,
+    "steps": [
+      {
+        "goal": "Analyze 30-day memory pressure trends and anomalies across the fleet",
+        "tool_hint": "analyze_fleet_trends"
+      }
+    ]
+  },
+  "tool_trace": [
+    {
+      "tool_call_id": "call_2057532950799767419",
+      "tool_name": "analyze_fleet_trends",
+      "args": {
+        "categories": [
+          "ram"
+        ]
+      },
+      "ok": true,
+      "evaluated": 8,
+      "matched": 2,
+      "evidence_count": 4,
+      "duration_ms": 154,
+      "summary": "Analyzed 8 device(s) across ram as of 2026-06-12: 2 insight(s)."
+    }
+  ],
+  "telemetry_as_of": "2026-06-12T10:47:00+00:00",
+  "usage": {
+    "input_tokens": 13045,
+    "output_tokens": 814,
+    "total_tokens": 13859,
+    "cost_usd_est": 0.012836,
+    "latency_ms": 18300
+  },
+  "warnings": []
+}

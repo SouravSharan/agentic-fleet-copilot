@@ -1,0 +1,1846 @@
+{
+  "thread_id": "acme-001:eval_ins-acme-battery_r1",
+  "turn_id": "turn_ins-acme-battery_r1_t1",
+  "trace_id": "eval-ins-acme-battery-r1-t1",
+  "status": "completed",
+  "answer_markdown": "Across the fleet, 3 devices (7VP16KHV88LM, 8NM23J95R5I6, and M4XVHUV1MEPZ) transitioned to Service Recommended battery condition during the 30-day window and exceed the 800-cycle end-of-life threshold. The remaining 5 battery-equipped devices remain in Normal condition.\n\n- Out of 8 battery-equipped devices inspected across the fleet [Q1], 3 laptops exhibit end-of-life degradation trends transitioning to Service Recommended status [E2, E5, E8].\n- Device 7VP16KHV88LM (acme-macbook-1) started the window at 1017 cycles [E1], transitioned to Service Recommended on 2026-05-30 [E2], and reached 1049 cycles with Service Recommended status on 2026-06-12 [E3].\n- Device 8NM23J95R5I6 (acme-thinkpad-8) started the window at 1127 cycles [E4], transitioned to Service Recommended on 2026-05-23 [E5], and reached 1157 cycles with Service Recommended status on 2026-06-12 [E6].\n- Device M4XVHUV1MEPZ (acme-dell-9) started the window at 928 cycles [E7], transitioned to Service Recommended on 2026-05-24 [E8], and reached 948 cycles with Service Recommended status on 2026-06-12 [E9].\n\n**Caveats & scope:**\n- Telemetry as of 2026-06-12T11:00:00+00:00.\n- Policy thresholds applied: battery_eol_cycles = 800 (global), battery_capacity_drop_pct = 3.0% (global).\n- Excluded 1 non-laptop device and skipped 7 snapshots missing battery telemetry blocks from the 10 evaluated devices.\n\n**Evidence:**\n- `[Q1]` `query_d20a3b7d6ce7` · `fleet` (fleet) · SQL [Inspect current battery condition across fleet laptops] (8 rows) · 2026-06-12T11:00:00\n- `[E2]` `snap_b5865ab7c7f0789c` · `7VP16KHV88LM` (acme-macbook-1) · Transition to Service Recommended on 2026-05-30 (cycles=1025) · 2026-05-30T09:16:00\n- `[E5]` `snap_4bc8c30312b0137a` · `8NM23J95R5I6` (acme-thinkpad-8) · Transition to Service Recommended on 2026-05-23 (cycles=1136) · 2026-05-23T09:01:00\n- `[E8]` `snap_8b70ef0a4e35423b` · `M4XVHUV1MEPZ` (acme-dell-9) · Transition to Service Recommended on 2026-05-24 (cycles=935) · 2026-05-24T10:05:00\n- `[E1]` `snap_193f2024a9411c0d` · `7VP16KHV88LM` (acme-macbook-1) · First window battery reading: condition=Normal, cycles=1017, capacity=4348 mAh · 2026-05-14T11:09:00\n- `[E3]` `snap_3b8594133404afb5` · `7VP16KHV88LM` (acme-macbook-1) · Latest battery reading: condition=Service Recommended, cycles=1049, capacity=4166 mAh · 2026-06-12T10:41:00\n- `[E4]` `snap_e0918c3d573c39f9` · `8NM23J95R5I6` (acme-thinkpad-8) · First window battery reading: condition=Normal, cycles=1127, capacity=4043 mAh · 2026-05-14T10:10:00\n- `[E6]` `snap_e1d70fe2e26e48da` · `8NM23J95R5I6` (acme-thinkpad-8) · Latest battery reading: condition=Service Recommended, cycles=1157, capacity=3872 mAh · 2026-06-12T09:02:00\n- `[E7]` `snap_74e74922ca7b9e67` · `M4XVHUV1MEPZ` (acme-dell-9) · First window battery reading: condition=Normal, cycles=928, capacity=3406 mAh · 2026-05-14T08:40:00\n- `[E9]` `snap_4aae53539e92986c` · `M4XVHUV1MEPZ` (acme-dell-9) · Latest battery reading: condition=Service Recommended, cycles=948, capacity=3262 mAh · 2026-06-12T11:00:00",
+  "answer": {
+    "summary": "Across the fleet, 3 devices (7VP16KHV88LM, 8NM23J95R5I6, and M4XVHUV1MEPZ) transitioned to Service Recommended battery condition during the 30-day window and exceed the 800-cycle end-of-life threshold. The remaining 5 battery-equipped devices remain in Normal condition.",
+    "result_device_ids": [
+      "7VP16KHV88LM",
+      "8NM23J95R5I6",
+      "M4XVHUV1MEPZ"
+    ],
+    "claims": [
+      {
+        "text": "Out of 8 battery-equipped devices inspected across the fleet [Q1], 3 laptops exhibit end-of-life degradation trends transitioning to Service Recommended status [E2, E5, E8].",
+        "citations": [
+          "Q1",
+          "E2",
+          "E5",
+          "E8"
+        ],
+        "device_ids": [
+          "7VP16KHV88LM",
+          "8NM23J95R5I6",
+          "M4XVHUV1MEPZ"
+        ],
+        "numbers": [
+          8.0,
+          3.0
+        ]
+      },
+      {
+        "text": "Device 7VP16KHV88LM (acme-macbook-1) started the window at 1017 cycles [E1], transitioned to Service Recommended on 2026-05-30 [E2], and reached 1049 cycles with Service Recommended status on 2026-06-12 [E3].",
+        "citations": [
+          "E1",
+          "E2",
+          "E3"
+        ],
+        "device_ids": [
+          "7VP16KHV88LM"
+        ],
+        "numbers": [
+          1017.0,
+          1049.0
+        ]
+      },
+      {
+        "text": "Device 8NM23J95R5I6 (acme-thinkpad-8) started the window at 1127 cycles [E4], transitioned to Service Recommended on 2026-05-23 [E5], and reached 1157 cycles with Service Recommended status on 2026-06-12 [E6].",
+        "citations": [
+          "E4",
+          "E5",
+          "E6"
+        ],
+        "device_ids": [
+          "8NM23J95R5I6"
+        ],
+        "numbers": [
+          1127.0,
+          1157.0
+        ]
+      },
+      {
+        "text": "Device M4XVHUV1MEPZ (acme-dell-9) started the window at 928 cycles [E7], transitioned to Service Recommended on 2026-05-24 [E8], and reached 948 cycles with Service Recommended status on 2026-06-12 [E9].",
+        "citations": [
+          "E7",
+          "E8",
+          "E9"
+        ],
+        "device_ids": [
+          "M4XVHUV1MEPZ"
+        ],
+        "numbers": [
+          928.0,
+          948.0
+        ]
+      }
+    ],
+    "insight_refs": [
+      "battery:7VP16KHV88LM",
+      "battery:8NM23J95R5I6",
+      "battery:M4XVHUV1MEPZ"
+    ],
+    "proposal_refs": [],
+    "caveats": [
+      "Telemetry as of 2026-06-12T11:00:00+00:00.",
+      "Policy thresholds applied: battery_eol_cycles = 800 (global), battery_capacity_drop_pct = 3.0% (global).",
+      "Excluded 1 non-laptop device and skipped 7 snapshots missing battery telemetry blocks from the 10 evaluated devices."
+    ]
+  },
+  "citations": [
+    {
+      "handle": "Q1",
+      "snapshot_id": "query_d20a3b7d6ce7",
+      "device_id": "fleet",
+      "hostname": null,
+      "collected_at": "2026-06-12T11:00:00Z",
+      "metric": "sql_query",
+      "value": 8,
+      "unit": null,
+      "label": "SQL [Inspect current battery condition across fleet laptops] (8 rows)"
+    },
+    {
+      "handle": "E2",
+      "snapshot_id": "snap_b5865ab7c7f0789c",
+      "device_id": "7VP16KHV88LM",
+      "hostname": "acme-macbook-1",
+      "collected_at": "2026-05-30T09:16:00Z",
+      "metric": "battery_condition_transition",
+      "value": "Service Recommended",
+      "unit": null,
+      "label": "Transition to Service Recommended on 2026-05-30 (cycles=1025)"
+    },
+    {
+      "handle": "E5",
+      "snapshot_id": "snap_4bc8c30312b0137a",
+      "device_id": "8NM23J95R5I6",
+      "hostname": "acme-thinkpad-8",
+      "collected_at": "2026-05-23T09:01:00Z",
+      "metric": "battery_condition_transition",
+      "value": "Service Recommended",
+      "unit": null,
+      "label": "Transition to Service Recommended on 2026-05-23 (cycles=1136)"
+    },
+    {
+      "handle": "E8",
+      "snapshot_id": "snap_8b70ef0a4e35423b",
+      "device_id": "M4XVHUV1MEPZ",
+      "hostname": "acme-dell-9",
+      "collected_at": "2026-05-24T10:05:00Z",
+      "metric": "battery_condition_transition",
+      "value": "Service Recommended",
+      "unit": null,
+      "label": "Transition to Service Recommended on 2026-05-24 (cycles=935)"
+    },
+    {
+      "handle": "E1",
+      "snapshot_id": "snap_193f2024a9411c0d",
+      "device_id": "7VP16KHV88LM",
+      "hostname": "acme-macbook-1",
+      "collected_at": "2026-05-14T11:09:00Z",
+      "metric": "battery_window_first",
+      "value": 1017,
+      "unit": "cycles",
+      "label": "First window battery reading: condition=Normal, cycles=1017, capacity=4348 mAh"
+    },
+    {
+      "handle": "E3",
+      "snapshot_id": "snap_3b8594133404afb5",
+      "device_id": "7VP16KHV88LM",
+      "hostname": "acme-macbook-1",
+      "collected_at": "2026-06-12T10:41:00Z",
+      "metric": "battery_latest",
+      "value": "Service Recommended",
+      "unit": null,
+      "label": "Latest battery reading: condition=Service Recommended, cycles=1049, capacity=4166 mAh"
+    },
+    {
+      "handle": "E4",
+      "snapshot_id": "snap_e0918c3d573c39f9",
+      "device_id": "8NM23J95R5I6",
+      "hostname": "acme-thinkpad-8",
+      "collected_at": "2026-05-14T10:10:00Z",
+      "metric": "battery_window_first",
+      "value": 1127,
+      "unit": "cycles",
+      "label": "First window battery reading: condition=Normal, cycles=1127, capacity=4043 mAh"
+    },
+    {
+      "handle": "E6",
+      "snapshot_id": "snap_e1d70fe2e26e48da",
+      "device_id": "8NM23J95R5I6",
+      "hostname": "acme-thinkpad-8",
+      "collected_at": "2026-06-12T09:02:00Z",
+      "metric": "battery_latest",
+      "value": "Service Recommended",
+      "unit": null,
+      "label": "Latest battery reading: condition=Service Recommended, cycles=1157, capacity=3872 mAh"
+    },
+    {
+      "handle": "E7",
+      "snapshot_id": "snap_74e74922ca7b9e67",
+      "device_id": "M4XVHUV1MEPZ",
+      "hostname": "acme-dell-9",
+      "collected_at": "2026-05-14T08:40:00Z",
+      "metric": "battery_window_first",
+      "value": 928,
+      "unit": "cycles",
+      "label": "First window battery reading: condition=Normal, cycles=928, capacity=3406 mAh"
+    },
+    {
+      "handle": "E9",
+      "snapshot_id": "snap_4aae53539e92986c",
+      "device_id": "M4XVHUV1MEPZ",
+      "hostname": "acme-dell-9",
+      "collected_at": "2026-06-12T11:00:00Z",
+      "metric": "battery_latest",
+      "value": "Service Recommended",
+      "unit": null,
+      "label": "Latest battery reading: condition=Service Recommended, cycles=948, capacity=3262 mAh"
+    }
+  ],
+  "insights": [
+    {
+      "insight_id": "battery:7VP16KHV88LM",
+      "category": "battery",
+      "severity": "high",
+      "device_id": "7VP16KHV88LM",
+      "employee_id": "emp-acme-1000",
+      "finding": "Battery end-of-life risk on acme-macbook-1: condition is Service Recommended; latest cycle count 1049 >= 800; capacity dropped 4.19% >= 3.0%.",
+      "explanation": "Over 30 battery snapshots in the 30-day window, cycles moved 1017->1049 (max 1049) and full-charge capacity moved 4348->4166 mAh (drop 4.19%). Condition first changed from Normal on 2026-05-30.",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_193f2024a9411c0d",
+          "device_id": "7VP16KHV88LM",
+          "hostname": "acme-macbook-1",
+          "collected_at": "2026-05-14T11:09:00Z",
+          "metric": "battery_window_first",
+          "value": 1017,
+          "unit": "cycles",
+          "label": "First window battery reading: condition=Normal, cycles=1017, capacity=4348 mAh"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_b5865ab7c7f0789c",
+          "device_id": "7VP16KHV88LM",
+          "hostname": "acme-macbook-1",
+          "collected_at": "2026-05-30T09:16:00Z",
+          "metric": "battery_condition_transition",
+          "value": "Service Recommended",
+          "unit": null,
+          "label": "Transition to Service Recommended on 2026-05-30 (cycles=1025)"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_3b8594133404afb5",
+          "device_id": "7VP16KHV88LM",
+          "hostname": "acme-macbook-1",
+          "collected_at": "2026-06-12T10:41:00Z",
+          "metric": "battery_latest",
+          "value": "Service Recommended",
+          "unit": null,
+          "label": "Latest battery reading: condition=Service Recommended, cycles=1049, capacity=4166 mAh"
+        }
+      ],
+      "stats": {
+        "cycles_first": 1017,
+        "cycles_last": 1049,
+        "cycles_max": 1049,
+        "capacity_first": 4348,
+        "capacity_last": 4166,
+        "drop_pct": 4.19,
+        "latest_condition": "Service Recommended",
+        "transition_date": "2026-05-30",
+        "days_since_transition": 13.07
+      },
+      "suggested_action": {
+        "tool": "create_upgrade_order",
+        "args_hint": {
+          "device_id": "7VP16KHV88LM",
+          "component": "battery",
+          "spec": "OEM replacement battery"
+        },
+        "reason": "Laptop battery exhibits end-of-life degradation"
+      },
+      "chart": {
+        "title": "7VP16KHV88LM · Battery",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "7VP16KHV88LM · Battery",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1017.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_193f2024a9411c0d"
+              },
+              {
+                "date": "2026-05-15",
+                "value": 1017.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_8ed438e52e55ad27"
+              },
+              {
+                "date": "2026-05-16",
+                "value": 1019.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_4f5dea046cbb8cb8"
+              },
+              {
+                "date": "2026-05-17",
+                "value": 1019.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_a331ad8b53c3e0f8"
+              },
+              {
+                "date": "2026-05-18",
+                "value": 1020.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_af419ff06fc0b0c0"
+              },
+              {
+                "date": "2026-05-19",
+                "value": 1020.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_ab5edf0156b44301"
+              },
+              {
+                "date": "2026-05-20",
+                "value": 1020.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_284b82fc7f8a551c"
+              },
+              {
+                "date": "2026-05-21",
+                "value": 1021.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_ade5e21f7c243a00"
+              },
+              {
+                "date": "2026-05-22",
+                "value": 1021.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_c5be3e421af3108b"
+              },
+              {
+                "date": "2026-05-23",
+                "value": 1025.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_ad7b35c351b935e4"
+              },
+              {
+                "date": "2026-05-24",
+                "value": 1025.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_a70d4867ccf9b67c"
+              },
+              {
+                "date": "2026-05-25",
+                "value": 1025.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_f218d2cce8ea5840"
+              },
+              {
+                "date": "2026-05-26",
+                "value": 1030.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_b8bd4798d0193ddc"
+              },
+              {
+                "date": "2026-05-27",
+                "value": 1032.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_968bb30547d27332"
+              },
+              {
+                "date": "2026-05-28",
+                "value": 1024.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_059e58468640cad6"
+              },
+              {
+                "date": "2026-05-29",
+                "value": 1023.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_1d9f35d1e11dbff5"
+              },
+              {
+                "date": "2026-05-30",
+                "value": 1025.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_b5865ab7c7f0789c"
+              },
+              {
+                "date": "2026-05-31",
+                "value": 1025.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_2a61c41b88a37425"
+              },
+              {
+                "date": "2026-06-01",
+                "value": 1028.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_fb42cf350a24fbbb"
+              },
+              {
+                "date": "2026-06-02",
+                "value": 1034.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_33f64ab3ee24fe6e"
+              },
+              {
+                "date": "2026-06-03",
+                "value": 1027.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_f0cda7c304059a9b"
+              },
+              {
+                "date": "2026-06-04",
+                "value": 1041.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_2e3afdc41cdcc421"
+              },
+              {
+                "date": "2026-06-05",
+                "value": 1028.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_2634aaae3aec87c9"
+              },
+              {
+                "date": "2026-06-06",
+                "value": 1026.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_f494bce11899d70a"
+              },
+              {
+                "date": "2026-06-07",
+                "value": 1033.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_192e3f9d8ce687ab"
+              },
+              {
+                "date": "2026-06-08",
+                "value": 1032.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_8ed37c035c31ab5a"
+              },
+              {
+                "date": "2026-06-09",
+                "value": 1041.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_12b11a1eb2b9f4c0"
+              },
+              {
+                "date": "2026-06-10",
+                "value": 1040.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_25e6cc4c0854a5c1"
+              },
+              {
+                "date": "2026-06-11",
+                "value": 1042.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_daa508341b295e90"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 1049.0,
+                "device_id": "7VP16KHV88LM",
+                "snapshot_id": "snap_3b8594133404afb5"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Battery Cycle Count"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1017.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_193f2024a9411c0d"
+          },
+          {
+            "date": "2026-05-15",
+            "value": 1017.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_8ed438e52e55ad27"
+          },
+          {
+            "date": "2026-05-16",
+            "value": 1019.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_4f5dea046cbb8cb8"
+          },
+          {
+            "date": "2026-05-17",
+            "value": 1019.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_a331ad8b53c3e0f8"
+          },
+          {
+            "date": "2026-05-18",
+            "value": 1020.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_af419ff06fc0b0c0"
+          },
+          {
+            "date": "2026-05-19",
+            "value": 1020.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_ab5edf0156b44301"
+          },
+          {
+            "date": "2026-05-20",
+            "value": 1020.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_284b82fc7f8a551c"
+          },
+          {
+            "date": "2026-05-21",
+            "value": 1021.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_ade5e21f7c243a00"
+          },
+          {
+            "date": "2026-05-22",
+            "value": 1021.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_c5be3e421af3108b"
+          },
+          {
+            "date": "2026-05-23",
+            "value": 1025.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_ad7b35c351b935e4"
+          },
+          {
+            "date": "2026-05-24",
+            "value": 1025.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_a70d4867ccf9b67c"
+          },
+          {
+            "date": "2026-05-25",
+            "value": 1025.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_f218d2cce8ea5840"
+          },
+          {
+            "date": "2026-05-26",
+            "value": 1030.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_b8bd4798d0193ddc"
+          },
+          {
+            "date": "2026-05-27",
+            "value": 1032.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_968bb30547d27332"
+          },
+          {
+            "date": "2026-05-28",
+            "value": 1024.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_059e58468640cad6"
+          },
+          {
+            "date": "2026-05-29",
+            "value": 1023.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_1d9f35d1e11dbff5"
+          },
+          {
+            "date": "2026-05-30",
+            "value": 1025.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_b5865ab7c7f0789c"
+          },
+          {
+            "date": "2026-05-31",
+            "value": 1025.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_2a61c41b88a37425"
+          },
+          {
+            "date": "2026-06-01",
+            "value": 1028.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_fb42cf350a24fbbb"
+          },
+          {
+            "date": "2026-06-02",
+            "value": 1034.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_33f64ab3ee24fe6e"
+          },
+          {
+            "date": "2026-06-03",
+            "value": 1027.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_f0cda7c304059a9b"
+          },
+          {
+            "date": "2026-06-04",
+            "value": 1041.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_2e3afdc41cdcc421"
+          },
+          {
+            "date": "2026-06-05",
+            "value": 1028.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_2634aaae3aec87c9"
+          },
+          {
+            "date": "2026-06-06",
+            "value": 1026.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_f494bce11899d70a"
+          },
+          {
+            "date": "2026-06-07",
+            "value": 1033.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_192e3f9d8ce687ab"
+          },
+          {
+            "date": "2026-06-08",
+            "value": 1032.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_8ed37c035c31ab5a"
+          },
+          {
+            "date": "2026-06-09",
+            "value": 1041.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_12b11a1eb2b9f4c0"
+          },
+          {
+            "date": "2026-06-10",
+            "value": 1040.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_25e6cc4c0854a5c1"
+          },
+          {
+            "date": "2026-06-11",
+            "value": 1042.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_daa508341b295e90"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 1049.0,
+            "device_id": "7VP16KHV88LM",
+            "snapshot_id": "snap_3b8594133404afb5"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_059e58468640cad6",
+          "snap_12b11a1eb2b9f4c0",
+          "snap_192e3f9d8ce687ab",
+          "snap_193f2024a9411c0d",
+          "snap_1d9f35d1e11dbff5",
+          "snap_25e6cc4c0854a5c1",
+          "snap_2634aaae3aec87c9",
+          "snap_284b82fc7f8a551c",
+          "snap_2a61c41b88a37425",
+          "snap_2e3afdc41cdcc421",
+          "snap_33f64ab3ee24fe6e",
+          "snap_3b8594133404afb5",
+          "snap_4f5dea046cbb8cb8",
+          "snap_8ed37c035c31ab5a",
+          "snap_8ed438e52e55ad27",
+          "snap_968bb30547d27332",
+          "snap_a331ad8b53c3e0f8",
+          "snap_a70d4867ccf9b67c",
+          "snap_ab5edf0156b44301",
+          "snap_ad7b35c351b935e4",
+          "snap_ade5e21f7c243a00",
+          "snap_af419ff06fc0b0c0",
+          "snap_b5865ab7c7f0789c",
+          "snap_b8bd4798d0193ddc",
+          "snap_c5be3e421af3108b",
+          "snap_daa508341b295e90",
+          "snap_f0cda7c304059a9b",
+          "snap_f218d2cce8ea5840",
+          "snap_f494bce11899d70a",
+          "snap_fb42cf350a24fbbb"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "battery:8NM23J95R5I6",
+      "category": "battery",
+      "severity": "high",
+      "device_id": "8NM23J95R5I6",
+      "employee_id": "emp-acme-1005",
+      "finding": "Battery end-of-life risk on acme-thinkpad-8: condition is Service Recommended; latest cycle count 1157 >= 800; capacity dropped 4.23% >= 3.0%.",
+      "explanation": "Over 30 battery snapshots in the 30-day window, cycles moved 1127->1157 (max 1157) and full-charge capacity moved 4043->3872 mAh (drop 4.23%). Condition first changed from Normal on 2026-05-23.",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_e0918c3d573c39f9",
+          "device_id": "8NM23J95R5I6",
+          "hostname": "acme-thinkpad-8",
+          "collected_at": "2026-05-14T10:10:00Z",
+          "metric": "battery_window_first",
+          "value": 1127,
+          "unit": "cycles",
+          "label": "First window battery reading: condition=Normal, cycles=1127, capacity=4043 mAh"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_4bc8c30312b0137a",
+          "device_id": "8NM23J95R5I6",
+          "hostname": "acme-thinkpad-8",
+          "collected_at": "2026-05-23T09:01:00Z",
+          "metric": "battery_condition_transition",
+          "value": "Service Recommended",
+          "unit": null,
+          "label": "Transition to Service Recommended on 2026-05-23 (cycles=1136)"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_e1d70fe2e26e48da",
+          "device_id": "8NM23J95R5I6",
+          "hostname": "acme-thinkpad-8",
+          "collected_at": "2026-06-12T09:02:00Z",
+          "metric": "battery_latest",
+          "value": "Service Recommended",
+          "unit": null,
+          "label": "Latest battery reading: condition=Service Recommended, cycles=1157, capacity=3872 mAh"
+        }
+      ],
+      "stats": {
+        "cycles_first": 1127,
+        "cycles_last": 1157,
+        "cycles_max": 1157,
+        "capacity_first": 4043,
+        "capacity_last": 3872,
+        "drop_pct": 4.23,
+        "latest_condition": "Service Recommended",
+        "transition_date": "2026-05-23",
+        "days_since_transition": 20.08
+      },
+      "suggested_action": {
+        "tool": "create_upgrade_order",
+        "args_hint": {
+          "device_id": "8NM23J95R5I6",
+          "component": "battery",
+          "spec": "OEM replacement battery"
+        },
+        "reason": "Laptop battery exhibits end-of-life degradation"
+      },
+      "chart": {
+        "title": "8NM23J95R5I6 · Battery",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "8NM23J95R5I6 · Battery",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 1127.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_e0918c3d573c39f9"
+              },
+              {
+                "date": "2026-05-15",
+                "value": 1128.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_877050623f4f4a73"
+              },
+              {
+                "date": "2026-05-16",
+                "value": 1127.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_58cc7b1d24806125"
+              },
+              {
+                "date": "2026-05-17",
+                "value": 1129.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_8bc1984fd1cc7a07"
+              },
+              {
+                "date": "2026-05-18",
+                "value": 1130.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_2c1c8cc7df54879b"
+              },
+              {
+                "date": "2026-05-19",
+                "value": 1132.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_45a85d31732f0351"
+              },
+              {
+                "date": "2026-05-20",
+                "value": 1130.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_603335f870ef4dfb"
+              },
+              {
+                "date": "2026-05-21",
+                "value": 1135.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_56075c4f895b1e84"
+              },
+              {
+                "date": "2026-05-22",
+                "value": 1136.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_a3998ed6baeb6143"
+              },
+              {
+                "date": "2026-05-23",
+                "value": 1136.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_4bc8c30312b0137a"
+              },
+              {
+                "date": "2026-05-24",
+                "value": 1131.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_470286face534a21"
+              },
+              {
+                "date": "2026-05-25",
+                "value": 1134.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_89e02649949aea9a"
+              },
+              {
+                "date": "2026-05-26",
+                "value": 1140.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_5d4f7d97bd45de2d"
+              },
+              {
+                "date": "2026-05-27",
+                "value": 1139.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_d817b7df6ee2ec78"
+              },
+              {
+                "date": "2026-05-28",
+                "value": 1138.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_cbe96dcc3656d086"
+              },
+              {
+                "date": "2026-05-29",
+                "value": 1144.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_2210326a05f3a79f"
+              },
+              {
+                "date": "2026-05-30",
+                "value": 1141.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_ce1a1a26c18fe8b0"
+              },
+              {
+                "date": "2026-05-31",
+                "value": 1142.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_077c3626380c3710"
+              },
+              {
+                "date": "2026-06-01",
+                "value": 1139.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_9b69089870170376"
+              },
+              {
+                "date": "2026-06-02",
+                "value": 1143.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_d1af246280b3ad36"
+              },
+              {
+                "date": "2026-06-03",
+                "value": 1142.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_12afe5970c9eab95"
+              },
+              {
+                "date": "2026-06-04",
+                "value": 1145.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_c58ef5bc7a5e8a94"
+              },
+              {
+                "date": "2026-06-05",
+                "value": 1140.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_f135b8e91a947b2c"
+              },
+              {
+                "date": "2026-06-06",
+                "value": 1147.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_4ae1d44cb02567a9"
+              },
+              {
+                "date": "2026-06-07",
+                "value": 1141.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_a1b4bd8743cb9d7a"
+              },
+              {
+                "date": "2026-06-08",
+                "value": 1153.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_102b2c9f4847fd4a"
+              },
+              {
+                "date": "2026-06-09",
+                "value": 1149.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_eb0d40661e62ac3b"
+              },
+              {
+                "date": "2026-06-10",
+                "value": 1157.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_b596684050181deb"
+              },
+              {
+                "date": "2026-06-11",
+                "value": 1150.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_27b86cdbc63ae6bc"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 1157.0,
+                "device_id": "8NM23J95R5I6",
+                "snapshot_id": "snap_e1d70fe2e26e48da"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Battery Cycle Count"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 1127.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_e0918c3d573c39f9"
+          },
+          {
+            "date": "2026-05-15",
+            "value": 1128.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_877050623f4f4a73"
+          },
+          {
+            "date": "2026-05-16",
+            "value": 1127.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_58cc7b1d24806125"
+          },
+          {
+            "date": "2026-05-17",
+            "value": 1129.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_8bc1984fd1cc7a07"
+          },
+          {
+            "date": "2026-05-18",
+            "value": 1130.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_2c1c8cc7df54879b"
+          },
+          {
+            "date": "2026-05-19",
+            "value": 1132.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_45a85d31732f0351"
+          },
+          {
+            "date": "2026-05-20",
+            "value": 1130.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_603335f870ef4dfb"
+          },
+          {
+            "date": "2026-05-21",
+            "value": 1135.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_56075c4f895b1e84"
+          },
+          {
+            "date": "2026-05-22",
+            "value": 1136.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_a3998ed6baeb6143"
+          },
+          {
+            "date": "2026-05-23",
+            "value": 1136.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_4bc8c30312b0137a"
+          },
+          {
+            "date": "2026-05-24",
+            "value": 1131.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_470286face534a21"
+          },
+          {
+            "date": "2026-05-25",
+            "value": 1134.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_89e02649949aea9a"
+          },
+          {
+            "date": "2026-05-26",
+            "value": 1140.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_5d4f7d97bd45de2d"
+          },
+          {
+            "date": "2026-05-27",
+            "value": 1139.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_d817b7df6ee2ec78"
+          },
+          {
+            "date": "2026-05-28",
+            "value": 1138.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_cbe96dcc3656d086"
+          },
+          {
+            "date": "2026-05-29",
+            "value": 1144.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_2210326a05f3a79f"
+          },
+          {
+            "date": "2026-05-30",
+            "value": 1141.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_ce1a1a26c18fe8b0"
+          },
+          {
+            "date": "2026-05-31",
+            "value": 1142.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_077c3626380c3710"
+          },
+          {
+            "date": "2026-06-01",
+            "value": 1139.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_9b69089870170376"
+          },
+          {
+            "date": "2026-06-02",
+            "value": 1143.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_d1af246280b3ad36"
+          },
+          {
+            "date": "2026-06-03",
+            "value": 1142.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_12afe5970c9eab95"
+          },
+          {
+            "date": "2026-06-04",
+            "value": 1145.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_c58ef5bc7a5e8a94"
+          },
+          {
+            "date": "2026-06-05",
+            "value": 1140.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_f135b8e91a947b2c"
+          },
+          {
+            "date": "2026-06-06",
+            "value": 1147.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_4ae1d44cb02567a9"
+          },
+          {
+            "date": "2026-06-07",
+            "value": 1141.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_a1b4bd8743cb9d7a"
+          },
+          {
+            "date": "2026-06-08",
+            "value": 1153.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_102b2c9f4847fd4a"
+          },
+          {
+            "date": "2026-06-09",
+            "value": 1149.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_eb0d40661e62ac3b"
+          },
+          {
+            "date": "2026-06-10",
+            "value": 1157.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_b596684050181deb"
+          },
+          {
+            "date": "2026-06-11",
+            "value": 1150.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_27b86cdbc63ae6bc"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 1157.0,
+            "device_id": "8NM23J95R5I6",
+            "snapshot_id": "snap_e1d70fe2e26e48da"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_077c3626380c3710",
+          "snap_102b2c9f4847fd4a",
+          "snap_12afe5970c9eab95",
+          "snap_2210326a05f3a79f",
+          "snap_27b86cdbc63ae6bc",
+          "snap_2c1c8cc7df54879b",
+          "snap_45a85d31732f0351",
+          "snap_470286face534a21",
+          "snap_4ae1d44cb02567a9",
+          "snap_4bc8c30312b0137a",
+          "snap_56075c4f895b1e84",
+          "snap_58cc7b1d24806125",
+          "snap_5d4f7d97bd45de2d",
+          "snap_603335f870ef4dfb",
+          "snap_877050623f4f4a73",
+          "snap_89e02649949aea9a",
+          "snap_8bc1984fd1cc7a07",
+          "snap_9b69089870170376",
+          "snap_a1b4bd8743cb9d7a",
+          "snap_a3998ed6baeb6143",
+          "snap_b596684050181deb",
+          "snap_c58ef5bc7a5e8a94",
+          "snap_cbe96dcc3656d086",
+          "snap_ce1a1a26c18fe8b0",
+          "snap_d1af246280b3ad36",
+          "snap_d817b7df6ee2ec78",
+          "snap_e0918c3d573c39f9",
+          "snap_e1d70fe2e26e48da",
+          "snap_eb0d40661e62ac3b",
+          "snap_f135b8e91a947b2c"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    },
+    {
+      "insight_id": "battery:M4XVHUV1MEPZ",
+      "category": "battery",
+      "severity": "high",
+      "device_id": "M4XVHUV1MEPZ",
+      "employee_id": "emp-acme-1002",
+      "finding": "Battery end-of-life risk on acme-dell-9: condition is Service Recommended; latest cycle count 948 >= 800; capacity dropped 4.23% >= 3.0%.",
+      "explanation": "Over 30 battery snapshots in the 30-day window, cycles moved 928->948 (max 959) and full-charge capacity moved 3406->3262 mAh (drop 4.23%). Condition first changed from Normal on 2026-05-24.",
+      "evidence": [
+        {
+          "handle": null,
+          "snapshot_id": "snap_74e74922ca7b9e67",
+          "device_id": "M4XVHUV1MEPZ",
+          "hostname": "acme-dell-9",
+          "collected_at": "2026-05-14T08:40:00Z",
+          "metric": "battery_window_first",
+          "value": 928,
+          "unit": "cycles",
+          "label": "First window battery reading: condition=Normal, cycles=928, capacity=3406 mAh"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_8b70ef0a4e35423b",
+          "device_id": "M4XVHUV1MEPZ",
+          "hostname": "acme-dell-9",
+          "collected_at": "2026-05-24T10:05:00Z",
+          "metric": "battery_condition_transition",
+          "value": "Service Recommended",
+          "unit": null,
+          "label": "Transition to Service Recommended on 2026-05-24 (cycles=935)"
+        },
+        {
+          "handle": null,
+          "snapshot_id": "snap_4aae53539e92986c",
+          "device_id": "M4XVHUV1MEPZ",
+          "hostname": "acme-dell-9",
+          "collected_at": "2026-06-12T11:00:00Z",
+          "metric": "battery_latest",
+          "value": "Service Recommended",
+          "unit": null,
+          "label": "Latest battery reading: condition=Service Recommended, cycles=948, capacity=3262 mAh"
+        }
+      ],
+      "stats": {
+        "cycles_first": 928,
+        "cycles_last": 948,
+        "cycles_max": 959,
+        "capacity_first": 3406,
+        "capacity_last": 3262,
+        "drop_pct": 4.23,
+        "latest_condition": "Service Recommended",
+        "transition_date": "2026-05-24",
+        "days_since_transition": 19.04
+      },
+      "suggested_action": {
+        "tool": "create_upgrade_order",
+        "args_hint": {
+          "device_id": "M4XVHUV1MEPZ",
+          "component": "battery",
+          "spec": "OEM replacement battery"
+        },
+        "reason": "Laptop battery exhibits end-of-life degradation"
+      },
+      "chart": {
+        "title": "M4XVHUV1MEPZ · Battery",
+        "vega_lite_spec": {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "title": "M4XVHUV1MEPZ · Battery",
+          "width": "container",
+          "height": 260,
+          "data": {
+            "values": [
+              {
+                "date": "2026-05-14",
+                "value": 928.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_74e74922ca7b9e67"
+              },
+              {
+                "date": "2026-05-15",
+                "value": 929.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_06523687d996e9df"
+              },
+              {
+                "date": "2026-05-16",
+                "value": 928.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_5b20ebf43556e854"
+              },
+              {
+                "date": "2026-05-17",
+                "value": 929.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_6b176e4b1c0ceb50"
+              },
+              {
+                "date": "2026-05-18",
+                "value": 931.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_27afa93438f39c69"
+              },
+              {
+                "date": "2026-05-19",
+                "value": 932.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_816e01d9e12c230c"
+              },
+              {
+                "date": "2026-05-20",
+                "value": 932.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_54d5e97a621249fe"
+              },
+              {
+                "date": "2026-05-21",
+                "value": 934.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_e8f7a030a641594c"
+              },
+              {
+                "date": "2026-05-22",
+                "value": 934.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_ddfc7798e64bd7fc"
+              },
+              {
+                "date": "2026-05-23",
+                "value": 936.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_30765765749a5f2a"
+              },
+              {
+                "date": "2026-05-24",
+                "value": 935.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_8b70ef0a4e35423b"
+              },
+              {
+                "date": "2026-05-25",
+                "value": 937.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_c62148f5a646adba"
+              },
+              {
+                "date": "2026-05-26",
+                "value": 938.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_6d4a6a548fbe3a87"
+              },
+              {
+                "date": "2026-05-27",
+                "value": 939.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_350730ac9af7ed74"
+              },
+              {
+                "date": "2026-05-28",
+                "value": 944.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_da436901b5ab3c8c"
+              },
+              {
+                "date": "2026-05-29",
+                "value": 934.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_4648bb3807582390"
+              },
+              {
+                "date": "2026-05-30",
+                "value": 935.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_6582bb5e349bc008"
+              },
+              {
+                "date": "2026-05-31",
+                "value": 937.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_84fdb1a2a3e7f875"
+              },
+              {
+                "date": "2026-06-01",
+                "value": 940.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_8ffbca6782dd511b"
+              },
+              {
+                "date": "2026-06-02",
+                "value": 950.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_7c026101726ce6bd"
+              },
+              {
+                "date": "2026-06-03",
+                "value": 946.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_1b61d4caf28f5e32"
+              },
+              {
+                "date": "2026-06-04",
+                "value": 946.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_387e9044c1971d06"
+              },
+              {
+                "date": "2026-06-05",
+                "value": 950.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_602a134b7d4a3276"
+              },
+              {
+                "date": "2026-06-06",
+                "value": 952.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_67b530785bb55e23"
+              },
+              {
+                "date": "2026-06-07",
+                "value": 953.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_8f6d69580f537193"
+              },
+              {
+                "date": "2026-06-08",
+                "value": 946.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_76c06a96048c13e9"
+              },
+              {
+                "date": "2026-06-09",
+                "value": 953.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_1208836a732cfa26"
+              },
+              {
+                "date": "2026-06-10",
+                "value": 959.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_fdfad3576d607d20"
+              },
+              {
+                "date": "2026-06-11",
+                "value": 955.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_7f2f215d330edb07"
+              },
+              {
+                "date": "2026-06-12",
+                "value": 948.0,
+                "device_id": "M4XVHUV1MEPZ",
+                "snapshot_id": "snap_4aae53539e92986c"
+              }
+            ]
+          },
+          "mark": {
+            "type": "line",
+            "point": true
+          },
+          "encoding": {
+            "x": {
+              "field": "date",
+              "type": "temporal",
+              "title": "Date (UTC)"
+            },
+            "y": {
+              "field": "value",
+              "type": "quantitative",
+              "title": "Battery Cycle Count"
+            },
+            "color": {
+              "value": "#2563EB"
+            }
+          }
+        },
+        "data_rows": [
+          {
+            "date": "2026-05-14",
+            "value": 928.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_74e74922ca7b9e67"
+          },
+          {
+            "date": "2026-05-15",
+            "value": 929.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_06523687d996e9df"
+          },
+          {
+            "date": "2026-05-16",
+            "value": 928.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_5b20ebf43556e854"
+          },
+          {
+            "date": "2026-05-17",
+            "value": 929.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_6b176e4b1c0ceb50"
+          },
+          {
+            "date": "2026-05-18",
+            "value": 931.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_27afa93438f39c69"
+          },
+          {
+            "date": "2026-05-19",
+            "value": 932.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_816e01d9e12c230c"
+          },
+          {
+            "date": "2026-05-20",
+            "value": 932.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_54d5e97a621249fe"
+          },
+          {
+            "date": "2026-05-21",
+            "value": 934.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_e8f7a030a641594c"
+          },
+          {
+            "date": "2026-05-22",
+            "value": 934.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_ddfc7798e64bd7fc"
+          },
+          {
+            "date": "2026-05-23",
+            "value": 936.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_30765765749a5f2a"
+          },
+          {
+            "date": "2026-05-24",
+            "value": 935.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_8b70ef0a4e35423b"
+          },
+          {
+            "date": "2026-05-25",
+            "value": 937.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_c62148f5a646adba"
+          },
+          {
+            "date": "2026-05-26",
+            "value": 938.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_6d4a6a548fbe3a87"
+          },
+          {
+            "date": "2026-05-27",
+            "value": 939.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_350730ac9af7ed74"
+          },
+          {
+            "date": "2026-05-28",
+            "value": 944.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_da436901b5ab3c8c"
+          },
+          {
+            "date": "2026-05-29",
+            "value": 934.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_4648bb3807582390"
+          },
+          {
+            "date": "2026-05-30",
+            "value": 935.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_6582bb5e349bc008"
+          },
+          {
+            "date": "2026-05-31",
+            "value": 937.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_84fdb1a2a3e7f875"
+          },
+          {
+            "date": "2026-06-01",
+            "value": 940.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_8ffbca6782dd511b"
+          },
+          {
+            "date": "2026-06-02",
+            "value": 950.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_7c026101726ce6bd"
+          },
+          {
+            "date": "2026-06-03",
+            "value": 946.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_1b61d4caf28f5e32"
+          },
+          {
+            "date": "2026-06-04",
+            "value": 946.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_387e9044c1971d06"
+          },
+          {
+            "date": "2026-06-05",
+            "value": 950.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_602a134b7d4a3276"
+          },
+          {
+            "date": "2026-06-06",
+            "value": 952.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_67b530785bb55e23"
+          },
+          {
+            "date": "2026-06-07",
+            "value": 953.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_8f6d69580f537193"
+          },
+          {
+            "date": "2026-06-08",
+            "value": 946.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_76c06a96048c13e9"
+          },
+          {
+            "date": "2026-06-09",
+            "value": 953.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_1208836a732cfa26"
+          },
+          {
+            "date": "2026-06-10",
+            "value": 959.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_fdfad3576d607d20"
+          },
+          {
+            "date": "2026-06-11",
+            "value": 955.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_7f2f215d330edb07"
+          },
+          {
+            "date": "2026-06-12",
+            "value": 948.0,
+            "device_id": "M4XVHUV1MEPZ",
+            "snapshot_id": "snap_4aae53539e92986c"
+          }
+        ],
+        "evidence_snapshot_ids": [
+          "snap_06523687d996e9df",
+          "snap_1208836a732cfa26",
+          "snap_1b61d4caf28f5e32",
+          "snap_27afa93438f39c69",
+          "snap_30765765749a5f2a",
+          "snap_350730ac9af7ed74",
+          "snap_387e9044c1971d06",
+          "snap_4648bb3807582390",
+          "snap_4aae53539e92986c",
+          "snap_54d5e97a621249fe",
+          "snap_5b20ebf43556e854",
+          "snap_602a134b7d4a3276",
+          "snap_6582bb5e349bc008",
+          "snap_67b530785bb55e23",
+          "snap_6b176e4b1c0ceb50",
+          "snap_6d4a6a548fbe3a87",
+          "snap_74e74922ca7b9e67",
+          "snap_76c06a96048c13e9",
+          "snap_7c026101726ce6bd",
+          "snap_7f2f215d330edb07",
+          "snap_816e01d9e12c230c",
+          "snap_84fdb1a2a3e7f875",
+          "snap_8b70ef0a4e35423b",
+          "snap_8f6d69580f537193",
+          "snap_8ffbca6782dd511b",
+          "snap_c62148f5a646adba",
+          "snap_da436901b5ab3c8c",
+          "snap_ddfc7798e64bd7fc",
+          "snap_e8f7a030a641594c",
+          "snap_fdfad3576d607d20"
+        ],
+        "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+      }
+    }
+  ],
+  "charts": [],
+  "queries": [
+    {
+      "handle": "Q1",
+      "sql": "SELECT device_id, os_hostname, model_name, battery_condition, battery_cycle_count, battery_full_charge_capacity FROM telemetry.v_latest_device_state WHERE battery_present = TRUE LIMIT 50",
+      "purpose": "Inspect current battery condition across fleet laptops",
+      "columns": [
+        "device_id",
+        "os_hostname",
+        "model_name",
+        "battery_condition",
+        "battery_cycle_count",
+        "battery_full_charge_capacity"
+      ],
+      "rows": [
+        {
+          "device_id": "1LYSSFD074BB",
+          "os_hostname": "acme-macbook-2",
+          "model_name": "MacBook Pro",
+          "battery_condition": "Normal",
+          "battery_cycle_count": 532,
+          "battery_full_charge_capacity": 6163
+        },
+        {
+          "device_id": "7VP16KHV88LM",
+          "os_hostname": "acme-macbook-1",
+          "model_name": "MacBook Pro",
+          "battery_condition": "Service Recommended",
+          "battery_cycle_count": 1049,
+          "battery_full_charge_capacity": 4166
+        },
+        {
+          "device_id": "8NM23J95R5I6",
+          "os_hostname": "acme-thinkpad-8",
+          "model_name": "ThinkPad X1 Carbon",
+          "battery_condition": "Service Recommended",
+          "battery_cycle_count": 1157,
+          "battery_full_charge_capacity": 3872
+        },
+        {
+          "device_id": "9MXJVZ1I0DKA",
+          "os_hostname": "acme-thinkpad-10",
+          "model_name": "ThinkPad X1 Carbon",
+          "battery_condition": "Normal",
+          "battery_cycle_count": 601,
+          "battery_full_charge_capacity": 4852
+        },
+        {
+          "device_id": "DSYPSES7SKBB",
+          "os_hostname": "acme-macbook-3",
+          "model_name": "MacBook Pro",
+          "battery_condition": "Normal",
+          "battery_cycle_count": 411,
+          "battery_full_charge_capacity": 5876
+        },
+        {
+          "device_id": "M4XVHUV1MEPZ",
+          "os_hostname": "acme-dell-9",
+          "model_name": "Dell XPS 15",
+          "battery_condition": "Service Recommended",
+          "battery_cycle_count": 948,
+          "battery_full_charge_capacity": 3262
+        },
+        {
+          "device_id": "Q3VUITEGQ400",
+          "os_hostname": "acme-macbook-7",
+          "model_name": "MacBook Pro",
+          "battery_condition": "Normal",
+          "battery_cycle_count": 592,
+          "battery_full_charge_capacity": 5781
+        },
+        {
+          "device_id": "XSU9UUDGU6AC",
+          "os_hostname": "acme-macbook-6",
+          "model_name": "MacBook Pro",
+          "battery_condition": "Normal",
+          "battery_cycle_count": 212,
+          "battery_full_charge_capacity": 5336
+        }
+      ],
+      "row_count": 8,
+      "truncated": false,
+      "snapshot_ids": [],
+      "device_ids": [
+        "1LYSSFD074BB",
+        "7VP16KHV88LM",
+        "8NM23J95R5I6",
+        "9MXJVZ1I0DKA",
+        "DSYPSES7SKBB",
+        "M4XVHUV1MEPZ",
+        "Q3VUITEGQ400",
+        "XSU9UUDGU6AC"
+      ],
+      "telemetry_as_of": "2026-06-12T11:00:00+00:00"
+    }
+  ],
+  "proposals": [],
+  "verdicts": [],
+  "approval_packet": null,
+  "plan": {
+    "intent": "insight",
+    "refers_to_other_org": false,
+    "role_violation": false,
+    "needs_clarification": null,
+    "steps": [
+      {
+        "goal": "Analyze 30-day fleet battery degradation and end-of-life device trends",
+        "tool_hint": "analyze_fleet_trends"
+      },
+      {
+        "goal": "Identify devices nearing end-of-life or with severely degraded battery health",
+        "tool_hint": "find_devices"
+      }
+    ]
+  },
+  "tool_trace": [
+    {
+      "tool_call_id": "call_16210657785303588917",
+      "tool_name": "analyze_fleet_trends",
+      "args": {
+        "categories": [
+          "battery"
+        ]
+      },
+      "ok": true,
+      "evaluated": 10,
+      "matched": 3,
+      "evidence_count": 9,
+      "duration_ms": 169,
+      "summary": "Analyzed 10 device(s) across battery as of 2026-06-12: 3 insight(s)."
+    },
+    {
+      "tool_call_id": "call_16210657785303590442",
+      "tool_name": "find_devices",
+      "args": {
+        "battery_condition": "service_recommended"
+      },
+      "ok": true,
+      "evaluated": 10,
+      "matched": 0,
+      "evidence_count": 0,
+      "duration_ms": 65,
+      "summary": "Matched 0 of 10 devices as of 2026-06-12."
+    },
+    {
+      "tool_call_id": "call_10654321354951054785",
+      "tool_name": "run_readonly_sql",
+      "args": {
+        "purpose": "Inspect current battery condition across fleet laptops",
+        "sql": "SELECT device_id, os_hostname, model_name, battery_condition, battery_cycle_count, battery_full_charge_capacity FROM telemetry.v_latest_device_state WHERE battery_present = true LIMIT 50"
+      },
+      "ok": true,
+      "evaluated": 8,
+      "matched": 8,
+      "evidence_count": 1,
+      "duration_ms": 18,
+      "summary": "SQL query [Q1] returned 8 row(s) (as of 2026-06-12)."
+    }
+  ],
+  "telemetry_as_of": "2026-06-12T11:00:00+00:00",
+  "usage": {
+    "input_tokens": 25415,
+    "output_tokens": 1312,
+    "total_tokens": 26727,
+    "cost_usd_est": 0.023981,
+    "latency_ms": 586
+  },
+  "warnings": []
+}

@@ -1,0 +1,700 @@
+{
+  "thread_id": "initech-003:eval_chart-initech-ram-trend_r1",
+  "turn_id": "turn_chart-initech-ram-trend_r1_t1",
+  "trace_id": "eval-chart-initech-ram-trend-r1-t1",
+  "status": "completed",
+  "answer_markdown": "Chart C1 plots daily RAM usage percentage over the last 30 days for device I3JLKILKQTAC (initech-mac-3), where current RAM usage is 88.98%.\n\n- A 30-day time series chart has been generated plotting daily RAM usage percentage across 30 data points for device I3JLKILKQTAC [C1].\n- As of 2026-06-12, device I3JLKILKQTAC (initech-mac-3) is a Mac mini desktop with a current RAM usage of 88.98% [E1, E3]. [E1][E3]\n- The device currently reports 53.25% free disk space [E2].\n\n**Caveats & scope:**\n- telemetry_as_of: 2026-06-12T10:57:00+00:00\n- Policy thresholds applied: high_ram_used_pct = 80.0% (global), low_disk_free_pct = 15.0% (global).\n- Device I3JLKILKQTAC is a Mac mini desktop; battery telemetry is not applicable.\n\n**Evidence:**\n- `[C1]` `snap_0120eb06fc69fd7a` · `I3JLKILKQTAC` (I3JLKILKQTAC) · Chart [RAM Usage Percentage Over Last 30 Days - I3JLKILKQTAC] (30 points) · 2026-06-12T10:57:00\n- `[E1]` `snap_b54bd23aff621e43` · `I3JLKILKQTAC` (initech-mac-3) · Latest snapshot for initech-mac-3 · 2026-06-12T10:57:00\n- `[E3]` `snap_b54bd23aff621e43` · `I3JLKILKQTAC` (initech-mac-3) · RAM used 88.98% · 2026-06-12T10:57:00\n- `[E2]` `snap_b54bd23aff621e43` · `I3JLKILKQTAC` (initech-mac-3) · Disk free 53.25% · 2026-06-12T10:57:00",
+  "answer": {
+    "summary": "Chart C1 plots daily RAM usage percentage over the last 30 days for device I3JLKILKQTAC (initech-mac-3), where current RAM usage is 88.98%.",
+    "result_device_ids": [
+      "I3JLKILKQTAC"
+    ],
+    "claims": [
+      {
+        "text": "A 30-day time series chart has been generated plotting daily RAM usage percentage across 30 data points for device I3JLKILKQTAC [C1].",
+        "citations": [
+          "C1"
+        ],
+        "device_ids": [
+          "I3JLKILKQTAC"
+        ],
+        "numbers": [
+          30.0
+        ]
+      },
+      {
+        "text": "As of 2026-06-12, device I3JLKILKQTAC (initech-mac-3) is a Mac mini desktop with a current RAM usage of 88.98% [E1, E3].",
+        "citations": [
+          "E1",
+          "E3"
+        ],
+        "device_ids": [
+          "I3JLKILKQTAC"
+        ],
+        "numbers": [
+          88.98
+        ]
+      },
+      {
+        "text": "The device currently reports 53.25% free disk space [E2].",
+        "citations": [
+          "E2"
+        ],
+        "device_ids": [
+          "I3JLKILKQTAC"
+        ],
+        "numbers": [
+          53.25
+        ]
+      }
+    ],
+    "insight_refs": [],
+    "proposal_refs": [],
+    "caveats": [
+      "telemetry_as_of: 2026-06-12T10:57:00+00:00",
+      "Policy thresholds applied: high_ram_used_pct = 80.0% (global), low_disk_free_pct = 15.0% (global).",
+      "Device I3JLKILKQTAC is a Mac mini desktop; battery telemetry is not applicable."
+    ]
+  },
+  "citations": [
+    {
+      "handle": "C1",
+      "snapshot_id": "snap_0120eb06fc69fd7a",
+      "device_id": "I3JLKILKQTAC",
+      "hostname": null,
+      "collected_at": "2026-06-12T10:57:00Z",
+      "metric": "chart:ram_used_pct",
+      "value": 30,
+      "unit": null,
+      "label": "Chart [RAM Usage Percentage Over Last 30 Days - I3JLKILKQTAC] (30 points)"
+    },
+    {
+      "handle": "E1",
+      "snapshot_id": "snap_b54bd23aff621e43",
+      "device_id": "I3JLKILKQTAC",
+      "hostname": "initech-mac-3",
+      "collected_at": "2026-06-12T10:57:00Z",
+      "metric": "device_state",
+      "value": "Mac mini (desktop)",
+      "unit": null,
+      "label": "Latest snapshot for initech-mac-3"
+    },
+    {
+      "handle": "E3",
+      "snapshot_id": "snap_b54bd23aff621e43",
+      "device_id": "I3JLKILKQTAC",
+      "hostname": "initech-mac-3",
+      "collected_at": "2026-06-12T10:57:00Z",
+      "metric": "ram_used_pct",
+      "value": 88.98,
+      "unit": "%",
+      "label": "RAM used 88.98%"
+    },
+    {
+      "handle": "E2",
+      "snapshot_id": "snap_b54bd23aff621e43",
+      "device_id": "I3JLKILKQTAC",
+      "hostname": "initech-mac-3",
+      "collected_at": "2026-06-12T10:57:00Z",
+      "metric": "disk_free_pct",
+      "value": 53.25,
+      "unit": "%",
+      "label": "Disk free 53.25%"
+    }
+  ],
+  "insights": [],
+  "charts": [
+    {
+      "chart_id": "chart_fb0b1a08548d",
+      "handle": "C1",
+      "title": "RAM Usage Percentage Over Last 30 Days - I3JLKILKQTAC",
+      "request_json": {
+        "title": "RAM Usage Percentage Over Last 30 Days - I3JLKILKQTAC",
+        "kind": "metric_over_time",
+        "metric": "ram_used_pct",
+        "device_ids": [
+          "I3JLKILKQTAC"
+        ],
+        "form_factor": null,
+        "os_family": null,
+        "os_version_lt": null,
+        "model": null,
+        "employee_id": null,
+        "low_disk_only": false,
+        "max_disk_free_pct": null,
+        "min_ram_used_pct": null,
+        "battery_condition": null,
+        "software_name": null,
+        "stat": null,
+        "group_by": null,
+        "window_days": 30,
+        "query_handle": null,
+        "x": null,
+        "y": null,
+        "series": null,
+        "chart_type": "line"
+      },
+      "vega_lite_spec": {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "title": "RAM Usage Percentage Over Last 30 Days - I3JLKILKQTAC",
+        "width": "container",
+        "height": 260,
+        "data": {
+          "values": [
+            {
+              "date": "2026-05-14",
+              "value": 94.23,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_f58a0abd7749c56d"
+            },
+            {
+              "date": "2026-05-15",
+              "value": 88.76,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_bc5949db164d97a4"
+            },
+            {
+              "date": "2026-05-16",
+              "value": 87.11,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_9c74772681c21b60"
+            },
+            {
+              "date": "2026-05-17",
+              "value": 92.67,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_b2ce2cdb03f428b5"
+            },
+            {
+              "date": "2026-05-18",
+              "value": 95.64,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_bb9c78fd23fd1445"
+            },
+            {
+              "date": "2026-05-19",
+              "value": 87.61,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_e66dbbb768b1b75f"
+            },
+            {
+              "date": "2026-05-20",
+              "value": 91.71,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_3e886cd0ac8d9868"
+            },
+            {
+              "date": "2026-05-21",
+              "value": 85.91,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_0b9751cc34bebf35"
+            },
+            {
+              "date": "2026-05-22",
+              "value": 91.91,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_ad123f3df36c0a81"
+            },
+            {
+              "date": "2026-05-23",
+              "value": 87.19,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_db966d584ffb6a80"
+            },
+            {
+              "date": "2026-05-24",
+              "value": 95.29,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_a2fcf5fe90cbaf7e"
+            },
+            {
+              "date": "2026-05-25",
+              "value": 95.95,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_74663ccc97288d37"
+            },
+            {
+              "date": "2026-05-26",
+              "value": 90.42,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_cb7d30b6a5fe0e98"
+            },
+            {
+              "date": "2026-05-27",
+              "value": 86.12,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_e5f4b9b5cdad763c"
+            },
+            {
+              "date": "2026-05-28",
+              "value": 96.35,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_4da91628a95244be"
+            },
+            {
+              "date": "2026-05-29",
+              "value": 96.81,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_315ad702baf621c2"
+            },
+            {
+              "date": "2026-05-30",
+              "value": 97.62,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_a195c61a69647478"
+            },
+            {
+              "date": "2026-05-31",
+              "value": 91.99,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_e62fb66afd6e02d0"
+            },
+            {
+              "date": "2026-06-01",
+              "value": 95.29,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_91e8eef85662a406"
+            },
+            {
+              "date": "2026-06-02",
+              "value": 90.3,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_080de5710c516566"
+            },
+            {
+              "date": "2026-06-03",
+              "value": 86.78,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_d6ea0810ea7a03f5"
+            },
+            {
+              "date": "2026-06-04",
+              "value": 87.51,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_7578af9214104788"
+            },
+            {
+              "date": "2026-06-05",
+              "value": 92.92,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_48741fb4e83e5089"
+            },
+            {
+              "date": "2026-06-06",
+              "value": 92.17,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_81741317d56ad799"
+            },
+            {
+              "date": "2026-06-07",
+              "value": 87.77,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_0120eb06fc69fd7a"
+            },
+            {
+              "date": "2026-06-08",
+              "value": 94.67,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_be28bebb1b56a767"
+            },
+            {
+              "date": "2026-06-09",
+              "value": 93.53,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_4bcd42e2501e5b91"
+            },
+            {
+              "date": "2026-06-10",
+              "value": 93.33,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_a5d25ef452066d40"
+            },
+            {
+              "date": "2026-06-11",
+              "value": 98.45,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_67c465f5626f9eb8"
+            },
+            {
+              "date": "2026-06-12",
+              "value": 88.98,
+              "device_id": "I3JLKILKQTAC",
+              "series": "initech-mac-3",
+              "snapshot_id": "snap_b54bd23aff621e43"
+            }
+          ]
+        },
+        "mark": {
+          "type": "line",
+          "point": true
+        },
+        "encoding": {
+          "x": {
+            "field": "date",
+            "type": "temporal",
+            "title": "Date (UTC)"
+          },
+          "y": {
+            "field": "value",
+            "type": "quantitative",
+            "title": "RAM Used (%)"
+          },
+          "color": {
+            "field": "series",
+            "type": "nominal",
+            "scale": {
+              "range": [
+                "#2563EB",
+                "#D97706",
+                "#DC2626",
+                "#059669",
+                "#7C3AED",
+                "#0891B2",
+                "#4B5563"
+              ]
+            }
+          }
+        }
+      },
+      "data_rows": [
+        {
+          "date": "2026-05-14",
+          "value": 94.23,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_f58a0abd7749c56d"
+        },
+        {
+          "date": "2026-05-15",
+          "value": 88.76,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_bc5949db164d97a4"
+        },
+        {
+          "date": "2026-05-16",
+          "value": 87.11,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_9c74772681c21b60"
+        },
+        {
+          "date": "2026-05-17",
+          "value": 92.67,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_b2ce2cdb03f428b5"
+        },
+        {
+          "date": "2026-05-18",
+          "value": 95.64,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_bb9c78fd23fd1445"
+        },
+        {
+          "date": "2026-05-19",
+          "value": 87.61,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_e66dbbb768b1b75f"
+        },
+        {
+          "date": "2026-05-20",
+          "value": 91.71,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_3e886cd0ac8d9868"
+        },
+        {
+          "date": "2026-05-21",
+          "value": 85.91,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_0b9751cc34bebf35"
+        },
+        {
+          "date": "2026-05-22",
+          "value": 91.91,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_ad123f3df36c0a81"
+        },
+        {
+          "date": "2026-05-23",
+          "value": 87.19,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_db966d584ffb6a80"
+        },
+        {
+          "date": "2026-05-24",
+          "value": 95.29,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_a2fcf5fe90cbaf7e"
+        },
+        {
+          "date": "2026-05-25",
+          "value": 95.95,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_74663ccc97288d37"
+        },
+        {
+          "date": "2026-05-26",
+          "value": 90.42,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_cb7d30b6a5fe0e98"
+        },
+        {
+          "date": "2026-05-27",
+          "value": 86.12,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_e5f4b9b5cdad763c"
+        },
+        {
+          "date": "2026-05-28",
+          "value": 96.35,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_4da91628a95244be"
+        },
+        {
+          "date": "2026-05-29",
+          "value": 96.81,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_315ad702baf621c2"
+        },
+        {
+          "date": "2026-05-30",
+          "value": 97.62,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_a195c61a69647478"
+        },
+        {
+          "date": "2026-05-31",
+          "value": 91.99,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_e62fb66afd6e02d0"
+        },
+        {
+          "date": "2026-06-01",
+          "value": 95.29,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_91e8eef85662a406"
+        },
+        {
+          "date": "2026-06-02",
+          "value": 90.3,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_080de5710c516566"
+        },
+        {
+          "date": "2026-06-03",
+          "value": 86.78,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_d6ea0810ea7a03f5"
+        },
+        {
+          "date": "2026-06-04",
+          "value": 87.51,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_7578af9214104788"
+        },
+        {
+          "date": "2026-06-05",
+          "value": 92.92,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_48741fb4e83e5089"
+        },
+        {
+          "date": "2026-06-06",
+          "value": 92.17,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_81741317d56ad799"
+        },
+        {
+          "date": "2026-06-07",
+          "value": 87.77,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_0120eb06fc69fd7a"
+        },
+        {
+          "date": "2026-06-08",
+          "value": 94.67,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_be28bebb1b56a767"
+        },
+        {
+          "date": "2026-06-09",
+          "value": 93.53,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_4bcd42e2501e5b91"
+        },
+        {
+          "date": "2026-06-10",
+          "value": 93.33,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_a5d25ef452066d40"
+        },
+        {
+          "date": "2026-06-11",
+          "value": 98.45,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_67c465f5626f9eb8"
+        },
+        {
+          "date": "2026-06-12",
+          "value": 88.98,
+          "device_id": "I3JLKILKQTAC",
+          "series": "initech-mac-3",
+          "snapshot_id": "snap_b54bd23aff621e43"
+        }
+      ],
+      "evidence_snapshot_ids": [
+        "snap_0120eb06fc69fd7a",
+        "snap_080de5710c516566",
+        "snap_0b9751cc34bebf35",
+        "snap_315ad702baf621c2",
+        "snap_3e886cd0ac8d9868",
+        "snap_48741fb4e83e5089",
+        "snap_4bcd42e2501e5b91",
+        "snap_4da91628a95244be",
+        "snap_67c465f5626f9eb8",
+        "snap_74663ccc97288d37",
+        "snap_7578af9214104788",
+        "snap_81741317d56ad799",
+        "snap_91e8eef85662a406",
+        "snap_9c74772681c21b60",
+        "snap_a195c61a69647478",
+        "snap_a2fcf5fe90cbaf7e",
+        "snap_a5d25ef452066d40",
+        "snap_ad123f3df36c0a81",
+        "snap_b2ce2cdb03f428b5",
+        "snap_b54bd23aff621e43",
+        "snap_bb9c78fd23fd1445",
+        "snap_bc5949db164d97a4",
+        "snap_be28bebb1b56a767",
+        "snap_cb7d30b6a5fe0e98",
+        "snap_d6ea0810ea7a03f5",
+        "snap_db966d584ffb6a80",
+        "snap_e5f4b9b5cdad763c",
+        "snap_e62fb66afd6e02d0",
+        "snap_e66dbbb768b1b75f",
+        "snap_f58a0abd7749c56d"
+      ],
+      "telemetry_as_of": "2026-06-12T10:57:00Z",
+      "row_count": 30
+    }
+  ],
+  "queries": [],
+  "proposals": [],
+  "verdicts": [],
+  "approval_packet": null,
+  "plan": {
+    "intent": "qa",
+    "refers_to_other_org": false,
+    "role_violation": false,
+    "needs_clarification": null,
+    "steps": [
+      {
+        "goal": "Query daily RAM usage telemetry over the last 30 days for device I3JLKILKQTAC",
+        "tool_hint": "run_readonly_sql"
+      },
+      {
+        "goal": "Create a chart plotting RAM usage percentage over time for device I3JLKILKQTAC",
+        "tool_hint": "create_chart"
+      }
+    ]
+  },
+  "tool_trace": [
+    {
+      "tool_call_id": "call_2766569170014683399",
+      "tool_name": "create_chart",
+      "args": {
+        "metric": "ram_used_pct",
+        "title": "RAM Usage Percentage Over Last 30 Days - I3JLKILKQTAC",
+        "device_ids": [
+          "I3JLKILKQTAC"
+        ],
+        "kind": "metric_over_time",
+        "chart_type": "line",
+        "window_days": 30
+      },
+      "ok": true,
+      "evaluated": 30,
+      "matched": 30,
+      "evidence_count": 30,
+      "duration_ms": 71,
+      "summary": "Created chart [C1] 'RAM Usage Percentage Over Last 30 Days - I3JLKILKQTAC' (30 data points, as of 2026-06-12)."
+    },
+    {
+      "tool_call_id": "call_2766569170014684054",
+      "tool_name": "get_device_details",
+      "args": {
+        "identifier": "I3JLKILKQTAC"
+      },
+      "ok": true,
+      "evaluated": 1,
+      "matched": 1,
+      "evidence_count": 3,
+      "duration_ms": 55,
+      "summary": "Device I3JLKILKQTAC (initech-mac-3): Mac mini running macOS 15.3, disk free 53.25%, RAM used 88.98%."
+    }
+  ],
+  "telemetry_as_of": "2026-06-12T10:57:00+00:00",
+  "usage": {
+    "input_tokens": 16052,
+    "output_tokens": 819,
+    "total_tokens": 16871,
+    "cost_usd_est": 0.01511,
+    "latency_ms": 22405
+  },
+  "warnings": []
+}
