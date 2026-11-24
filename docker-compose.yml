@@ -1,14 +1,43 @@
+# Fleet Copilot — local stack.
+#
+#   cp .env.example .env
+#   docker compose up --build        # Postgres + one-shot setup (migrate + seed) + UI
+#   open http://localhost:8501
+#
+# `make up` starts only Postgres for the uv-based developer workflow.
+# Values below are interpolated from .env (dev defaults shown after ":-").
+# For a hosted deployment, layer docker-compose.prod.yml on top (see docs/07).
+
+x-image: &image
+  image: fleet-copilot:local
+  build: .
+
+# Least-privilege role DSNs (never the owner/admin DSN).
+x-role-dsns: &role-dsns
+  TELEMETRY_RO_DATABASE_URL: postgresql://telemetry_ro:${TELEMETRY_RO_PASSWORD:-telemetry_ro}@postgres:5432/${POSTGRES_DB:-fleet_copilot}
+  COPILOT_DATABASE_URL: postgresql://copilot_app:${COPILOT_APP_PASSWORD:-copilot_app}@postgres:5432/${POSTGRES_DB:-fleet_copilot}
+  DEMO_OPS_DATABASE_URL: postgresql://demo_ops:${DEMO_OPS_PASSWORD:-demo_ops}@postgres:5432/${POSTGRES_DB:-fleet_copilot}
+
+x-app-secrets: &app-secrets
+  TENANT_LOCK_KEY: ${TENANT_LOCK_KEY:?set TENANT_LOCK_KEY in .env (cp .env.example .env)}
+  LANGGRAPH_AES_KEY: ${LANGGRAPH_AES_KEY:?set LANGGRAPH_AES_KEY in .env}
+  PSEUDONYM_KEY: ${PSEUDONYM_KEY:?set PSEUDONYM_KEY in .env}
+  APP_ENV: ${APP_ENV:-dev}
+  DEMO_MODE: ${DEMO_MODE:-true}
+  LOG_FORMAT: ${LOG_FORMAT:-json}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: fleet-copilot-postgres
+    container_name: ${POSTGRES_CONTAINER_NAME:-fleet-copilot-postgres}
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-fleet_copilot}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - fleet_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -16,6 +45,51 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # One-shot: create roles/schemas/RLS, then seed the telemetry dataset (idempotent).
+  # The only service that receives the owner (admin) credentials.
+  setup:
+    <<: *image
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    command: ["sh", "-c", "python -m fleet_copilot.ops.migrate && python scripts/telemetry_sim.py seed"]
+    environment:
+      <<: [*role-dsns, *app-secrets]
+      ADMIN_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-fleet_copilot}
+      TELEMETRY_WRITER_DATABASE_URL: postgresql://telemetry_writer:${TELEMETRY_WRITER_PASSWORD:-telemetry_writer}@postgres:5432/${POSTGRES_DB:-fleet_copilot}
+      TELEMETRY_WRITER_PASSWORD: ${TELEMETRY_WRITER_PASSWORD:-telemetry_writer}
+      TELEMETRY_RO_PASSWORD: ${TELEMETRY_RO_PASSWORD:-telemetry_ro}
+      COPILOT_APP_PASSWORD: ${COPILOT_APP_PASSWORD:-copilot_app}
+      DEMO_OPS_PASSWORD: ${DEMO_OPS_PASSWORD:-demo_ops}
+
+  # Streamlit UI. Gets only least-privilege role DSNs: no admin or writer credentials.
+  # Without GEMINI_API_KEY it runs in "examples" mode (recorded runs, $0).
+  ui:
+    <<: *image
+    restart: unless-stopped
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${UI_PORT:-8501}:8501"
+    environment:
+      <<: [*role-dsns, *app-secrets]
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-google_genai:gemini-3.8-flash}
+      LLM_REPLAY_MODE: ${LLM_REPLAY_MODE:-off}
+      ACTIONS_ENABLED: ${ACTIONS_ENABLED:-true}
+      FLEET_AS_OF: ${FLEET_AS_OF:-}
+      SESSION_SIGNING_KEY: ${SESSION_SIGNING_KEY:-}
+      DEMO_ACCESS_CODES: ${DEMO_ACCESS_CODES:-}
+      DEMO_SPEND_CAP_USD: ${DEMO_SPEND_CAP_USD:-2.00}
+      DEMO_TURNS_PER_CODE: ${DEMO_TURNS_PER_CODE:-25}
+      DEMO_TURNS_PER_HOUR: ${DEMO_TURNS_PER_HOUR:-20}
+      DAILY_TOKEN_BUDGET: ${DAILY_TOKEN_BUDGET:-2000000}
+      TURN_RETENTION_DAYS: ${TURN_RETENTION_DAYS:-7}
 
 volumes:
   fleet_pgdata:

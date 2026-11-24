@@ -39,9 +39,11 @@ jobs:
       TELEMETRY_WRITER_DATABASE_URL: postgresql://telemetry_writer:telemetry_writer@localhost:5432/fleet_copilot
       TELEMETRY_RO_DATABASE_URL: postgresql://telemetry_ro:telemetry_ro@localhost:5432/fleet_copilot
       COPILOT_DATABASE_URL: postgresql://copilot_app:copilot_app@localhost:5432/fleet_copilot
+      DEMO_OPS_DATABASE_URL: postgresql://demo_ops:demo_ops@localhost:5432/fleet_copilot
       TELEMETRY_WRITER_PASSWORD: telemetry_writer
       TELEMETRY_RO_PASSWORD: telemetry_ro
       COPILOT_APP_PASSWORD: copilot_app
+      DEMO_OPS_PASSWORD: demo_ops
       TEST_DB_NAME: fleet_copilot_test
       PSEUDONYM_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       TENANT_LOCK_KEY: fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210
@@ -78,9 +80,11 @@ jobs:
       TELEMETRY_WRITER_DATABASE_URL: postgresql://telemetry_writer:telemetry_writer@localhost:5432/fleet_copilot
       TELEMETRY_RO_DATABASE_URL: postgresql://telemetry_ro:telemetry_ro@localhost:5432/fleet_copilot
       COPILOT_DATABASE_URL: postgresql://copilot_app:copilot_app@localhost:5432/fleet_copilot
+      DEMO_OPS_DATABASE_URL: postgresql://demo_ops:demo_ops@localhost:5432/fleet_copilot
       TELEMETRY_WRITER_PASSWORD: telemetry_writer
       TELEMETRY_RO_PASSWORD: telemetry_ro
       COPILOT_APP_PASSWORD: copilot_app
+      DEMO_OPS_PASSWORD: demo_ops
       TEST_DB_NAME: fleet_copilot_test
       PSEUDONYM_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       TENANT_LOCK_KEY: fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210
@@ -112,3 +116,4 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
