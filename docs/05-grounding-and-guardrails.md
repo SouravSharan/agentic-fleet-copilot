@@ -23,7 +23,7 @@ Tenant isolation does **not** rely on LLM obedience or application `WHERE` claus
 3. **Fail-closed `current_tenant()`**: Every RLS policy checks `company_id = (SELECT <schema>.current_tenant())`. `current_tenant()` returns `NULL` (0 rows visible) unless **both** the per-transaction SHA-256 signature (`app.tenant_sig`, bound to `pg_backend_pid()` and `transaction_timestamp()`) **and** the matching granted advisory lock are present.
 4. **Pool hygiene**: Every connection returned to the pool runs `RESET ALL` and `SELECT pg_advisory_unlock_all()`.
 
-Proven by [`tests/integration/test_tenant_lock.py`](../tests/integration/test_tenant_lock.py) (31 tests covering `SET LOCAL`, session `SET`, `RESET`, re-lock, forged MAC, stale timestamp, secret-table read denial) and [`scripts/security_probe.py`](../scripts/security_probe.py) (`make security-probe`, **16/16 BLOCKED**).
+Proven by [`tests/integration/test_tenant_lock.py`](../tests/integration/test_tenant_lock.py) (31 tests covering `SET LOCAL`, session `SET`, `RESET`, re-lock, forged MAC, stale timestamp, secret-table read denial) and [`scripts/security_probe.py`](../scripts/security_probe.py) (`make security-probe`, **29/29 BLOCKED** across `telemetry_ro`, `copilot_app` and `demo_ops`).
 
 ## 3. Governed Read-Only SQL (`run_readonly_sql`)
 
