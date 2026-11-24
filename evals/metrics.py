@@ -272,6 +272,12 @@ def grade_correctness(case: EvalCase, resp: TurnResponse) -> dict[str, Any]:
             says_zero = any(
                 tok in summary_text
                 for tok in ("0 ", "0/", "no laptop", "no device", "none", "zero")
+            ) or bool(
+                re.search(
+                    r"\bno\s+(?:[a-z0-9-]+\s+){0,2}"
+                    r"(?:laptop|notebook|device|machine|computer|endpoint|host|failure|violation)s?\b",
+                    summary_text,
+                )
             )
             filtered_calls = [t for t in resp.tool_trace if _tool_call_matches_zero_filter(case, t)]
             has_filtered_zero = len(filtered_calls) > 0 and all(

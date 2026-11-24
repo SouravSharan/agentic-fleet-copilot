@@ -238,6 +238,38 @@ def test_zero_trap_grader_scopes_to_question_filter() -> None:
     )
     assert grade_correctness(zero_case, never_filtered_empty)["passed"] is False
 
+    # (d) Paraphrased zero phrasing ("No notebooks...", "No Acme laptops...") passes,
+    # while unrelated "no ..." phrasing without a zero device/failure claim still fails
+    for valid_summary in (
+        "No Acme laptops are currently failing high-severity compliance checks.",
+        "No notebooks in the fleet are currently violating high-severity policies.",
+    ):
+        resp_ok = _make_resp(
+            summary=valid_summary,
+            result_device_ids=[],
+            tool_trace=[
+                {
+                    "tool_name": "query_compliance",
+                    "args": {"severity": "high", "status": "fail", "form_factor": "laptop"},
+                    "matched": 0,
+                }
+            ],
+        )
+        assert grade_correctness(zero_case, resp_ok)["details"]["zero_result_ok"] is True
+
+    unrelated_no = _make_resp(
+        summary="No worries, we checked the compliance status of the fleet.",
+        result_device_ids=[],
+        tool_trace=[
+            {
+                "tool_name": "query_compliance",
+                "args": {"severity": "high", "status": "fail", "form_factor": "laptop"},
+                "matched": 0,
+            }
+        ],
+    )
+    assert grade_correctness(zero_case, unrelated_no)["details"]["zero_result_ok"] is False
+
 
 def test_grade_actions_strict_refusal_db_status_and_alternatives() -> None:
     """Refusal requires gate verdict or case-specific keyword; status comes from DB only."""
