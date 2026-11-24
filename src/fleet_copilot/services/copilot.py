@@ -7,12 +7,12 @@ import logging
 import time
 import uuid
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import timedelta
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.types import Command
 
@@ -20,7 +20,7 @@ from fleet_copilot.agent.graph import AgentDeps, build_agent_graph
 from fleet_copilot.agent.llm import NodeName, cassette_path_for, make_chat_model
 from fleet_copilot.agent.nodes.finalize import render_answer_markdown
 from fleet_copilot.agent.replay import CassetteMiss, CassetteStore
-from fleet_copilot.agent.schemas import Answer, Plan, TurnResponse, TurnUsage
+from fleet_copilot.agent.schemas import Answer, Plan, ProgressEvent, TurnResponse, TurnUsage
 from fleet_copilot.clock import Clock, SystemClock
 from fleet_copilot.config import Settings, get_settings
 from fleet_copilot.db.postgres import DatabaseManager, make_checkpointer
@@ -45,6 +45,114 @@ logger = logging.getLogger(__name__)
 _RUN_LEASE_SECONDS = 90
 _MAX_TURNS_PER_THREAD = 30
 _MAX_THREAD_TITLE_LEN = 60
+
+_TREND_CATEGORY_LABELS: dict[str, str] = {
+    "battery": "battery trends",
+    "ram": "RAM trends",
+    "disk": "disk trends",
+    "compliance_drift": "compliance drift",
+    "software": "software changes",
+}
+
+_STATIC_NODE_LABELS: dict[str, str] = {
+    "load_context": "Reading your fleet context",
+    "planner": "Planning the approach",
+    "refusal": "Checking request scope",
+    "synthesizer": "Writing the answer",
+    "verify_grounding": "Checking every fact against the data",
+    "stage_proposals": "Preparing actions for your approval",
+    "await_approval": "Waiting for your approval",
+    "finalize": "Done",
+}
+
+
+def _friendly_tool_label(tool_name: str, args: dict[str, Any] | None = None) -> str:
+    """Map an internal tool name (+ optional args) to a customer-facing progress label."""
+    if tool_name == "analyze_fleet_trends":
+        cats = args.get("categories") if isinstance(args, dict) else None
+        if isinstance(cats, list) and len(cats) == 1 and str(cats[0]) in _TREND_CATEGORY_LABELS:
+            return f"Looking up {_TREND_CATEGORY_LABELS[str(cats[0])]}"
+        return "Looking up fleet trends"
+    if tool_name == "run_readonly_sql":
+        return "Running a read-only query"
+    if tool_name == "create_chart":
+        return "Drawing a chart"
+    if tool_name == "get_fleet_overview":
+        return "Looking up fleet overview"
+    if tool_name == "find_devices":
+        return "Looking up matching devices"
+    if tool_name == "query_compliance":
+        return "Looking up compliance checks"
+    if tool_name == "get_device_details":
+        return "Looking up device details"
+    if tool_name == "get_employee_devices":
+        return "Looking up employee devices"
+    if tool_name == "list_action_proposals":
+        return "Checking action proposals"
+    if tool_name in (
+        "create_upgrade_order",
+        "open_remediation_ticket",
+        "flag_device_for_replacement",
+        "notify_employee",
+    ):
+        return "Checking action policy"
+    return f"Looking up {tool_name.replace('_', ' ')}"
+
+
+def _progress_event_for_node(
+    node_name: str,
+    update: Any,
+    last_tool_args: dict[str, dict[str, Any]],
+) -> ProgressEvent | None:
+    """Convert a LangGraph node update into a user-friendly `ProgressEvent`."""
+    if node_name == "__interrupt__":
+        return ProgressEvent(
+            step="await_approval",
+            label="Waiting for your approval",
+            detail="Approval required before execution",
+        )
+    if node_name in _STATIC_NODE_LABELS:
+        detail = ""
+        if node_name == "planner" and isinstance(update, dict):
+            plan = update.get("plan")
+            if isinstance(plan, dict) and plan.get("intent"):
+                detail = str(plan["intent"])
+        return ProgressEvent(step=node_name, label=_STATIC_NODE_LABELS[node_name], detail=detail)
+
+    if node_name == "investigator":
+        if isinstance(update, dict):
+            msgs = update.get("messages") or []
+            for m in reversed(msgs):
+                if isinstance(m, AIMessage) and m.tool_calls:
+                    first_tc = m.tool_calls[0]
+                    tname = str(first_tc.get("name") or "")
+                    targs = first_tc.get("args") if isinstance(first_tc.get("args"), dict) else {}
+                    for tc in m.tool_calls:
+                        tc_name = str(tc.get("name") or "")
+                        tc_args = tc.get("args") if isinstance(tc.get("args"), dict) else {}
+                        if tc_name:
+                            last_tool_args[tc_name] = dict(tc_args)
+                    return ProgressEvent(
+                        step="investigator",
+                        label=_friendly_tool_label(tname, targs),
+                        detail=", ".join(str(tc.get("name") or "") for tc in m.tool_calls),
+                    )
+        return ProgressEvent(step="investigator", label="Reviewing findings", detail="")
+
+    if node_name == "tools":
+        if isinstance(update, dict):
+            trace = update.get("tool_trace") or []
+            if trace:
+                last = trace[-1]
+                tname = str(last.get("tool_name") or "")
+                return ProgressEvent(
+                    step="tools",
+                    label=_friendly_tool_label(tname, last_tool_args.get(tname)),
+                    detail=tname,
+                )
+        return ProgressEvent(step="tools", label="Looking up fleet data", detail="")
+
+    return ProgressEvent(step=node_name, label=node_name.replace("_", " ").capitalize(), detail="")
 
 
 def _title_from_message(message: str, *, max_len: int = _MAX_THREAD_TITLE_LEN) -> str:
@@ -486,15 +594,15 @@ class CopilotService:
             warnings=warnings,
         )
 
-    def run_turn(
+    def run_turn_stream(
         self,
         ctx: TenantContext,
         thread_id: str | None,
         message: str,
         *,
         turn_id: str | None = None,
-    ) -> TurnResponse:
-        """Process one user message, auto-deferring any pending HITL interrupt on the thread."""
+    ) -> Iterator[ProgressEvent]:
+        """Stream user-friendly `ProgressEvent`s for one turn, ending with the `TurnResponse`."""
         with bind_trace_id(ctx.trace_id):
             t0 = time.monotonic()
             tid = thread_id or f"{ctx.company_id}:{uuid.uuid4().hex[:12]}"
@@ -507,7 +615,7 @@ class CopilotService:
                     f"This conversation has reached the {_MAX_TURNS_PER_THREAD}-turn limit "
                     "(`thread_turn_limit`). Please start a new chat."
                 )
-                return TurnResponse(
+                resp = TurnResponse(
                     thread_id=tid,
                     turn_id=resolved_turn_id,
                     trace_id=ctx.trace_id,
@@ -517,6 +625,13 @@ class CopilotService:
                     usage=TurnUsage(latency_ms=latency_ms),
                     warnings=[f"Turn limit reached ({_MAX_TURNS_PER_THREAD} turns max)."],
                 )
+                yield ProgressEvent(
+                    step="failed",
+                    label="Conversation turn limit reached",
+                    detail="thread_turn_limit",
+                    response=resp,
+                )
+                return
 
             self._store.ensure_thread(
                 ctx.company_id,
@@ -535,9 +650,16 @@ class CopilotService:
             ):
                 # Re-check ownership in case two actors raced on the same new thread_id
                 self._assert_thread_owned(ctx, tid)
-                return self._thread_busy_response(
+                busy = self._thread_busy_response(
                     ctx=ctx, thread_id=tid, turn_id=resolved_turn_id, t0=t0
                 )
+                yield ProgressEvent(
+                    step="failed",
+                    label="Conversation busy",
+                    detail="thread_busy",
+                    response=busy,
+                )
+                return
 
             config: dict[str, Any] = {
                 "configurable": {
@@ -547,6 +669,11 @@ class CopilotService:
                 },
                 "recursion_limit": self._runtime_cfg.budgets.recursion_limit,
             }
+
+            lease_released = False
+            interrupt_packet: dict[str, Any] | None = None
+            last_tool_args: dict[str, dict[str, Any]] = {}
+            resp: TurnResponse | None = None
 
             try:
                 # Pending-interrupt rule: auto-defer undecided proposals before a new message
@@ -567,7 +694,7 @@ class CopilotService:
                             context=ctx,
                         )
 
-                result_state = self._graph.invoke(
+                for chunk in self._graph.stream(
                     {
                         "thread_id": tid,
                         "turn_id": resolved_turn_id,
@@ -576,42 +703,73 @@ class CopilotService:
                     },
                     config=config,
                     context=ctx,
+                    stream_mode="updates",
+                ):
+                    if not isinstance(chunk, dict):
+                        continue
+                    for node_name, update in chunk.items():
+                        if node_name == "__interrupt__" and update:
+                            val = getattr(update[0], "value", None)
+                            if isinstance(val, dict):
+                                interrupt_packet = val
+                        ev = _progress_event_for_node(str(node_name), update, last_tool_args)
+                        if ev is not None:
+                            yield ev
+
+                snap = self._graph.get_state(config)
+                final_state = dict(getattr(snap, "values", None) or {})
+                packet = self._pending_interrupt_packet(config) or interrupt_packet
+                latency_ms = max(0, int((time.monotonic() - t0) * 1000))
+                resp = self._build_turn_response(
+                    ctx=ctx,
+                    thread_id=tid,
+                    state=final_state,
+                    approval_packet=packet,
+                    latency_ms=latency_ms,
                 )
+                self._persist_response_json(ctx, resp)
             except (ThreadNotOwnedError, CassetteMiss):
                 raise
             except Exception as exc:  # noqa: BLE001
-                return self._handle_turn_failure(
+                self._safe_release_lease(ctx, tid, lease_until)
+                lease_released = True
+                fail_resp = self._handle_turn_failure(
                     ctx=ctx,
                     thread_id=tid,
                     turn_id=resolved_turn_id,
                     exc=exc,
                     t0=t0,
                 )
+                yield ProgressEvent(
+                    step="failed",
+                    label="Turn failed",
+                    detail=type(exc).__name__,
+                    response=fail_resp,
+                )
+                return
             finally:
-                self._safe_release_lease(ctx, tid, lease_until)
+                if not lease_released:
+                    self._safe_release_lease(ctx, tid, lease_until)
+                    lease_released = True
 
-            packet = self._pending_interrupt_packet(config)
-            if (
-                packet is None
-                and isinstance(result_state, dict)
-                and "__interrupt__" in result_state
-            ):
-                intrs = result_state["__interrupt__"]
-                if intrs:
-                    val = getattr(intrs[0], "value", None)
-                    if isinstance(val, dict):
-                        packet = val
+            yield ProgressEvent(step="done", label="Done", response=resp)
 
-            latency_ms = max(0, int((time.monotonic() - t0) * 1000))
-            resp = self._build_turn_response(
-                ctx=ctx,
-                thread_id=tid,
-                state=dict(result_state),
-                approval_packet=packet,
-                latency_ms=latency_ms,
-            )
-            self._persist_response_json(ctx, resp)
-            return resp
+    def run_turn(
+        self,
+        ctx: TenantContext,
+        thread_id: str | None,
+        message: str,
+        *,
+        turn_id: str | None = None,
+    ) -> TurnResponse:
+        """Process one user message via `run_turn_stream` and return the final `TurnResponse`."""
+        final_resp: TurnResponse | None = None
+        for event in self.run_turn_stream(ctx, thread_id, message, turn_id=turn_id):
+            if event.response is not None:
+                final_resp = event.response
+        if final_resp is None:
+            raise RuntimeError("run_turn_stream ended without producing a TurnResponse")
+        return final_resp
 
     def _no_pending_approval_message(self, ctx: TenantContext, thread_id: str) -> str:
         """Build a helpful no-op resume message summarizing the thread's latest proposal status."""

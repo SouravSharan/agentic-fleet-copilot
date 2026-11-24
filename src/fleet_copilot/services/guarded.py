@@ -9,10 +9,11 @@ demo limits and never write to `copilot.spend_ledger`.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterator
 from datetime import timedelta
 from typing import Any, Literal
 
-from fleet_copilot.agent.schemas import Answer, TurnResponse, TurnUsage
+from fleet_copilot.agent.schemas import Answer, ProgressEvent, TurnResponse, TurnUsage
 from fleet_copilot.clock import Clock
 from fleet_copilot.config import Settings
 from fleet_copilot.domain.models import TenantContext
@@ -169,6 +170,51 @@ class GuardedCopilot:
             created_at=self._clock.now(),
         )
 
+    def run_turn_stream(
+        self,
+        ctx: TenantContext,
+        thread_id: str | None,
+        message: str,
+        *,
+        turn_id: str | None = None,
+    ) -> Iterator[ProgressEvent]:
+        """Check all demo limits, stream progress events, and record spend on completion/exit."""
+        resolved_tid = thread_id or f"{ctx.company_id}:{uuid.uuid4().hex[:12]}"
+        resolved_turn_id = turn_id or f"turn_{uuid.uuid4().hex[:12]}"
+
+        limited = self._check_limits(ctx, resolved_tid, resolved_turn_id)
+        if limited is not None:
+            code = limited.warnings[0] if limited.warnings else "limited"
+            yield ProgressEvent(
+                step="limited",
+                label="Demo limit reached",
+                detail=code,
+                response=limited,
+            )
+            return
+
+        final_resp: TurnResponse | None = None
+        not_owned = False
+        try:
+            for event in self._copilot.run_turn_stream(
+                ctx, resolved_tid, message, turn_id=resolved_turn_id
+            ):
+                if event.response is not None:
+                    final_resp = event.response
+                yield event
+        except ThreadNotOwnedError:
+            not_owned = True
+            raise
+        finally:
+            if not not_owned:
+                is_busy = final_resp is not None and any(
+                    "thread_busy" in w for w in final_resp.warnings
+                )
+                if not is_busy:
+                    cost = final_resp.usage.cost_usd_est if final_resp is not None else 0.0
+                    tid_to_log = final_resp.turn_id if final_resp is not None else resolved_turn_id
+                    self._record_turn_attempt(ctx, tid_to_log, cost)
+
     def run_turn(
         self,
         ctx: TenantContext,
@@ -177,28 +223,14 @@ class GuardedCopilot:
         *,
         turn_id: str | None = None,
     ) -> TurnResponse:
-        """Check all demo limits, execute a turn, and persist a spend-ledger row."""
-        resolved_tid = thread_id or f"{ctx.company_id}:{uuid.uuid4().hex[:12]}"
-        resolved_turn_id = turn_id or f"turn_{uuid.uuid4().hex[:12]}"
-
-        limited = self._check_limits(ctx, resolved_tid, resolved_turn_id)
-        if limited is not None:
-            return limited
-
-        resp: TurnResponse | None = None
-        try:
-            resp = self._copilot.run_turn(ctx, resolved_tid, message, turn_id=resolved_turn_id)
-        except ThreadNotOwnedError:
-            raise
-        except Exception:
-            self._record_turn_attempt(ctx, resolved_turn_id, 0.0)
-            raise
-
-        # Record every live turn attempt (including failed turns with $0 when usage is unknown);
-        # skip only thread_busy rejections where no turn ran.
-        if not any("thread_busy" in w for w in resp.warnings):
-            self._record_turn_attempt(ctx, resp.turn_id, resp.usage.cost_usd_est)
-        return resp
+        """Check all demo limits, execute a turn via `run_turn_stream`, and persist spend."""
+        final_resp: TurnResponse | None = None
+        for event in self.run_turn_stream(ctx, thread_id, message, turn_id=turn_id):
+            if event.response is not None:
+                final_resp = event.response
+        if final_resp is None:
+            raise RuntimeError("run_turn_stream ended without producing a TurnResponse")
+        return final_resp
 
     def resume(
         self,

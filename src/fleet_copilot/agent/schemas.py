@@ -79,3 +79,12 @@ class TurnResponse(_AgentModel):
     telemetry_as_of: str | None = None
     usage: TurnUsage = Field(default_factory=TurnUsage)
     warnings: list[str] = Field(default_factory=list)
+
+
+class ProgressEvent(_AgentModel):
+    """Streaming progress update emitted by `CopilotService.run_turn_stream`."""
+
+    step: str
+    label: str
+    detail: str = ""
+    response: TurnResponse | None = None
