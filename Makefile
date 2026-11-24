@@ -1,4 +1,4 @@
-.PHONY: setup bootstrap up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck chat eval-verify-cases eval eval-live
+.PHONY: setup bootstrap up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck chat eval-verify-cases eval eval-regrade eval-live
 
 COMPANY ?= acme-001
 ROLE ?= it_admin
@@ -54,5 +54,8 @@ eval-verify-cases:
 eval:
 	LLM_REPLAY_MODE=replay uv run python -m evals.run --mode replay --tags core --repeats 1 --pass3-tags redteam
 
+eval-regrade:
+	LLM_REPLAY_MODE=replay uv run python -m evals.run --mode replay --tags core --repeats 1 --pass3-tags redteam --write-baseline
+
 eval-live:
-	LLM_REPLAY_MODE=record uv run python -m evals.run --mode live --model $(MODEL) --tags core --repeats 1 --pass3-tags redteam --max-cost 1.5
+	LLM_REPLAY_MODE=record uv run python -m evals.run --mode live --model $(MODEL) --tags core --repeats 1 --pass3-tags redteam --max-cost 1.5 --write-baseline

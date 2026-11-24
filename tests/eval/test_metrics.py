@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from evals.metrics import (
     evaluate_ci_gates,
     grade_actions,
@@ -564,3 +566,95 @@ def test_grade_chart_and_sql_handles_and_group_values() -> None:
         is True
     )
     assert grade_numeric_faithfulness(chart_resp) == 1.0
+
+
+def test_eval_exit_codes_hard_gates_regression_quality_target_and_cost_cap(
+    tmp_path: Path,
+) -> None:
+    """Hard gate fail -> 1, baseline regression -> 1, quality target only -> 0, cap -> 2."""
+    import json
+
+    from evals.run import compute_eval_exit_code, resolve_eval_out_prefix
+
+    baseline_path = tmp_path / "latest.json"
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "cases": [
+                    {"case_id": "c1", "pass_k": True},
+                    {"case_id": "c2", "pass_k": False},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def _make_report(
+        *,
+        hard_ok: bool = True,
+        qa_score: float = 0.9375,
+        c1_pass: bool = True,
+        c2_pass: bool = False,
+        stopped_by_cost_cap: bool = False,
+    ) -> dict:
+        summary = {
+            "citation_validity": 1.0 if hard_ok else 0.974,
+            "safety_rate": 1.0,
+            "audit_verify_rate": 1.0,
+            "privacy_scan_rate": 1.0,
+            "qa_count": 16,
+            "qa_correctness": qa_score,
+            "insights_count": 5,
+            "insights_recall": 1.0,
+            "insights_precision": 1.0,
+            "actions_count": 10,
+            "action_accuracy": 1.0,
+        }
+        return {
+            "metadata": {"stopped_by_cost_cap": stopped_by_cost_cap},
+            "summary": summary,
+            "gates": evaluate_ci_gates(summary),
+            "cases": [
+                {"case_id": "c1", "pass_k": c1_pass},
+                {"case_id": "c2", "pass_k": c2_pass},
+            ],
+        }
+
+    # 1. Only a non-hard quality target below threshold -> exit 0, status == "BELOW TARGET"
+    rep_quality = _make_report(hard_ok=True, qa_score=0.9375)
+    qa_gate = next(g for g in rep_quality["gates"]["gates"] if g["name"] == "qa_correctness")
+    assert qa_gate["status"] == "BELOW TARGET"
+    assert qa_gate["threshold"] == 0.95
+    assert rep_quality["gates"]["hard_passed"] is True
+    code, diffs = compute_eval_exit_code(rep_quality, baseline_path=baseline_path)
+    assert code == 0
+    assert diffs == []
+
+    # 2. Hard gate below 1.0 -> exit 1
+    rep_hard = _make_report(hard_ok=False, qa_score=1.0)
+    cit_gate = next(g for g in rep_hard["gates"]["gates"] if "citation_validity" in g["name"])
+    assert cit_gate["status"] == "FAIL"
+    code_hard, _ = compute_eval_exit_code(rep_hard, baseline_path=baseline_path)
+    assert code_hard == 1
+
+    # 3. Baseline regression (case pass/fail changed vs baseline) -> exit 1
+    rep_reg = _make_report(hard_ok=True, qa_score=1.0, c1_pass=False, c2_pass=False)
+    code_reg, diffs_reg = compute_eval_exit_code(rep_reg, baseline_path=baseline_path)
+    assert code_reg == 1
+    assert any("c1" in d for d in diffs_reg)
+
+    # 4. Stopped by cost cap -> exit 2
+    rep_cap = _make_report(hard_ok=True, qa_score=1.0, stopped_by_cost_cap=True)
+    code_cap, _ = compute_eval_exit_code(rep_cap, baseline_path=baseline_path)
+    assert code_cap == 2
+
+    # 5. Output path defaults: replay writes outside baseline unless --write-baseline
+    assert resolve_eval_out_prefix(mode="replay", out=None, write_baseline=False) == Path(
+        "evals/reports/replay/latest"
+    )
+    assert resolve_eval_out_prefix(mode="replay", out=None, write_baseline=True) == Path(
+        "evals/reports/latest"
+    )
+    assert resolve_eval_out_prefix(mode="live", out=None, write_baseline=False) == Path(
+        "evals/reports/latest"
+    )

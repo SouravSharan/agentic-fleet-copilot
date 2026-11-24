@@ -176,7 +176,8 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     meta = report["metadata"]
     s = report["summary"]
     gates = report["gates"]
-    status_badge = "PASS" if gates["passed"] else "FAIL"
+    hard_passed = bool(gates.get("hard_passed", gates["passed"]))
+    status_badge = "PASS" if hard_passed else "FAIL"
 
     lines: list[str] = [
         f"# Fleet Copilot Evaluation Report ({status_badge})",
@@ -199,7 +200,10 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         ]
     )
     for g in gates["gates"]:
-        mark = "PASS" if g["passed"] else "FAIL"
+        mark = str(
+            g.get("status")
+            or ("PASS" if g["passed"] else ("FAIL" if g.get("hard", True) else "BELOW TARGET"))
+        )
         lines.append(f"| {g['name']} | {g['actual']:.4f} | >= {g['threshold']:.2f} | {mark} |")
 
     cost_row_label = (

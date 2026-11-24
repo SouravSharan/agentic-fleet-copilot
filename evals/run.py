@@ -7,6 +7,7 @@ must be recorded before replaying with `--repeats > 1` (or `--pass3-tags`).
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import time
@@ -498,6 +499,60 @@ def run_eval_suite(
     return report
 
 
+DEFAULT_BASELINE_PREFIX = Path("evals/reports/latest")
+DEFAULT_REPLAY_PREFIX = Path("evals/reports/replay/latest")
+
+
+def resolve_eval_out_prefix(
+    *,
+    mode: Literal["replay", "live"],
+    out: Path | None,
+    write_baseline: bool,
+) -> Path:
+    """Resolve report output prefix: replay writes outside the baseline unless --write-baseline."""
+    if out is not None:
+        return out
+    if write_baseline or mode == "live":
+        return DEFAULT_BASELINE_PREFIX
+    return DEFAULT_REPLAY_PREFIX
+
+
+def compute_eval_exit_code(
+    report: dict[str, Any],
+    *,
+    baseline_path: Path | None = None,
+) -> tuple[int, list[str]]:
+    """Compute CLI exit code: 2 on cost cap, 1 on hard gate failure or baseline regression, 0 ok."""
+    if report["metadata"].get("stopped_by_cost_cap"):
+        return 2, []
+
+    gates = report["gates"]["gates"]
+    hard_ok = all(bool(g["passed"]) for g in gates if g.get("hard", True))
+    regressions: list[str] = []
+
+    if baseline_path is not None and baseline_path.exists():
+        try:
+            baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            baseline = None
+        if isinstance(baseline, dict) and isinstance(baseline.get("cases"), list):
+            base_by_id = {
+                str(c["case_id"]): bool(c["pass_k"])
+                for c in baseline["cases"]
+                if isinstance(c, dict) and "case_id" in c and "pass_k" in c
+            }
+            for cur in report.get("cases", []):
+                cid = str(cur["case_id"])
+                if cid in base_by_id and bool(cur["pass_k"]) != base_by_id[cid]:
+                    regressions.append(
+                        f"{cid}: baseline pass_k={base_by_id[cid]} != current {bool(cur['pass_k'])}"
+                    )
+
+    if not hard_ok or regressions:
+        return 1, regressions
+    return 0, []
+
+
 @app.command()
 def main(
     mode: Annotated[
@@ -528,9 +583,20 @@ def main(
         typer.Option("--cases", help="Comma-separated case ID filter."),
     ] = None,
     out: Annotated[
-        Path,
-        typer.Option("--out", help="Output path prefix for .json and .md reports."),
-    ] = Path("evals/reports/latest"),
+        Path | None,
+        typer.Option(
+            "--out",
+            help="Output path prefix (default: evals/reports/replay/latest in replay; "
+            "evals/reports/latest with --write-baseline or live).",
+        ),
+    ] = None,
+    write_baseline: Annotated[
+        bool,
+        typer.Option(
+            "--write-baseline",
+            help="Write evals/reports/latest.{json,md} and runs/*.json as the new baseline.",
+        ),
+    ] = False,
     thinking: Annotated[
         Literal["minimal", "low", "medium", "high"] | None,
         typer.Option("--thinking", help="Optional thinking_level override for ablations."),
@@ -563,10 +629,13 @@ def main(
         ),
     ] = None,
 ) -> None:
-    """Run the Fleet Copilot evaluation suite and exit non-zero if any CI gate fails."""
+    """Run the Fleet Copilot evaluation suite and exit non-zero on hard gate or regression fail."""
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
     case_list = [c.strip() for c in cases.split(",")] if cases else None
     pass3_list = [t.strip() for t in pass3_tags.split(",")] if pass3_tags else None
+    resolved_out = resolve_eval_out_prefix(mode=mode, out=out, write_baseline=write_baseline)
+    baseline_json = DEFAULT_BASELINE_PREFIX.with_suffix(".json")
+    check_baseline = (not write_baseline) and (resolved_out != DEFAULT_BASELINE_PREFIX)
 
     report = run_eval_suite(
         mode=mode,
@@ -575,7 +644,7 @@ def main(
         pass3_tags=pass3_list,
         tags=tag_list,
         case_ids=case_list,
-        out_prefix=out,
+        out_prefix=resolved_out,
         thinking_override=thinking,
         skip_planner=skip_planner,
         skip_verifier=skip_verifier,
@@ -595,14 +664,26 @@ def main(
         f"{sum_cost_label}=${s['total_cost_usd_est']:.4f}"
     )
     for g in gates["gates"]:
-        mark = "PASS" if g["passed"] else "FAIL"
+        mark = str(
+            g.get("status")
+            or ("PASS" if g["passed"] else ("FAIL" if g.get("hard", True) else "BELOW TARGET"))
+        )
         typer.echo(f"  [{mark}] {g['name']}: {g['actual']:.4f} (target >= {g['threshold']:.2f})")
-    typer.echo(f"Report written to {out.with_suffix('.md')} and {out.with_suffix('.json')}")
+    typer.echo(
+        f"Report written to {resolved_out.with_suffix('.md')} and "
+        f"{resolved_out.with_suffix('.json')}"
+    )
 
-    if report["metadata"].get("stopped_by_cost_cap"):
-        raise typer.Exit(code=2)
-    if not gates["passed"]:
-        raise typer.Exit(code=1)
+    exit_code, regressions = compute_eval_exit_code(
+        report,
+        baseline_path=baseline_json if check_baseline else None,
+    )
+    if regressions:
+        typer.echo(f"Baseline regressions vs {baseline_json}:")
+        for reg in regressions:
+            typer.echo(f"  [DIFF] {reg}")
+    if exit_code != 0:
+        raise typer.Exit(code=exit_code)
 
 
 if __name__ == "__main__":

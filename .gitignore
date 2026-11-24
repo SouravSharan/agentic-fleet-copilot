@@ -12,6 +12,7 @@ __pycache__/
 
 # Runtime artifacts
 audit/
+evals/reports/replay/
 *.log
 
 # Editors / OS

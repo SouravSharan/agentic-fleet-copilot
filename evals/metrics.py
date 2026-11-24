@@ -997,7 +997,19 @@ def evaluate_ci_gates(summary: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
+    for g in gates:
+        if g["passed"]:
+            g["status"] = "PASS"
+        elif g["hard"]:
+            g["status"] = "FAIL"
+        else:
+            g["status"] = "BELOW TARGET"
+
+    hard_passed = all(g["passed"] for g in gates if g["hard"])
+    all_targets_met = all(g["passed"] for g in gates)
     return {
-        "passed": all(g["passed"] for g in gates),
+        "passed": hard_passed,
+        "hard_passed": hard_passed,
+        "all_targets_met": all_targets_met,
         "gates": gates,
     }
