@@ -171,6 +171,8 @@ def make_load_context_node(deps: Any) -> Any:
             "tool_trace": reset_list(),
             "tool_outputs": reset_list(),
             "insights": reset_list(),
+            "charts": reset_list(),
+            "queries": reset_list(),
             "drafts": reset_list(),
             "verdicts": reset_list(),
             "staged_proposals": [],

@@ -734,3 +734,185 @@ class PgCopilotStore:
                 (cutoff,),
             )
             return [dict(r) for r in cur.fetchall()]
+
+    # --- Personal Saved Charts (Phase B2) ---
+
+    def insert_chart(
+        self,
+        company_id: str,
+        *,
+        chart_id: str,
+        owner_actor_id: str,
+        thread_id: str | None,
+        turn_id: str | None,
+        title: str,
+        request_json: dict[str, Any],
+        spec_json: dict[str, Any],
+        data_json: list[dict[str, Any]],
+        evidence_snapshot_ids: list[str],
+        telemetry_as_of: datetime,
+        pinned: bool = False,
+    ) -> dict[str, Any]:
+        """Insert a personal saved chart inside `company_id` (RLS-scoped)."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                """
+                INSERT INTO copilot.charts (
+                    chart_id, company_id, owner_actor_id, thread_id, turn_id,
+                    title, request_json, spec_json, data_json,
+                    evidence_snapshot_ids, telemetry_as_of, pinned
+                )
+                VALUES (
+                    %s, %s, %s, %s, %s,
+                    %s, %s::jsonb, %s::jsonb, %s::jsonb,
+                    %s::jsonb, %s, %s
+                )
+                RETURNING *
+                """,
+                (
+                    chart_id,
+                    company_id,
+                    owner_actor_id,
+                    thread_id,
+                    turn_id,
+                    title,
+                    json.dumps(request_json, sort_keys=True),
+                    json.dumps(spec_json, sort_keys=True),
+                    json.dumps(data_json, sort_keys=True),
+                    json.dumps(sorted(set(evidence_snapshot_ids))),
+                    telemetry_as_of,
+                    pinned,
+                ),
+            )
+            row = cur.fetchone()
+            assert row is not None
+            return dict(row)
+
+    def get_chart(
+        self,
+        company_id: str,
+        chart_id: str,
+        *,
+        owner_actor_id: str,
+    ) -> dict[str, Any] | None:
+        """Fetch one personal chart owned by `(company_id, owner_actor_id)`."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                """
+                SELECT *
+                FROM copilot.charts
+                WHERE chart_id = %s
+                  AND owner_actor_id = %s
+                """,
+                (chart_id, owner_actor_id),
+            )
+            row = cur.fetchone()
+            return dict(row) if row is not None else None
+
+    def list_charts(
+        self,
+        company_id: str,
+        *,
+        owner_actor_id: str,
+        pinned_only: bool = False,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        """List personal saved charts owned by `(company_id, owner_actor_id)`."""
+        clauses: list[sql.SQL] = [sql.SQL("owner_actor_id = %s")]
+        params: list[Any] = [owner_actor_id]
+        if pinned_only:
+            clauses.append(sql.SQL("pinned = true"))
+        params.append(limit)
+        query = sql.SQL(
+            """
+            SELECT *
+            FROM copilot.charts
+            WHERE {where}
+            ORDER BY pinned DESC, updated_at DESC, chart_id ASC
+            LIMIT %s
+            """
+        ).format(where=sql.SQL(" AND ").join(clauses))
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(query, params)
+            return [dict(r) for r in cur.fetchall()]
+
+    def pin_chart(
+        self,
+        company_id: str,
+        chart_id: str,
+        *,
+        owner_actor_id: str,
+        pinned: bool,
+    ) -> dict[str, Any] | None:
+        """Toggle `pinned` on a personal chart owned by `(company_id, owner_actor_id)`."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                """
+                UPDATE copilot.charts
+                SET pinned = %s,
+                    updated_at = now()
+                WHERE chart_id = %s
+                  AND owner_actor_id = %s
+                RETURNING *
+                """,
+                (pinned, chart_id, owner_actor_id),
+            )
+            row = cur.fetchone()
+            return dict(row) if row is not None else None
+
+    def update_chart_in_place(
+        self,
+        company_id: str,
+        chart_id: str,
+        *,
+        owner_actor_id: str,
+        spec_json: dict[str, Any],
+        data_json: list[dict[str, Any]],
+        evidence_snapshot_ids: list[str],
+        telemetry_as_of: datetime,
+    ) -> dict[str, Any] | None:
+        """Refresh a saved chart's spec, data, snapshot IDs, and `telemetry_as_of` in place."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                """
+                UPDATE copilot.charts
+                SET spec_json = %s::jsonb,
+                    data_json = %s::jsonb,
+                    evidence_snapshot_ids = %s::jsonb,
+                    telemetry_as_of = %s,
+                    updated_at = now()
+                WHERE chart_id = %s
+                  AND owner_actor_id = %s
+                RETURNING *
+                """,
+                (
+                    json.dumps(spec_json, sort_keys=True),
+                    json.dumps(data_json, sort_keys=True),
+                    json.dumps(sorted(set(evidence_snapshot_ids))),
+                    telemetry_as_of,
+                    chart_id,
+                    owner_actor_id,
+                ),
+            )
+            row = cur.fetchone()
+            return dict(row) if row is not None else None
+
+    def delete_chart(
+        self,
+        company_id: str,
+        chart_id: str,
+        *,
+        owner_actor_id: str,
+    ) -> bool:
+        """Delete a personal chart owned by `(company_id, owner_actor_id)`."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                """
+                DELETE FROM copilot.charts
+                WHERE chart_id = %s
+                  AND owner_actor_id = %s
+                RETURNING chart_id
+                """,
+                (chart_id, owner_actor_id),
+            )
+            return cur.fetchone() is not None

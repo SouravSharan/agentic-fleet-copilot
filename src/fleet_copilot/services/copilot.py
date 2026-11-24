@@ -151,6 +151,8 @@ class CopilotService:
             policy_svc=self._policy_svc,
             action_svc=self._action_svc,
             clock=self._clock,
+            db=self._db,
+            audit_svc=self._audit,
         )
         all_specs = build_all_tool_specs(tool_deps)
 
@@ -466,6 +468,8 @@ class CopilotService:
             answer=answer_obj,
             citations=citations,
             insights=list(state.get("insights") or []),
+            charts=list(state.get("charts") or []),
+            queries=list(state.get("queries") or []),
             proposals=list(state.get("staged_proposals") or []),
             verdicts=list(state.get("verdicts") or []),
             approval_packet=approval_packet,

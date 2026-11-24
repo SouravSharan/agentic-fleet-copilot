@@ -105,7 +105,10 @@ def make_synthesizer_node(deps: Any) -> Any:
             for h, ev in sorted(
                 raw_ev.items(),
                 key=lambda kv: (
-                    int(kv[0][1:]) if kv[0].startswith("E") and kv[0][1:].isdigit() else 10**9,
+                    {"E": 0, "C": 1, "Q": 2}.get(kv[0][:1], 9),
+                    int(kv[0][1:])
+                    if len(kv[0]) >= 2 and kv[0][:1] in ("E", "C", "Q") and kv[0][1:].isdigit()
+                    else 10**9,
                     kv[0],
                 ),
             )
@@ -119,6 +122,22 @@ def make_synthesizer_node(deps: Any) -> Any:
 
         tool_summaries = {
             "tool_outputs": state.get("tool_outputs") or [],
+            "charts": [
+                {
+                    "handle": c.get("handle"),
+                    "title": c.get("title"),
+                    "row_count": c.get("row_count"),
+                }
+                for c in (state.get("charts") or [])
+            ],
+            "queries": [
+                {
+                    "handle": q.get("handle"),
+                    "purpose": q.get("purpose"),
+                    "row_count": q.get("row_count"),
+                }
+                for q in (state.get("queries") or [])
+            ],
             "verdicts": state.get("verdicts") or [],
             "drafts": state.get("drafts") or [],
             "investigator_note": investigator_note,

@@ -291,6 +291,8 @@ def make_tools_node(deps: Any) -> Any:
             "tool_trace": new_trace,
             "tool_outputs": new_outputs,
             "insights": sink.insights,
+            "charts": sink.charts,
+            "queries": sink.queries,
             "drafts": sink.drafts,
             "verdicts": sink.verdicts,
             "step_count": step_count,

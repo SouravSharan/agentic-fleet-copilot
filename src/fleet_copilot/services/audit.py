@@ -181,6 +181,26 @@ class DemoResetPayload(AuditPayload):
     reason: str
 
 
+class ChartCreatedPayload(AuditPayload):
+    chart_id: str
+    kind: str
+    row_count: int
+
+
+class ChartPinnedPayload(AuditPayload):
+    chart_id: str
+    pinned: bool
+
+
+class ChartRefreshedPayload(AuditPayload):
+    chart_id: str
+    row_count: int
+
+
+class ChartDeletedPayload(AuditPayload):
+    chart_id: str
+
+
 AUDIT_PAYLOAD_MODELS: dict[str, type[AuditPayload]] = {
     "turn_started": TurnStartedPayload,
     "plan_created": PlanCreatedPayload,
@@ -198,6 +218,10 @@ AUDIT_PAYLOAD_MODELS: dict[str, type[AuditPayload]] = {
     "proposal_expired": ProposalExpiredPayload,
     "turn_completed": TurnCompletedPayload,
     "demo_reset": DemoResetPayload,
+    "chart_created": ChartCreatedPayload,
+    "chart_pinned": ChartPinnedPayload,
+    "chart_refreshed": ChartRefreshedPayload,
+    "chart_deleted": ChartDeletedPayload,
 }
 
 

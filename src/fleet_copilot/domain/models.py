@@ -140,6 +140,7 @@ class Insight(_DomainModel):
     evidence: list[Evidence]
     stats: dict[str, Any] = Field(default_factory=dict)
     suggested_action: SuggestedAction | None = None
+    chart: dict[str, Any] | None = None
 
 
 class DeviceFilters(_DomainModel):

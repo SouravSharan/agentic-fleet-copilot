@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Sequence
+from datetime import timedelta
 from typing import Any
 
 from fleet_copilot.domain.models import (
@@ -108,6 +110,35 @@ def analyze_fleet_trends(
         catalog_by_model=catalog_by_model,
     )
     all_artifacts.append({"type": "device_signal_rollup", "rows": rollup_rows})
+
+    # Auto-attach validated Vega-Lite series charts to each trend insight (11 §2 B2)
+    if all_insights:
+        from fleet_copilot.services.charts import build_insight_chart
+
+        since = as_of - timedelta(days=window_days)
+        insight_dev_ids = sorted({ins.device_id for ins in all_insights})
+        series_by_dev: dict[str, list[Any]] = defaultdict(list)
+        for pt in repo.series(ctx.company_id, since=since, device_ids=insight_dev_ids):
+            series_by_dev[pt.device_id].append(pt)
+        comp_by_dev: dict[str, list[Any]] = defaultdict(list)
+        if any(ins.category == "compliance_drift" for ins in all_insights):
+            for rec in repo.compliance(
+                ctx.company_id, since=since, latest_only=False, device_ids=insight_dev_ids
+            ):
+                comp_by_dev[rec.device_id].append(rec)
+        all_insights = [
+            ins.model_copy(
+                update={
+                    "chart": build_insight_chart(
+                        ins,
+                        device_series=series_by_dev.get(ins.device_id, ()),
+                        device_compliance=comp_by_dev.get(ins.device_id, ()),
+                        as_of=as_of,
+                    )
+                }
+            )
+            for ins in all_insights
+        ]
 
     summary = (
         f"Analyzed {len(devices)} device(s) across {', '.join(selected)} "

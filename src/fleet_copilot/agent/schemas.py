@@ -69,6 +69,8 @@ class TurnResponse(_AgentModel):
     answer: Answer | None = None
     citations: list[dict[str, Any]] = Field(default_factory=list)
     insights: list[dict[str, Any]] = Field(default_factory=list)
+    charts: list[dict[str, Any]] = Field(default_factory=list)
+    queries: list[dict[str, Any]] = Field(default_factory=list)
     proposals: list[dict[str, Any]] = Field(default_factory=list)
     verdicts: list[dict[str, Any]] = Field(default_factory=list)
     approval_packet: dict[str, Any] | None = None

@@ -24,7 +24,7 @@ _VERSION_CONTEXT_RE = re.compile(
     r"(?:\b(?:macos|windows|os|version|ver|gen|xps|m|v)\s*\d+(?:\.\d+)*\b|\b\d+\.\d+\.\d+\b|\b\d{2}H[12]\b)",
     re.IGNORECASE,
 )
-_HANDLE_RE = re.compile(r"\bE\d+\b")
+_HANDLE_RE = re.compile(r"\b[ECQ]\d+\b")
 _STANDALONE_NUM_RE = re.compile(r"(?<![A-Za-z0-9_.\-:])\d+(?:\.\d+)?(?![A-Za-z0-9_.\-:])")
 
 # 12-char alphanumeric device ID token containing >=1 uppercase letter and >=1 digit
@@ -141,6 +141,8 @@ def verify_answer_grounding(
     user_message: str,
     telemetry_as_of: str,
     tenant_hostnames: dict[str, str] | None = None,
+    charts: list[dict[str, Any]] | None = None,
+    queries: list[dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Run hard citation/device checks across all Answer fields plus soft numeric checks."""
     hard_violations: list[dict[str, Any]] = []
@@ -148,12 +150,37 @@ def verify_answer_grounding(
 
     hostname_to_device: dict[str, str] = {k.lower(): v for k, v in (tenant_hostnames or {}).items()}
     ledger_devices: set[str] = set()
-    for ev in evidence_map.values():
+    handle_devices: dict[str, set[str]] = {}
+    for h, ev in evidence_map.items():
         dev = ev.get("device_id")
-        if dev:
+        if dev and str(dev) != "fleet":
             ledger_devices.add(str(dev))
+            handle_devices.setdefault(h, set()).add(str(dev))
             if ev.get("hostname"):
                 hostname_to_device[str(ev["hostname"]).lower()] = str(dev)
+
+    for chart in charts or []:
+        h = str(chart.get("handle") or "")
+        for row in chart.get("data_rows") or []:
+            if isinstance(row, dict) and row.get("device_id"):
+                dev_s = str(row["device_id"])
+                ledger_devices.add(dev_s)
+                if h:
+                    handle_devices.setdefault(h, set()).add(dev_s)
+                if row.get("hostname"):
+                    hostname_to_device[str(row["hostname"]).lower()] = dev_s
+
+    for query in queries or []:
+        h = str(query.get("handle") or "")
+        for row in query.get("rows") or []:
+            if isinstance(row, dict) and row.get("device_id"):
+                dev_s = str(row["device_id"])
+                ledger_devices.add(dev_s)
+                if h:
+                    handle_devices.setdefault(h, set()).add(dev_s)
+                host = row.get("hostname") or row.get("os_hostname")
+                if host:
+                    hostname_to_device[str(host).lower()] = dev_s
 
     # Prompt-echo allowlist strictly when a lookup returned `not_found`
     prompt_not_found_tokens: set[str] = set()
@@ -167,6 +194,10 @@ def verify_answer_grounding(
     _collect_verifiable_numbers(tool_outputs, pool)
     _collect_verifiable_numbers(resolved_policies, pool)
     _collect_verifiable_numbers(insights, pool)
+    for chart in charts or []:
+        _collect_verifiable_numbers(chart.get("data_rows") or [], pool)
+    for query in queries or []:
+        _collect_verifiable_numbers(query.get("rows") or [], pool)
 
     exempt: set[float] = _extract_prompt_numbers(user_message)
     _collect_verifiable_numbers(telemetry_as_of, exempt)
@@ -203,10 +234,9 @@ def verify_answer_grounding(
             if ev_rec is None:
                 missing_handles.append(h)
             else:
-                dev_id = ev_rec.get("device_id")
-                if dev_id:
-                    cited_devices.add(str(dev_id))
-                    all_cited_devices.add(str(dev_id))
+                devs_for_h = handle_devices.get(h, set())
+                cited_devices.update(devs_for_h)
+                all_cited_devices.update(devs_for_h)
 
         if missing_handles:
             hard_violations.append(
@@ -378,6 +408,8 @@ def make_verify_grounding_node(deps: Any) -> Any:
             tool_outputs=tool_outputs,
             resolved_policies=resolved_policies,
             insights=insights,
+            charts=state.get("charts") or [],
+            queries=state.get("queries") or [],
             user_message=user_message,
             telemetry_as_of=telemetry_as_of,
             tenant_hostnames=tenant_hostnames,

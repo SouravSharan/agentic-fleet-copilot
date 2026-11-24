@@ -40,6 +40,8 @@ class TurnToolSink:
 
     ledger: EvidenceLedger
     insights: list[dict[str, Any]] = field(default_factory=list)
+    charts: list[dict[str, Any]] = field(default_factory=list)
+    queries: list[dict[str, Any]] = field(default_factory=list)
     drafts: list[dict[str, Any]] = field(default_factory=list)
     verdicts: list[dict[str, Any]] = field(default_factory=list)
     call_meta: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -54,6 +56,8 @@ class ToolDeps:
     policy_svc: PolicyService
     action_svc: ActionService
     clock: Clock
+    db: Any | None = None
+    audit_svc: Any | None = None
 
 
 def sanitize_telemetry_str(value: str, *, max_len: int = _MAX_TELEMETRY_STR_LEN) -> str:

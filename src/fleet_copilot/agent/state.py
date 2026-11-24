@@ -56,6 +56,8 @@ class CopilotState(TypedDict, total=False):
     tool_trace: Annotated[list[dict[str, Any]], turn_list_reducer]
     tool_outputs: Annotated[list[dict[str, Any]], turn_list_reducer]
     insights: Annotated[list[dict[str, Any]], turn_list_reducer]
+    charts: Annotated[list[dict[str, Any]], turn_list_reducer]
+    queries: Annotated[list[dict[str, Any]], turn_list_reducer]
     drafts: Annotated[list[dict[str, Any]], turn_list_reducer]
     verdicts: Annotated[list[dict[str, Any]], turn_list_reducer]
     staged_proposals: list[dict[str, Any]]
