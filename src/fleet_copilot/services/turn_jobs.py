@@ -113,7 +113,7 @@ class TurnJobs:
         hidden: bool = False,
     ) -> str:
         """Submit a background turn job; deduplicates active jobs per `(actor_id, resolved_tid)`."""
-        # Resolve thread_id BEFORE computing active_key so two new threads never collide (S2).
+        # Resolve thread_id BEFORE computing active_key so two new threads never collide.
         resolved_tid = thread_id or f"{ctx.company_id}:{uuid.uuid4().hex[:12]}"
         active_key = (ctx.actor_id, resolved_tid)
 

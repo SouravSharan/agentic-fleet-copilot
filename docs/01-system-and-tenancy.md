@@ -9,7 +9,7 @@ flowchart LR
     subgraph External["External (Outside Copilot Control)"]
         AGENTS["Desktop Agents / Telemetry Feed"]
         TDB[("Platform Telemetry Store (schema: telemetry, read-only)")]
-        APIS["External Action APIs (Procurement, ITSM, MDM, Comms)"]
+        APIS["External Action APIs (Procurement, ITSM, MDM, Comms)<br/>mocked in this build: outbox records the exact payload"]
     end
 
     subgraph Copilot["Fleet Copilot Service"]

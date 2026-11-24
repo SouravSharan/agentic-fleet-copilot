@@ -51,7 +51,7 @@ _CATEGORY_METRIC: dict[str, str] = {
 
 
 def _compliance_heatmap_spec(item: BriefingItem) -> dict[str, Any] | None:
-    """Build a crisp pass/fail heatmap (devices x days) for compliance briefing cards (W4)."""
+    """Build a crisp pass/fail heatmap (devices x days) for compliance briefing cards."""
     if not item.chart_series:
         return None
     dev_to_host = dict(zip(item.device_ids, item.hostnames, strict=False))

@@ -24,7 +24,7 @@ All 13 tools are seeded in `copilot.tenant_tool_configs` ([`db/02_copilot.sql`](
 
 Policies live in `copilot.tenant_policies` and resolve via `PolicyService.resolve()` ([`src/fleet_copilot/services/policy.py`](../src/fleet_copilot/services/policy.py)) in strict precedence order: **device override → tenant override → global default (`company_id = '*'`)**. Every resolved threshold carries its `(value, source)` provenance into tool outputs, answers, and action checks.
 
-Key global defaults: `low_disk_free_pct = 15.0%`, `high_ram_used_pct = 80.0%`, `ram_sustained_ratio = 0.7`, `battery_eol_cycles = 800`, `software_baseline_min_share = 0.8`, `flagged_software_list = [uTorrent, TeamViewer, CleanMyMac X]`, `cooldown_days_upgrade = 30`, `cooldown_days_ticket = 7`, `proposal_ttl_hours = 24`.
+Key global defaults: `low_disk_free_pct = 15.0%`, `high_ram_used_pct = 80.0%`, `ram_sustained_ratio = 0.7`, `battery_eol_cycles = 800`, `software_baseline_min_share = 0.8`, `flagged_software_list = [uTorrent, TeamViewer, CleanMyMac X]`, `cooldown_days_upgrade = 30`, `cooldown_days_ticket = 7`, `cooldown_days_replacement = 90`, `cooldown_hours_notify = 72`, `proposal_ttl_hours = 72`, `stale_device_days = 7`, `replacement_min_signals = 2` (19 global defaults in total; see `db/02_copilot.sql`).
 
 ## 3. Deterministic Action Policy Gate (Offer-Only Refusals)
 
@@ -70,6 +70,7 @@ Key lifecycle guarantees:
 - **DB-enforced state machine**: Trigger `copilot.proposals_guard()` ([`db/02_copilot.sql`](../db/02_copilot.sql), [`tests/integration/test_proposal_guard.py`](../tests/integration/test_proposal_guard.py)) freezes immutable columns (`approval_hash`, `args_json`, `expires_at`), rejects any update on terminal rows (`rejected`, `expired`, `executed`, `failed`, `stale_blocked`), and restricts reviewer/execution fields to their exact transitions.
 - **Deduplication, cooldown & expiry**: Deterministic `dedupe_key` prevents duplicate pending proposals; cooldown windows block repeat orders/tickets; expired proposals transition to `expired` before execution ([`tests/integration/test_dedupe_and_cooldown.py`](../tests/integration/test_dedupe_and_cooldown.py), [`tests/integration/test_expiry.py`](../tests/integration/test_expiry.py)).
 - **TOCTOU freshness re-check**: Immediately before calling an external adapter, `ActionService.execute()` re-queries live telemetry and re-runs the policy gate. If the underlying issue already resolved, the proposal transitions to `stale_blocked` and the adapter is never called ([`tests/integration/test_toctou_stale_block.py`](../tests/integration/test_toctou_stale_block.py)).
+- **Integration outbox**: on success the adapter's exact outbound payload (ServiceNow ticket, procurement order, employee email, asset-lifecycle flag) is written to `copilot.integration_outbox` in the same transaction as the `executed` status, so the UI shows precisely what would have been sent. All adapters are mocks in this build.
 - **Bounded retries & idempotent crash recovery**: Adapter exceptions increment `attempts`; after 3 failed attempts the proposal is marked `failed` with exactly one `action_failed` audit event so `recover_executing()` cannot loop indefinitely ([`tests/integration/test_execute_recovery_is_idempotent.py`](../tests/integration/test_execute_recovery_is_idempotent.py)).
 
 ## 5. Append-Only Hash-Chained Audit Log

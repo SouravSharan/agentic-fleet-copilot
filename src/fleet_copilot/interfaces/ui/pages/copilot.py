@@ -15,6 +15,7 @@ from fleet_copilot.interfaces.ui.services import (
     cached_telemetry_as_of,
     cached_thread_list,
     cached_thread_turns,
+    examples_only_reason,
     get_device_summaries,
     get_hostname_map,
     get_resolved_policies,
@@ -315,7 +316,7 @@ def _render_transcript_zone(
                 gap="small",
             ):
                 st.info(
-                    "Examples only (live budget used). Live chat input is disabled.",
+                    f"Examples only ({examples_only_reason()}). Live chat input is disabled.",
                     icon=":material/menu_book:",
                 )
                 if st.button(

@@ -1,4 +1,4 @@
-"""Comprehensive Phase D2b AppTest & Postgres-backed UI tests across all 6 pages and 4 personas."""
+"""AppTest and Postgres-backed UI tests across all 6 pages and 4 personas."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ from tests.graph.fakes import (
     ScriptedChatModel,
     make_tool_call_ai,
 )
-from tests.ui.test_d2a_smoke import (
+from tests.ui.test_ui_core_smoke import (
     ALL_PERSONAS,
     _demo_session_for,
     _make_offline_container,

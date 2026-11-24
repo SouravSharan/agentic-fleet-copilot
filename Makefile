@@ -1,4 +1,4 @@
-.PHONY: setup bootstrap up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck chat api ui security-probe eval-verify-cases eval eval-regrade eval-live
+.PHONY: setup env bootstrap up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck chat api ui security-probe eval-verify-cases eval eval-regrade eval-live
 
 COMPANY ?= acme-001
 ROLE ?= it_admin
@@ -7,10 +7,15 @@ MODEL ?= google_genai:gemini-3.8-flash
 setup:
 	uv sync --all-groups
 
-bootstrap: up migrate seed test-db eval
+bootstrap: env up migrate seed test-db eval
 
+# Create .env from the dev template if it doesn't exist yet (never overwrites).
+env:
+	@test -f .env || (cp .env.example .env && echo "Created .env from .env.example (dev values)")
+
+# Postgres only, for the uv-based workflow. `docker compose up --build` runs the full stack.
 up:
-	docker compose up -d --wait
+	docker compose up -d --wait postgres
 
 down:
 	docker compose down

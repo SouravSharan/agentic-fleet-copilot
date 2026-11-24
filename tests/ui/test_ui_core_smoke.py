@@ -1,4 +1,4 @@
-"""Streamlit AppTest smoke tests for Phase D2a pages (Sign in, Home, Copilot) x all 4 personas."""
+"""Streamlit AppTest smoke tests for the core pages (Sign in, Home, Copilot) x all 4 personas."""
 
 from __future__ import annotations
 
@@ -228,7 +228,8 @@ def test_sign_in_renders_personas_rejects_wrong_code_locks_at_10_and_accepts_val
     assert any("Initech · IT admin" in lbl for lbl in labels)
 
     # Wrong code produces the generic error
-    at.text_input(key="sign_in_access_code").set_value("wrong-code").run()
+    # Code and persona are submitted together through the sign-in form.
+    at.text_input(key="sign_in_access_code").set_value("wrong-code")
     at.button(key="persona_card_acme_admin").click().run()
     assert not at.exception
     assert any("Invalid access code or persona." in e.value for e in at.error)
@@ -246,7 +247,7 @@ def test_sign_in_renders_personas_rejects_wrong_code_locks_at_10_and_accepts_val
     # Valid sign-in in a fresh session populates DemoSession
     at_ok = AppTest.from_function(_run_sign_in, default_timeout=15)
     at_ok.run()
-    at_ok.text_input(key="sign_in_access_code").set_value("testcode").run()
+    at_ok.text_input(key="sign_in_access_code").set_value("testcode")
     at_ok.button(key="persona_card_acme_viewer").click().run()
     assert not at_ok.exception
     sess = at_ok.session_state["demo_session"]

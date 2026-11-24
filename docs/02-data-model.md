@@ -2,7 +2,7 @@
 
 ## PostgreSQL Isolation Layout
 
-Both data boundaries run on PostgreSQL 16 as two isolated schemas (`telemetry` and `copilot`) accessed by three `NOBYPASSRLS` roles. The application connects using separate connection URLs (`TELEMETRY_RO_DATABASE_URL` and `COPILOT_DATABASE_URL`) and schema-qualified queries, so the same code works on:
+Both data boundaries run on PostgreSQL 16 as two isolated schemas (`telemetry` and `copilot`) accessed by four `NOBYPASSRLS` login roles. The application connects using separate connection URLs (`TELEMETRY_RO_DATABASE_URL`, `COPILOT_DATABASE_URL`, `DEMO_OPS_DATABASE_URL`) and schema-qualified queries, so the same code works on:
 - one local Docker Postgres container,
 - one managed Postgres project (e.g. Supabase), or
 - two physically separate Postgres servers.
@@ -11,7 +11,8 @@ Both data boundaries run on PostgreSQL 16 as two isolated schemas (`telemetry` a
 |---|---|---|---|
 | `telemetry_writer` | `telemetry` only | `SELECT, INSERT, UPDATE, TRUNCATE` on raw tables | External simulator (`scripts/telemetry_sim.py`) only — never available to the Copilot app |
 | `telemetry_ro` | `telemetry` only | `SELECT` only (`default_transaction_read_only = on`) + fail-closed RLS on `company_id` | Fleet Copilot read/analytics tools |
-| `copilot_app` | `copilot` only (`search_path = copilot`) | `SELECT, INSERT, UPDATE` on `threads`, `turns`, `action_proposals`; `SELECT, INSERT, UPDATE, DELETE` on `tenant_policies`, `tenant_tool_configs`; **`SELECT, INSERT` only** on `audit_logs`; `CREATE` on `copilot` for LangGraph `AsyncPostgresSaver.setup()` | Fleet Copilot service |
+| `copilot_app` | `copilot` only (`search_path = copilot`) | `SELECT, INSERT, UPDATE` on `threads`, `turns`, `action_proposals`; `SELECT, INSERT, UPDATE, DELETE` on `tenant_policies`, `tenant_tool_configs`; **`SELECT, INSERT` only** on `audit_logs`; `CREATE` on `copilot` for LangGraph `PostgresSaver.setup()` | Fleet Copilot service (UI, CLI, API) |
+| `demo_ops` | no direct table access | `EXECUTE` on `ops.demo_reset_company()` and `ops.inject_scenario()` (`SECURITY DEFINER`, gated by `ops.runtime_settings.demo_mode`) | UI demo controls only — lets the web app reset one tenant's demo without holding the owner DSN |
 
 All Python connections use thread-safe `psycopg_pool.ConnectionPool` (`prepare_threshold=None`, `check=ConnectionPool.check_connection`) and bind `app.current_tenant` transaction-locally through write-once `lock_tenant()` functions so tenant context never leaks across pooled connections.
 
@@ -51,11 +52,10 @@ Only the five fields guaranteed present in every snapshot are typed columns; all
 `ENABLE ROW LEVEL SECURITY` is enabled on `telemetry.companies` and `telemetry.telemetry_snapshots` (enforced on all non-owner `NOBYPASSRLS` roles). Policy for `telemetry_ro`:
 
 ```sql
-NULLIF(current_setting('app.current_tenant', true), '') IS NOT NULL
-AND company_id = current_setting('app.current_tenant', true)
+company_id = (SELECT telemetry.current_tenant())
 ```
 
-If `app.current_tenant` is unset or empty, queries return `0` rows.
+`current_tenant()` returns `NULL` unless this transaction holds a valid signed tenant lock, so a missing or forged lock returns `0` rows.
 
 ### Live Read Views (`security_invoker = true, security_barrier = true`)
 
@@ -80,7 +80,7 @@ Because these are live views over `payload JSONB` using `IMMUTABLE` safe-cast he
 Lives outside `src/fleet_copilot/` and connects exclusively with `telemetry_writer` to simulate real-world ingestion:
 - `seed`: Idempotently loads `data/device-telemetry-dataset.ndjson` (750 snapshots).
 - `push <file.json>`: Inserts a single raw JSON snapshot (validates only the 5 core fields + `company_id`).
-- `scenario <name>`: Reproducible edge cases (`partial-payload`, `duplicate-and-late`, `toctou-resolved`, `high-sev-alert`).
+- `scenario <name>`: Reproducible edge cases (`partial-payload`, `duplicate-and-late`, `toctou-resolved`, `high-sev-alert`, `prompt-injection-software`). The UI's demo controls inject the same scenarios through `ops.inject_scenario()` (role `demo_ops`).
 - `reset`: Atomically validates the dataset file, clears snapshots/companies, and re-seeds the 750-row baseline.
 
 ---
@@ -88,19 +88,32 @@ Lives outside `src/fleet_copilot/` and connects exclusively with `telemetry_writ
 ## 2. `copilot` Schema (Owned by Fleet Copilot)
 
 ### LangGraph Checkpointer Tables
-Managed by `AsyncPostgresSaver.setup()` (`checkpoints`, `checkpoint_blobs`, `checkpoint_writes`, `checkpoint_migrations`). Automatically placed in `copilot` via `ALTER ROLE copilot_app SET search_path TO copilot`. Stores multi-turn state and durable paused `interrupt()` approvals.
+Managed by the synchronous LangGraph `PostgresSaver.setup()` (`checkpoints`, `checkpoint_blobs`, `checkpoint_writes`, `checkpoint_migrations`), with an AES `EncryptedSerializer` (`LANGGRAPH_AES_KEY`) so checkpoint payloads are encrypted at rest. Automatically placed in `copilot` via `ALTER ROLE copilot_app SET search_path TO copilot`. Stores multi-turn state and durable paused `interrupt()` approvals.
 
 > **Isolation note:** LangGraph's internal checkpointer tables do not have a `company_id` column and are not governed by Postgres RLS; tenant isolation for checkpoints is enforced via tenant-prefixed `thread_id` (`{company_id}:{uuid}`) verified against RLS-protected `copilot.threads` before every graph invoke/resume.
 
 ### Operational Tables
 
-All 6 operational tables enforce fail-closed PostgreSQL RLS on `company_id` (`app.current_tenant`), non-wildcard `CHECK (company_id <> '*')` on single-tenant tables, and **composite tenant-scoped foreign keys** (`(company_id, thread_id)` and `(company_id, thread_id, turn_id)`) so cross-tenant FK linkage is rejected at the database level.
+All tenant tables (`threads`, `turns`, `tenant_policies`, `tenant_tool_configs`, `action_proposals`, `audit_logs`, `audit_chain_heads`, `charts`, `integration_outbox`, `spend_ledger`) enforce fail-closed PostgreSQL RLS on `company_id` (`app.current_tenant`), non-wildcard `CHECK (company_id <> '*')` on single-tenant tables, and **composite tenant-scoped foreign keys** (`(company_id, thread_id)` and `(company_id, thread_id, turn_id)`) so cross-tenant FK linkage is rejected at the database level.
 
 | Table | Key Columns | Purpose & Security |
 |---|---|---|
-| `copilot.threads` | `thread_id PK`, `company_id`, `actor_id`, `title`, `status`, `created_at`, `updated_at`, `UNIQUE(company_id, thread_id)` | Binds each conversation thread to one `company_id` and `actor_id`. No runtime `DELETE` for `copilot_app`. |
+| `copilot.threads` | `thread_id PK`, `company_id`, `actor_id`, `title`, `status`, `run_lease_until`, `hidden`, `created_at`, `updated_at`, `UNIQUE(company_id, thread_id)` | Binds each conversation thread to one `company_id` and `actor_id` (other actors get 404). `run_lease_until` is a compare-and-set lease so one thread runs one turn at a time. No runtime `DELETE` for `copilot_app`. |
 | `copilot.turns` | `turn_id PK`, `trace_id`, `(company_id, thread_id) FK`, `actor_id`, `user_message`, `plan_json`, `tool_calls_json`, `evidence_json`, `assistant_response`, `status`, `llm_model`, `input_tokens`, `output_tokens`, `latency_ms`, `created_at`, `completed_at` | Structured, SQL-queryable per-turn trace for the UI, debugging, and evaluation suite without unpacking binary checkpoints. No runtime `DELETE` for `copilot_app`. |
-| `copilot.tenant_policies` | `policy_id PK`, `company_id`, `scope_type`, `scope_value`, `metric_key`, `value_json`, `updated_by`, `updated_at` | Typed thresholds with precedence: `global (company_id='*')` → `tenant` → `device_type` → `device`, plus `CHECK ((company_id = '*') = (scope_type = 'global'))`. Tenants read `'*'` + own rows and write/delete only own non-global rows. |
+| `copilot.tenant_policies` | `policy_id PK`, `company_id`, `scope_type`, `scope_value`, `metric_key`, `value_json`, `updated_by`, `updated_at` | Typed thresholds with precedence: `global (company_id='*')` → `tenant` → `device` (the seed ships 19 global defaults), plus `CHECK ((company_id = '*') = (scope_type = 'global'))`. Tenants read `'*'` + own rows and write/delete only own non-global rows. |
 | `copilot.tenant_tool_configs` | `PK(company_id, tool_name)`, `enabled`, `requires_approval`, `min_role`, `adapter_config_json`, `updated_by`, `updated_at` | Per-tenant tool enablement, RBAC floor (`employee`/`viewer`/`it_admin`), and adapter config. Global `enabled = false` (`company_id = '*'`) acts as a platform kill-switch. |
 | `copilot.action_proposals` | `proposal_id PK`, `batch_id`, `(company_id, thread_id, turn_id) FK`, `proposed_by_actor_id`, `tool_name`, `target_type`, `target_id`, `arguments_json`, `rationale`, `evidence_snapshot_ids`, `evidence_as_of`, `policy_check_json`, `status`, `reviewer_id`, `review_note`, `reviewed_at`, `external_receipt_json`, `executed_at`, `created_at` | Tracks full HITL lifecycle (`pending_approval` → `approved` / `rejected` / `refused_by_guardrail` / `stale_blocked` → `executed` / `failed`), batched approvals (`batch_id`), deduplication, and TOCTOU freshness (`evidence_as_of`). No runtime `DELETE` for `copilot_app`. |
 | `copilot.audit_logs` | `audit_id BIGSERIAL PK`, `trace_id`, `thread_id`, `company_id`, `actor_id`, `actor_role`, `event_type`, `payload_json`, `created_at` | **Append-only at the DB permission level**: `copilot_app` has `SELECT, INSERT` only (`UPDATE`, `DELETE`, `TRUNCATE` revoked). |
+| `copilot.audit_chain_heads` | `company_id PK`, `last_seq`, `last_hash` | Per-tenant head of the SHA-256 audit hash chain; lets `verify` detect edits, deletions and reordering. |
+| `copilot.charts` | `chart_id PK`, `company_id`, `owner_actor_id`, `thread_id`, `turn_id`, `title`, `request_json`, `spec_json`, `data_json`, `evidence_snapshot_ids`, `telemetry_as_of`, `pinned` | Personal saved charts (RLS by company + owner). Refresh re-runs the stored request on current telemetry. |
+| `copilot.integration_outbox` | `receipt_id PK`, `company_id`, `proposal_id`, `adapter`, `channel`, `payload_json`, `created_at`, `redacted_at` | Exact payload each mock adapter "sent", written in the same transaction as the `executed` status. |
+| `copilot.spend_ledger` | `id PK`, `company_id`, `actor_id`, `rev_id`, `turn_id`, `cost_usd`, `created_at` | One row per live turn attempt; drives the cumulative demo spend cap and turn/rate limits. Written via `SECURITY DEFINER` `record_spend()`; survives demo resets. |
+
+### Platform tables (no tenant data)
+
+| Table | Purpose |
+|---|---|
+| `copilot.hardware_catalog` | Per-model upgradeability (RAM/storage/battery) with source URLs and confidence; drives refusals such as "soldered RAM". Read-only to the app. |
+| `telemetry.tenant_lock_secret`, `copilot.tenant_lock_secret` | Owner-only HMAC key for the signed tenant lock. No app role can read them. |
+| `ops.runtime_settings`, `ops.seed_snapshot_ids` | Owner-only: the `demo_mode` flag and the baseline snapshot set that demo resets restore. |
+

@@ -85,9 +85,9 @@ def run_app() -> None:
         ]
         nav_position = "sidebar"
     else:
-        # Register all routes even when signed out (hidden nav) so browser refresh (F5)
+        # Register all routes even when signed out (hidden nav) so browser refresh
         # on /copilot, /fleet, /approvals, /home, or /how-it-works redirects cleanly to Sign in
-        # instead of showing Streamlit's "Page not found" modal (R1).
+        # instead of showing Streamlit's "Page not found" modal.
         ordered_pages = [
             pages["sign_in"],
             pages["home"],

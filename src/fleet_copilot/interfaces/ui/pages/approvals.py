@@ -572,7 +572,7 @@ def _render_outbox_card(
             )
             st.markdown(f"**To:** `{safe_code(payload.get('recipient_employee_id')) or '—'}`")
             st.markdown("**Subject**")
-            # st.text never renders markdown; pass plain text so no escapes appear literally (S5)
+            # st.text never renders markdown; pass plain text so no escapes appear literally
             st.text(display_subject)
             st.markdown("**Message preview**")
             with st.container(border=True):

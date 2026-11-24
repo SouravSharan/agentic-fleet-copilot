@@ -1,0 +1,22 @@
+# Keep secrets, local state and dev tooling out of the image.
+.env
+.env.*
+!.env.example
+.git
+.github
+.venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.ruff_cache
+.ipynb_checkpoints
+.agents
+.claude
+.vscode
+.idea
+.DS_Store
+*.log
+evals/reports/replay
+notebooks
+tests
+docs/screenshots

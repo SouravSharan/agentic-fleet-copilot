@@ -409,7 +409,7 @@ def _render_devices_tab(
             },
         )
 
-        # Sync dataframe row selection with device selector & detail panel (W1)
+        # Sync dataframe row selection with device selector & detail panel
         sel_rows: list[int] = []
         sel_obj = getattr(event, "selection", None)
         if sel_obj is not None:

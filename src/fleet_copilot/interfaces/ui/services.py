@@ -519,6 +519,16 @@ def cached_thread_turns(
     return container.guarded.get_thread(ctx, thread_id)
 
 
+def examples_only_reason() -> str:
+    """Short reason shown when live turns are unavailable (no API key vs. demo budget used)."""
+    settings = get_ui_container().settings
+    key = settings.gemini_api_key
+    has_key = key is not None and bool(key.get_secret_value().strip())
+    if settings.llm_replay_mode.strip().lower() != "replay" and not has_key:
+        return "no API key"
+    return "demo budget used"
+
+
 def clear_company_read_caches() -> None:
     """Invalidate UI read caches after demo reset or scenario injection."""
     cached_telemetry_as_of.clear()

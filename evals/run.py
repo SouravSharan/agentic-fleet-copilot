@@ -353,7 +353,7 @@ def run_eval_suite(
                     )
                     prop_statuses, executed_count = _fetch_proposal_statuses(db, case.tenant)
 
-                    # ★ Audit chain verify, privacy scan, & grounding_violation telemetry (M7)
+                    # ★ Audit chain verify, privacy scan, & grounding_violation telemetry
                     audit_ok = True
                     all_audit_rows: list[dict[str, Any]] = []
                     for cid in ALL_TENANTS:

@@ -372,7 +372,7 @@ def _is_dark_theme() -> bool:
 
 
 def _agent_graph_dot(highlighted: set[str], *, dark: bool = False) -> str:
-    """Build theme-aware compact vertical Graphviz DOT for the LangGraph agent topology (W2)."""
+    """Build theme-aware compact vertical Graphviz DOT for the LangGraph agent topology."""
     if dark:
         hi_fill, hi_border, hi_font = "#1D4ED8", "#60A5FA", "#FFFFFF"
         bg_fill, bg_border, bg_font = "#1E293B", "#475569", "#F1F5F9"
@@ -435,7 +435,7 @@ def _agent_graph_dot(highlighted: set[str], *, dark: bool = False) -> str:
 
 
 def _system_graph_dot(*, dark: bool = False) -> str:
-    """Build theme-aware compact 2-row Graphviz DOT for system & tenancy architecture (W2)."""
+    """Build theme-aware compact 2-row Graphviz DOT for system & tenancy architecture."""
     if dark:
         base_fill, base_border, base_font = "#1E293B", "#475569", "#F1F5F9"
         blue_fill, blue_border, blue_font = "#1E3A8A", "#60A5FA", "#EFF6FF"
@@ -519,7 +519,7 @@ def _company_friendly_name(company_id: str) -> str:
 
 
 def _render_guardrail_job_poller(session: DemoSession) -> None:
-    """Poll active Guardrails live job via `TurnJobs` so reruns never abort mid-turn (L2)."""
+    """Poll active Guardrails live job via `TurnJobs` so reruns never abort mid-turn."""
     active_job = st.session_state.get("guardrail_active_job")
     if not isinstance(active_job, dict) or not active_job.get("job_id"):
         return
@@ -585,7 +585,7 @@ def _render_guardrails_tab(session: DemoSession) -> None:
         "hidden thread so your chat history stays clean."
     )
 
-    # 2-column button grid keeps all 8 attack labels unclipped at 1100 px & 1440 px (W11)
+    # 2-column button grid keeps all 8 attack labels unclipped at 1100 px & 1440 px
     selected_id = st.session_state.get("guardrail_selected_id", _GUARDRAIL_ATTACKS[0]["id"])
     cols = st.columns(2, gap="small")
     for idx, atk in enumerate(_GUARDRAIL_ATTACKS):
@@ -659,7 +659,7 @@ def _render_guardrails_tab(session: DemoSession) -> None:
                 disabled=job_running,
             ):
                 ctx = make_tenant_context(session)
-                # Pre-generate dedicated thread_id & create hidden at submit time (S2, S6)
+                # Pre-generate dedicated thread_id & create hidden at submit time
                 guardrail_tid = f"{session.company_id}:{uuid.uuid4().hex[:12]}"
                 job_id = container.turn_jobs.submit(
                     container.guarded,
@@ -879,7 +879,7 @@ def _render_evaluation_tab() -> None:
 
 
 def _example_grade_info(case_id: str, latest_report: dict[str, Any]) -> tuple[bool, str]:
-    """Return `(passed, one_line_reason)` for `case_id` from `evals/reports/latest.json` (W3)."""
+    """Return `(passed, one_line_reason)` for `case_id` from `evals/reports/latest.json`."""
     case_row = next(
         (c for c in (latest_report.get("cases") or []) if str(c.get("case_id") or "") == case_id),
         None,

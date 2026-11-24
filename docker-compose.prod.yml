@@ -1,0 +1,63 @@
+# Hosted deployment override (layer on top of docker-compose.yml):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# - No host ports at all: the UI is reached only through a reverse proxy that shares the
+#   external PROXY_NETWORK (e.g. Nginx Proxy Manager, forwarding to fleet-copilot-ui:8501).
+# - Postgres sits on an internal-only network (no egress, not reachable from the proxy).
+# - Data lives on a host path (PGDATA_DIR); memory is capped per service.
+# - A nightly job expires stale proposals, recovers stuck executions and resets demo tenants.
+# See docs/07-deployment-and-operations.md.
+
+services:
+  postgres:
+    ports: !reset []
+    networks: [db]
+    volumes: !override
+      - ${PGDATA_DIR:?set PGDATA_DIR to a host directory for Postgres data}:/var/lib/postgresql/data
+    mem_limit: 512m
+
+  setup:
+    networks: [db]
+    mem_limit: 512m
+
+  ui:
+    container_name: fleet-copilot-ui
+    ports: !reset []
+    # db: Postgres; default: outbound HTTPS to the Gemini API; proxy: reverse proxy only.
+    networks: [db, default, proxy]
+    mem_limit: 1536m
+    environment:
+      APP_ENV: prod
+
+  nightly:
+    image: fleet-copilot:local
+    restart: unless-stopped
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    networks: [db]
+    mem_limit: 384m
+    healthcheck:
+      disable: true
+    # Runs once a day (first run ~24 h after start). Holds the owner DSN; never exposed.
+    command: ["sh", "-c", "while true; do sleep 86400; fleet-copilot nightly || true; done"]
+    environment:
+      ADMIN_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-fleet_copilot}
+      TELEMETRY_RO_DATABASE_URL: postgresql://telemetry_ro:${TELEMETRY_RO_PASSWORD}@postgres:5432/${POSTGRES_DB:-fleet_copilot}
+      COPILOT_DATABASE_URL: postgresql://copilot_app:${COPILOT_APP_PASSWORD}@postgres:5432/${POSTGRES_DB:-fleet_copilot}
+      DEMO_OPS_DATABASE_URL: postgresql://demo_ops:${DEMO_OPS_PASSWORD}@postgres:5432/${POSTGRES_DB:-fleet_copilot}
+      TELEMETRY_WRITER_DATABASE_URL: postgresql://telemetry_writer:${TELEMETRY_WRITER_PASSWORD}@postgres:5432/${POSTGRES_DB:-fleet_copilot}
+      TENANT_LOCK_KEY: ${TENANT_LOCK_KEY}
+      LANGGRAPH_AES_KEY: ${LANGGRAPH_AES_KEY}
+      PSEUDONYM_KEY: ${PSEUDONYM_KEY}
+      APP_ENV: prod
+      DEMO_MODE: ${DEMO_MODE:-true}
+      LOG_FORMAT: json
+
+networks:
+  db:
+    internal: true
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-nginx-proxy-manager_default}

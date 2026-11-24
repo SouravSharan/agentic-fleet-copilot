@@ -307,7 +307,7 @@ def verify_answer_grounding(
                 }
             )
 
-    # 2. Verify Answer.result_device_ids (H2): every entry must be in cited evidence (HARD)
+    # 2. Verify Answer.result_device_ids: every entry must be in cited evidence (HARD)
     for dev_id in answer.result_device_ids:
         if dev_id not in all_cited_devices:
             hard_violations.append(
@@ -319,7 +319,7 @@ def verify_answer_grounding(
                 }
             )
 
-    # 3. Verify Answer.summary (H1): devices/hostnames in ledger (HARD); numbers matched (SOFT)
+    # 3. Verify Answer.summary: devices/hostnames in ledger (HARD); numbers matched (SOFT)
     sum_devs, sum_unknown_hosts = _extract_devices_and_hostnames(answer.summary, hostname_to_device)
     for dev_id in sorted(sum_devs):
         if dev_id not in ledger_devices and dev_id not in prompt_not_found_tokens:
@@ -355,7 +355,7 @@ def verify_answer_grounding(
             }
         )
 
-    # 4. Verify Answer.caveats (H1): devices/hostnames must be in turn ledger (HARD)
+    # 4. Verify Answer.caveats: devices/hostnames must be in turn ledger (HARD)
     for c_idx, caveat in enumerate(answer.caveats):
         cav_devs, cav_unknown_hosts = _extract_devices_and_hostnames(caveat, hostname_to_device)
         for dev_id in sorted(cav_devs):

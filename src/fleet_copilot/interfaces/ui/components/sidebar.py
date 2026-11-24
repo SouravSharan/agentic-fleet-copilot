@@ -8,6 +8,7 @@ from fleet_copilot.interfaces.ui.safe_md import safe_md
 from fleet_copilot.interfaces.ui.services import (
     cached_telemetry_as_of,
     cached_thread_list,
+    examples_only_reason,
     get_ui_container,
 )
 from fleet_copilot.interfaces.ui.state import (
@@ -72,7 +73,7 @@ def _render_copilot_history_in_sidebar(session: DemoSession) -> None:
 
         row_main, row_menu = st.columns([4.4, 1.2], gap="small")
         with row_main:
-            # Truncate raw title BEFORE sanitising so parser never leaves an open code span (S5)
+            # Truncate raw title BEFORE sanitising so parser never leaves an open code span
             raw_short = title if len(title) <= 28 else title[:27].rstrip() + "…"
             short = safe_md(raw_short)
             clean_title = safe_md(title)
@@ -154,7 +155,7 @@ def render_sidebar(*, active_slug: str = "") -> None:
             st.badge("Live AI", icon=":material/bolt:", color="green")
         else:
             st.badge(
-                "Examples only (live budget used)",
+                f"Examples only ({examples_only_reason()})",
                 icon=":material/menu_book:",
                 color="gray",
             )
