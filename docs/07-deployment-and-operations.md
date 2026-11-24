@@ -81,3 +81,25 @@ browser ──HTTPS──▶ Cloudflare ──tunnel──▶ NPM container ─�
 - Per-access-code turn cap and an hourly rate limit per actor.
 - When a limit is hit the app switches to examples mode instead of erroring.
 - Memory caps per container so the demo can't starve other services on the host.
+
+## Configuration reference
+
+Copy `.env.example` to `.env`. The defaults run locally as-is.
+
+| Variable | Purpose |
+|---|---|
+| `GEMINI_API_KEY` | Live AI turns and eval recording. Empty → examples mode; tests and `make eval` never need it |
+| `LLM_MODEL`, `LLM_REPLAY_MODE` | Model id; `replay` serves recorded cassettes instead of calling the API |
+| `*_DATABASE_URL`, `*_PASSWORD` | Owner DSN (migrations only) and the four least-privilege role DSNs |
+| `TENANT_LOCK_KEY` | HMAC key for the signed tenant lock (64 hex) |
+| `LANGGRAPH_AES_KEY` | Encrypts LangGraph checkpoints at rest |
+| `PSEUDONYM_KEY` | Keyed pseudonyms for identifiers in logs |
+| `SESSION_SIGNING_KEY` | Signs API session tokens |
+| `APP_ENV` | `dev` allows access code `dev`; `prod` requires `DEMO_ACCESS_CODES` |
+| `DEMO_ACCESS_CODES` | `code:reviewer_id` pairs for the demo sign-in |
+| `DEMO_MODE` | Enables demo reset / scenario injection (via the `demo_ops` role) |
+| `DEMO_SPEND_CAP_USD`, `DEMO_TURNS_PER_CODE`, `DEMO_TURNS_PER_HOUR`, `DAILY_TOKEN_BUDGET` | Cost and abuse limits |
+| `ACTIONS_ENABLED` | Kill switch for action tools |
+| `FLEET_AS_OF` | Optional fixed data clock (default: latest snapshot per tenant) |
+
+The dev keys in `.env.example` are public placeholders — generate fresh ones (`openssl rand -hex 32`) for any hosted deployment.

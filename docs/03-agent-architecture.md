@@ -66,3 +66,20 @@ Configured in [`config/runtime.yaml`](../config/runtime.yaml):
 - **Per-tool call caps**: `get_fleet_overview: 2`, `analyze_fleet_trends: 3`, `list_action_proposals: 3`, `create_chart: 3`, `run_readonly_sql: 3`, `get_device_details: 6`, other tools: `4`. Cap rejections count toward `step_count` so a looping model terminates cleanly.
 - **Verifier retries**: `1` retry on hard violations; `recursion_limit: 30`.
 - **Cooperative turn deadline**: `60 s` checked before every LLM and tool invocation ([`src/fleet_copilot/agent/deadline.py`](../src/fleet_copilot/agent/deadline.py)); per-node HTTP timeout `45 s`, max retries `2`. Any uncaught LLM error, parse failure, or deadline expiry marks the turn `failed`, reports actual DB proposal status truthfully, and records a `turn_completed` audit event.
+
+## 6. Repository Layout
+
+```
+src/fleet_copilot/
+  agent/          LangGraph graph, nodes, prompts, schemas, replay
+  tools/          13 tool definitions (thin wrappers over services)
+  services/       fleet queries, trends, policies, actions, charts, SQL, briefing, copilot, guards
+  repositories/   Postgres access (telemetry read-only, copilot store)
+  interfaces/     CLI, FastAPI, Streamlit UI
+  ops/            migrate, seed/scenarios, demo reset, nightly jobs
+db/               SQL migrations: schemas, RLS, triggers, roles, hardening
+config/           runtime budgets, personas, hardware catalog
+evals/            cases (YAML), oracle, graders, runner, cassettes, reports
+tests/            unit, integration, graph, API, UI, eval
+docs/             architecture, data model, tools, grounding, evaluation, deployment, ADRs
+```
