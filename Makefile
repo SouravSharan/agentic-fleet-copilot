@@ -1,5 +1,9 @@
 .PHONY: setup env bootstrap up down migrate seed reset test-db test test-unit test-integration lint fmt typecheck chat api ui security-probe eval-verify-cases eval eval-regrade eval-live
 
+# Targets such as `bootstrap` depend on running their prerequisites in order (Postgres up →
+# migrate → seed → …), so stay sequential even under `make -j` / MAKEFLAGS=-j.
+.NOTPARALLEL:
+
 COMPANY ?= acme-001
 ROLE ?= it_admin
 MODEL ?= google_genai:gemini-3.8-flash
