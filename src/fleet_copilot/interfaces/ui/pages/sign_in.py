@@ -38,6 +38,10 @@ def render_sign_in_page() -> None:
         "policy-gated IT operations."
     )
 
+    session_notice = st.session_state.get("sign_in_notice")
+    if session_notice and existing is None:
+        st.info(str(session_notice), icon=":material/info:")
+
     attempts = int(st.session_state.get(AUTH_ATTEMPTS_KEY, 0))
     locked = attempts >= MAX_AUTH_ATTEMPTS
 
@@ -49,6 +53,7 @@ def render_sign_in_page() -> None:
 
     def _clear_signin_error() -> None:
         st.session_state.pop("sign_in_error", None)
+        st.session_state.pop("sign_in_notice", None)
 
     code = st.text_input(
         "Access code",

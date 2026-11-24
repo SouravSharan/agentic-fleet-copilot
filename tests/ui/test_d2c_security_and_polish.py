@@ -858,3 +858,102 @@ def test_s7_is_dark_theme_detects_light_dark_and_missing_context(
 
     monkeypatch.setattr(st, "context", SimpleNamespace(theme=None))
     assert _is_dark_theme() is False
+
+
+def test_r1_signed_out_refresh_redirects_with_session_ended_notice(
+    offline_container: UIContainer,
+) -> None:
+    """R1: Signed-out route hit shows 'Your session ended' notice; explicit sign-out stays clean."""
+    _ = offline_container
+
+    def _run_home_signed_out() -> None:
+        from fleet_copilot.interfaces.ui.pages.home import render_home_page
+
+        render_home_page()
+
+    at = AppTest.from_function(_run_home_signed_out, default_timeout=15)
+    at.run()
+    assert not at.exception
+    assert at.session_state["sign_in_notice"] == "Your session ended — please sign in again."
+    assert any("Your session ended — please sign in again." in i.value for i in at.info)
+
+    # Rendering Sign in with that notice displays it cleanly; typing clears it
+    def _run_sign_in() -> None:
+        from fleet_copilot.interfaces.ui.pages.sign_in import render_sign_in_page
+
+        render_sign_in_page()
+
+    at_si = AppTest.from_function(_run_sign_in, default_timeout=15)
+    at_si.session_state["sign_in_notice"] = "Your session ended — please sign in again."
+    at_si.run()
+    assert not at_si.exception
+    assert any("Your session ended — please sign in again." in i.value for i in at_si.info)
+    at_si.text_input(key="sign_in_access_code").set_value("demo").run()
+    assert "sign_in_notice" not in at_si.session_state
+
+    # Explicit sign-out via clear_session() does NOT set the session-ended notice
+    def _run_explicit_signout(sess):  # type: ignore[no-untyped-def]
+        from fleet_copilot.interfaces.ui.pages.home import render_home_page
+        from fleet_copilot.interfaces.ui.state import clear_session, set_session
+
+        set_session(sess)
+        clear_session()
+        render_home_page()
+
+    at_so = AppTest.from_function(
+        _run_explicit_signout,
+        args=(_demo_session_for("acme_admin"),),
+        default_timeout=15,
+    )
+    at_so.run()
+    assert not at_so.exception
+    assert "sign_in_notice" not in at_so.session_state
+
+
+def test_r2_r3_home_heatmap_untruncated_hostnames_and_humanized_check_titles(
+    offline_container: UIContainer,
+) -> None:
+    """R2/R3: Home compliance heatmap disables y-axis truncation; card titles humanize check IDs."""
+    from fleet_copilot.domain.models import TenantContext
+    from fleet_copilot.interfaces.ui.pages.home import _compliance_heatmap_spec
+    from fleet_copilot.services.briefing import build_briefing
+
+    # R2: labelLimit == 0 disables Vega-Lite y-axis label truncation for long hostnames
+    item = BriefingItem(
+        id="brief:compliance_drift",
+        severity="medium",
+        category="compliance_drift",
+        title="2 devices drifted into compliance failure (Screen lock)",
+        explanation="Transitioned from pass to fail on Screen lock.",
+        device_ids=["DEV1", "DEV2"],
+        hostnames=["acme-macbook-pro-16-engineering-01", "acme-macbook-pro-16-engineering-02"],
+        chart_series=[
+            {"date": "2026-06-11", "value": 1.0, "device_id": "DEV1"},
+            {"date": "2026-06-12", "value": 0.0, "device_id": "DEV1"},
+        ],
+        suggested_prompt="Check drift",
+    )
+    spec = _compliance_heatmap_spec(item)
+    assert spec is not None
+    assert spec["encoding"]["y"]["axis"]["labelLimit"] == 0
+
+    # R3: Real briefing builder never leaks raw snake_case check IDs in titles or explanations
+    ctx = TenantContext(
+        company_id="acme-001",
+        actor_id="rev_01:acme_admin",
+        role="it_admin",
+        trace_id="test-r3",
+    )
+    briefing = build_briefing(
+        ctx,
+        offline_container.telemetry_repo,
+        offline_container.store,
+        offline_container.policy_svc,
+    )
+    raw_check_ids = ("screen_lock", "os_up_to_date", "disk_encryption", "endpoint_protection")
+    for b_item in briefing.items:
+        for raw_id in raw_check_ids:
+            assert raw_id not in b_item.title, f"Raw check ID {raw_id!r} in title {b_item.title!r}"
+            assert raw_id not in b_item.explanation, (
+                f"Raw check ID {raw_id!r} in explanation {b_item.explanation!r}"
+            )

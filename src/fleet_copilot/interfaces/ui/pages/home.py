@@ -91,7 +91,7 @@ def _compliance_heatmap_spec(item: BriefingItem) -> dict[str, Any] | None:
                 "field": "device",
                 "type": "nominal",
                 "title": None,
-                "axis": {"labelLimit": 180},
+                "axis": {"labelLimit": 0},
             },
             "color": {
                 "field": "status",

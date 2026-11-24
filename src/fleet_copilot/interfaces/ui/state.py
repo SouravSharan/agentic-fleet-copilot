@@ -98,6 +98,8 @@ def set_session(session: DemoSession) -> None:
     """Store a verified `DemoSession` and wipe any previous persona's tenant-scoped UI state."""
     for key in _TENANT_SCOPED_KEYS:
         st.session_state.pop(key, None)
+    st.session_state.pop("sign_in_notice", None)
+    st.session_state.pop("_explicit_sign_out", None)
     st.session_state[SESSION_KEY] = session
     st.session_state[AUTH_ATTEMPTS_KEY] = 0
 
@@ -107,16 +109,22 @@ def clear_session() -> None:
     st.session_state.pop(SESSION_KEY, None)
     for key in _TENANT_SCOPED_KEYS:
         st.session_state.pop(key, None)
+    st.session_state.pop("sign_in_notice", None)
+    st.session_state["_explicit_sign_out"] = True
 
 
 def require_session() -> DemoSession:
     """Ensure a page has an active `DemoSession`, redirecting to Sign in otherwise."""
     sess = get_session()
     if sess is None:
+        explicit = bool(st.session_state.pop("_explicit_sign_out", False))
+        notice = None if explicit else "Your session ended — please sign in again."
+        if notice:
+            st.session_state["sign_in_notice"] = notice
         sign_in_page = get_page("sign_in")
         if sign_in_page is not None:
             st.switch_page(sign_in_page)
-        st.info("Please sign in to continue.")
+        st.info(notice or "Please sign in to continue.")
         st.stop()
     return sess
 
