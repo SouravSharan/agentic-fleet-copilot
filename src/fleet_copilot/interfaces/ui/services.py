@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import streamlit as st
@@ -415,3 +416,91 @@ def cached_thread_turns(
         trace_id=f"ui-thread-{thread_id[:12]}",
     )
     return container.guarded.get_thread(ctx, thread_id)
+
+
+def clear_company_read_caches() -> None:
+    """Invalidate UI read caches after demo reset or scenario injection."""
+    cached_telemetry_as_of.clear()
+    cached_briefing_dict.clear()
+    cached_resolved_policies.clear()
+    cached_hostname_map.clear()
+    cached_fleet_devices.clear()
+    cached_device_detail.clear()
+    cached_thread_list.clear()
+    cached_thread_turns.clear()
+
+
+def run_ui_demo_reset(company_id: str, *, reason: str = "ui_demo_reset") -> dict[str, Any]:
+    """Reset one company's demo state strictly via `demo_ops` (`DEMO_OPS_DATABASE_URL`).
+
+    Never touches `ADMIN_DATABASE_URL` or `copilot.spend_ledger`.
+    """
+    from fleet_copilot.ops.demo_reset import reset_company
+
+    container = get_ui_container()
+    summary = reset_company(
+        company_id,
+        reason=reason,
+        demo_ops_url=container.settings.demo_ops_database_url,
+        use_admin=False,
+    )
+    clear_company_read_caches()
+    return summary
+
+
+def run_ui_inject_scenario(company_id: str, scenario: str) -> str:
+    """Inject a demo telemetry scenario strictly via `demo_ops` (`DEMO_OPS_DATABASE_URL`)."""
+    from fleet_copilot.ops.scenarios import inject_scenario_via_demo_ops
+
+    container = get_ui_container()
+    snap_id = inject_scenario_via_demo_ops(
+        company_id,
+        scenario,
+        demo_ops_url=container.settings.demo_ops_database_url,
+    )
+    clear_company_read_caches()
+    return snap_id
+
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_eval_reports() -> dict[str, Any]:
+    """Load committed evaluation report JSONs from `evals/reports/`."""
+    import json
+
+    reports_dir = REPO_ROOT / "evals" / "reports"
+    latest_path = reports_dir / "latest.json"
+    ablation_path = reports_dir / "ablation-skip-planner.json"
+    latest = json.loads(latest_path.read_text(encoding="utf-8")) if latest_path.exists() else {}
+    ablation = (
+        json.loads(ablation_path.read_text(encoding="utf-8")) if ablation_path.exists() else {}
+    )
+    return {"latest": latest, "ablation": ablation}
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_example_runs() -> dict[str, dict[str, Any]]:
+    """Load all recorded `evals/reports/runs/*.json` transcripts ($0)."""
+    import json
+
+    runs_dir = REPO_ROOT / "evals" / "reports" / "runs"
+    out: dict[str, dict[str, Any]] = {}
+    if not runs_dir.exists():
+        return out
+    for p in sorted(runs_dir.glob("*.json")):
+        try:
+            out[p.stem] = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            continue
+    return out
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_repo_doc(rel_path: str) -> str:
+    """Read a committed repository markdown document relative to the repo root."""
+    target = (REPO_ROOT / rel_path).resolve()
+    if not target.is_file() or REPO_ROOT not in target.parents:
+        return ""
+    return target.read_text(encoding="utf-8")
