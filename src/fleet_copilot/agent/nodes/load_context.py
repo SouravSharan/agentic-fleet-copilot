@@ -96,6 +96,12 @@ def make_load_context_node(deps: Any) -> Any:
                 if getattr(dev, "os_hostname", None):
                     tenant_hostnames[str(dev.os_hostname).lower()] = str(dev.device_id)
         except Exception:  # noqa: BLE001
+            # The verifier can still match device ids; hostname matching is degraded, so say so.
+            logger.warning(
+                "hostname map unavailable; verifier falls back to device ids",
+                extra={"company_id": ctx.company_id},
+                exc_info=True,
+            )
             tenant_hostnames = {}
         allowed_specs = tools_for(
             ctx,
