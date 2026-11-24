@@ -201,8 +201,45 @@ def _device_named_in_text(dev_id: str, text: str) -> bool:
     return False
 
 
+def _tool_call_matches_zero_filter(case: EvalCase, trace_entry: dict[str, Any]) -> bool:
+    """Return True if a tool call applied the question's filter from `case.expect.oracle_ref`."""
+    tname = str(trace_entry.get("tool_name") or "")
+    args = trace_entry.get("args")
+    call_args = args if isinstance(args, dict) else {}
+    oref = case.expect.oracle_ref
+
+    if oref is not None and oref.fn == "laptops_failing":
+        if tname != "query_compliance":
+            return False
+        want_sev = oref.args.get("severity")
+        if want_sev is not None:
+            if str(call_args.get("severity") or "").lower() != str(want_sev).lower():
+                return False
+        if "status" in call_args and call_args.get("status") is not None:
+            if str(call_args["status"]).lower() != "fail":
+                return False
+        return True
+
+    if oref is not None and oref.fn == "low_disk_devices":
+        if tname != "find_devices":
+            return False
+        return bool(call_args.get("low_disk_only")) or (
+            call_args.get("max_disk_free_pct") is not None
+        )
+
+    if oref is not None and oref.fn == "macos_older_than":
+        if tname != "find_devices":
+            return False
+        return (
+            str(call_args.get("os_family") or "").lower() == "macos"
+            and call_args.get("os_version_lt") is not None
+        )
+
+    return tname in ("query_compliance", "find_devices")
+
+
 def grade_correctness(case: EvalCase, resp: TurnResponse) -> dict[str, Any]:
-    """Grade set precision/recall/F1 strictly on `Answer.result_device_ids` + text (09 H2)."""
+    """Grade set precision/recall/F1 strictly on `Answer.result_device_ids` + text."""
     exp = case.expect
     checks: list[bool] = []
     details: dict[str, Any] = {}
@@ -227,7 +264,8 @@ def grade_correctness(case: EvalCase, resp: TurnResponse) -> dict[str, Any]:
         )
 
         if len(expected_set) == 0:
-            # Zero-result honesty (09 H2): result_device_ids must be [], zero phrase, matched == 0.
+            # Zero-result honesty: result_device_ids must be [], summary states zero,
+            # and >= 1 filtered call matching the question's filter must exist with matched == 0.
             summary_text = (
                 resp.answer.summary if resp.answer is not None else resp.answer_markdown
             ).lower()
@@ -235,17 +273,17 @@ def grade_correctness(case: EvalCase, resp: TurnResponse) -> dict[str, Any]:
                 tok in summary_text
                 for tok in ("0 ", "0/", "no laptop", "no device", "none", "zero")
             )
-            matched_nonzero = any(
-                t.get("tool_name") in ("query_compliance", "find_devices")
-                and int(t.get("matched", 0) or 0) > 0
-                for t in resp.tool_trace
+            filtered_calls = [t for t in resp.tool_trace if _tool_call_matches_zero_filter(case, t)]
+            has_filtered_zero = len(filtered_calls) > 0 and all(
+                int(t.get("matched", 0) or 0) == 0 for t in filtered_calls
             )
-            zero_ok = (len(result_ids) == 0) and says_zero and (not matched_nonzero)
+            zero_ok = (len(result_ids) == 0) and says_zero and has_filtered_zero
             precision = 1.0 if zero_ok else 0.0
             recall = 1.0 if zero_ok else 0.0
             f1 = 1.0 if zero_ok else 0.0
             checks.append(zero_ok)
             details["zero_result_ok"] = zero_ok
+            details["filtered_zero_calls"] = len(filtered_calls)
             details["result_device_ids"] = result_ids
         else:
             predicted = set(result_ids)
