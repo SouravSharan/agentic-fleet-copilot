@@ -291,6 +291,7 @@ class InMemoryCopilotStore:
         self.threads: dict[str, dict[str, Any]] = {}
         self.turns: dict[str, dict[str, Any]] = {}
         self.proposals: dict[str, dict[str, Any]] = {}
+        self.spend_ledger: list[dict[str, Any]] = []
 
     def policies(self, company_id: str) -> list[PolicyRow]:
         defaults = {
@@ -521,6 +522,56 @@ class InMemoryCopilotStore:
             )
             and (thread_id is None or p.get("thread_id") == thread_id)
         ]
+
+    def record_spend(
+        self,
+        company_id: str,
+        *,
+        actor_id: str,
+        rev_id: str,
+        turn_id: str,
+        cost_usd: float,
+        created_at: datetime,
+    ) -> None:
+        self.spend_ledger.append(
+            {
+                "company_id": company_id,
+                "actor_id": actor_id,
+                "rev_id": rev_id,
+                "turn_id": turn_id,
+                "cost_usd": max(0.0, float(cost_usd)),
+                "created_at": created_at,
+            }
+        )
+
+    def spend_total_usd(self, company_id: str) -> float:  # noqa: ARG002
+        return sum(float(r["cost_usd"]) for r in self.spend_ledger)
+
+    def turns_by_rev_since(
+        self,
+        company_id: str,  # noqa: ARG002
+        rev_id: str,
+        since: datetime | None = None,
+    ) -> int:
+        return sum(
+            1
+            for r in self.spend_ledger
+            if r["rev_id"] == rev_id and (since is None or r["created_at"] >= since)
+        )
+
+    def turns_by_actor_since(
+        self,
+        company_id: str,
+        actor_id: str,
+        since: datetime,
+    ) -> int:
+        return sum(
+            1
+            for r in self.spend_ledger
+            if r["company_id"] == company_id
+            and r["actor_id"] == actor_id
+            and r["created_at"] >= since
+        )
 
 
 class InMemoryAuditService:

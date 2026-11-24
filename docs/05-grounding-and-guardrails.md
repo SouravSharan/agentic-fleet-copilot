@@ -43,6 +43,7 @@ Proven by [`tests/unit/test_sql_validator.py`](../tests/unit/test_sql_validator.
 
 - **Never exposed to LLMs or audit logs**: IP addresses (`v_network_interfaces`), MAC addresses, `hardware_uuid`, raw `payload`, emails, API keys, and `TENANT_LOCK_KEY`.
 - **Log & audit redaction**: `PrivacyRedactionFilter` ([`src/fleet_copilot/observability/logging.py`](../src/fleet_copilot/observability/logging.py)) strips disallowed keys and redacts secrets/prompts/answers from logs. `copilot.audit_logs.payload_json` stores typed metadata schemas (hashes, counts, durations — never prompt text, hostnames, or raw `employee_id`s), enforced by [`tests/integration/test_privacy_scan.py`](../tests/integration/test_privacy_scan.py) and [`tests/unit/test_privacy.py`](../tests/unit/test_privacy.py).
+- **Demo budget & rate guard (`GuardedCopilot`)**: All interactive entrypoints (UI, API, CLI) enforce DB-backed per-code turn caps, rolling-hour per-actor rate limits, and a global cumulative spend cap (with a `$0.05` reserve) persisted in `copilot.spend_ledger` (accessible only through `SECURITY DEFINER` write/aggregate functions; never cleared by demo resets). Because `TurnJobs` runs up to 4 concurrent worker threads, simultaneous turns in flight can overshoot the spend cap by at most `4 × $0.05` (`$0.20`), which is bounded and accepted for the demo.
 
 ## 5. Indirect Prompt-Injection Sanitizer (Best-Effort Defense in Depth)
 

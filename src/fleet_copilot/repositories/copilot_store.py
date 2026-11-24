@@ -742,6 +742,62 @@ class PgCopilotStore:
             )
             return [dict(r) for r in cur.fetchall()]
 
+    # --- Global Demo Spend Ledger (SECURITY DEFINER accessors only) ---
+
+    def record_spend(
+        self,
+        company_id: str,
+        *,
+        actor_id: str,
+        rev_id: str,
+        turn_id: str,
+        cost_usd: float,
+        created_at: datetime,
+    ) -> None:
+        """Append one turn attempt row to `copilot.spend_ledger` via SECURITY DEFINER."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                "SELECT copilot.record_spend(%s, %s, %s, %s::numeric, %s::timestamptz)",
+                (actor_id, rev_id, turn_id, max(0.0, float(cost_usd)), created_at),
+            )
+
+    def spend_total_usd(self, company_id: str) -> float:
+        """Return cumulative global spend across all companies via SECURITY DEFINER."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute("SELECT copilot.spend_total_usd() AS total")
+            row = cur.fetchone()
+            return float(row["total"]) if row is not None and row["total"] is not None else 0.0
+
+    def turns_by_rev_since(
+        self,
+        company_id: str,
+        rev_id: str,
+        since: datetime | None = None,
+    ) -> int:
+        """Count turn attempts for `rev_id` across all companies (all-time if `since is None`)."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                "SELECT copilot.turns_by_rev_since(%s::text, %s::timestamptz) AS cnt",
+                (rev_id, since),
+            )
+            row = cur.fetchone()
+            return int(row["cnt"]) if row is not None and row["cnt"] is not None else 0
+
+    def turns_by_actor_since(
+        self,
+        company_id: str,
+        actor_id: str,
+        since: datetime,
+    ) -> int:
+        """Count turn attempts for `(company_id, actor_id)` at or after `since`."""
+        with self._db.copilot_cursor(company_id) as cur:
+            cur.execute(
+                "SELECT copilot.turns_by_actor_since(%s::text, %s::timestamptz) AS cnt",
+                (actor_id, since),
+            )
+            row = cur.fetchone()
+            return int(row["cnt"]) if row is not None and row["cnt"] is not None else 0
+
     # --- Personal Saved Charts ---
 
     def insert_chart(

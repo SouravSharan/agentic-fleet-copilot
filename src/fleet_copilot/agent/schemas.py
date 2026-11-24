@@ -64,7 +64,7 @@ class TurnResponse(_AgentModel):
     thread_id: str
     turn_id: str
     trace_id: str
-    status: Literal["completed", "waiting_approval", "refused", "failed"]
+    status: Literal["completed", "waiting_approval", "refused", "failed", "limited"]
     answer_markdown: str
     answer: Answer | None = None
     citations: list[dict[str, Any]] = Field(default_factory=list)

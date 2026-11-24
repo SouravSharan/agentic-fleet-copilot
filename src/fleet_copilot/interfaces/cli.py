@@ -22,6 +22,7 @@ from fleet_copilot.services.actions import ActionService
 from fleet_copilot.services.adapters.mock import MockAdapter
 from fleet_copilot.services.audit import AuditService
 from fleet_copilot.services.copilot import CopilotService
+from fleet_copilot.services.guarded import GuardedCopilot
 from fleet_copilot.services.policy import PolicyService
 
 app = typer.Typer(add_completion=False, help="Fleet Copilot CLI (chat, ask, proposals, audit).")
@@ -48,11 +49,12 @@ def _render_trace(resp: Any) -> None:
         console.print(f"[dim]Tools: {' -> '.join(parts)}[/dim]")
 
 
-def _build_copilot(cassette: str | None = None) -> CopilotService:
+def _build_copilot(cassette: str | None = None) -> GuardedCopilot:
     settings = get_settings()
     configure_logging(log_format=settings.log_format, log_level=settings.log_level)
     db = get_db_manager()
-    return CopilotService(db=db, settings=settings, cassette_name=cassette)
+    copilot = CopilotService(db=db, settings=settings, cassette_name=cassette)
+    return GuardedCopilot(copilot, settings=settings)
 
 
 @app.command()

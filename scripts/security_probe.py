@@ -99,8 +99,25 @@ def run_fresh(role: str, url: str, schema: str) -> int:
     return leaks
 
 
+def run_table_deny(role: str, url: str, table: str) -> int:
+    """Verify an app role cannot directly SELECT a restricted operational/secret table."""
+    with psycopg.connect(url) as conn:
+        cur = conn.cursor()
+        try:
+            cur.execute(f"SELECT 1 FROM {table} LIMIT 1")  # type: ignore[arg-type]
+            out = f"LEAK (SELECT allowed on {table})"
+            leaked = 1
+        except Exception as exc:  # noqa: BLE001
+            out = f"BLOCKED ({type(exc).__name__})"
+            leaked = 0
+        finally:
+            conn.rollback()
+    print(f"{role:13} {table:21} {out}")
+    return leaked
+
+
 def main() -> int:
-    """Execute all 16 tenant-isolation probes across telemetry_ro and copilot_app."""
+    """Execute tenant-isolation and restricted-table probes across application roles."""
     s = get_settings()
     db = get_db_manager()
     leaks = 0
@@ -108,6 +125,10 @@ def main() -> int:
     leaks += run_fresh("telemetry_ro", str(s.telemetry_ro_database_url), "telemetry")
     leaks += run_locked("copilot_app", "copilot", db.copilot_cursor)
     leaks += run_fresh("copilot_app", str(s.copilot_database_url), "copilot")
+    leaks += run_table_deny(
+        "telemetry_ro", str(s.telemetry_ro_database_url), "copilot.spend_ledger"
+    )
+    leaks += run_table_deny("copilot_app", str(s.copilot_database_url), "copilot.spend_ledger")
     return 1 if leaks else 0
 
 
