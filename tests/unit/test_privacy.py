@@ -50,3 +50,26 @@ def test_redact_for_logs_masks_ip_ipv6_mac_and_email() -> None:
     assert "[REDACTED_IP]" in redacted
     assert "[REDACTED_MAC]" in redacted
     assert "[REDACTED_EMAIL]" in redacted
+
+
+def test_log_filter_strips_session_signing_key_and_demo_secrets() -> None:
+    import logging
+
+    from fleet_copilot.observability.logging import DISALLOWED_LOG_KEYS, PrivacyRedactionFilter
+
+    assert "session_signing_key" in DISALLOWED_LOG_KEYS
+    filt = PrivacyRedactionFilter()
+    rec = logging.LogRecord(
+        name="fleet_copilot.test",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="auth initialized",
+        args=(),
+        exc_info=None,
+    )
+    rec.session_signing_key = "super-secret-signing-key"
+    rec.demo_access_codes = "secret-code:rev_01"
+    assert filt.filter(rec) is True
+    assert not hasattr(rec, "session_signing_key")
+    assert not hasattr(rec, "demo_access_codes")

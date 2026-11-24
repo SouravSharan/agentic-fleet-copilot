@@ -27,6 +27,8 @@ if _BASE_SETTINGS.tenant_lock_key is None and not os.environ.get("TENANT_LOCK_KE
     os.environ["TENANT_LOCK_KEY"] = "fedcba9876543210" * 4
 if _BASE_SETTINGS.langgraph_aes_key is None and not os.environ.get("LANGGRAPH_AES_KEY"):
     os.environ["LANGGRAPH_AES_KEY"] = "0123456789abcdef" * 2
+if _BASE_SETTINGS.session_signing_key is None and not os.environ.get("SESSION_SIGNING_KEY"):
+    os.environ["SESSION_SIGNING_KEY"] = "a1b2c3d4e5f60718" * 4
 get_settings.cache_clear()
 
 _DIR_MARKERS = {

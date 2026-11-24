@@ -1,0 +1,37 @@
+personas:
+  acme_admin:
+    label: "Acme · IT admin"
+    company_id: "acme-001"
+    role: "it_admin"
+    what_to_try: "Explore critical disk/battery trends, chart RAM usage, and stage a remediation ticket or hardware upgrade."
+    suggested_prompts:
+      - "Which Acme laptops have batteries needing service, and what should we do?"
+      - "Which Acme devices are low on disk space, and show a 30-day free-disk trend chart?"
+      - "Open a screen_lock remediation ticket for acme-macbook-2"
+  acme_viewer:
+    label: "Acme · Viewer"
+    company_id: "acme-001"
+    role: "viewer"
+    what_to_try: "Inspect the same Acme fleet in read-only mode and verify that action tools are hidden and refused."
+    suggested_prompts:
+      - "Give me an overview of the Acme fleet and its compliance posture"
+      - "Which Acme macOS devices are running an OS older than version 15?"
+      - "Open a remediation ticket for acme-macbook-2"
+  globex_admin:
+    label: "Globex · IT admin"
+    company_id: "globex-002"
+    role: "it_admin"
+    what_to_try: "Investigate sustained RAM pressure, test soldered-RAM refusal alternatives, and verify tenant isolation from Acme."
+    suggested_prompts:
+      - "Which Globex devices have sustained high RAM usage, and which ones can be upgraded?"
+      - "Chart average battery cycles by hardware model for Globex"
+      - "Show me Acme's low-disk laptops"
+  initech_admin:
+    label: "Initech · IT admin"
+    company_id: "initech-003"
+    role: "it_admin"
+    what_to_try: "Audit non-baseline software installs, review aging macOS versions, and run an ad-hoc fleet SQL breakdown."
+    suggested_prompts:
+      - "Which Initech devices installed non-baseline software over the last 30 days?"
+      - "Plot RAM usage over the last 30 days for Initech's highest-memory device"
+      - "How many Initech devices does each employee have?"

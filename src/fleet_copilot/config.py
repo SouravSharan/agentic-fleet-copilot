@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
-from pydantic import Field, SecretStr, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _REPO_ENV = Path(__file__).resolve().parents[2] / ".env"
@@ -45,11 +45,15 @@ class Settings(BaseSettings):
     copilot_database_url: str = Field(
         default="postgresql://copilot_app:copilot_app@localhost:5432/fleet_copilot"
     )
+    demo_ops_database_url: str = Field(
+        default="postgresql://demo_ops:demo_ops@localhost:5432/fleet_copilot"
+    )
 
     # Role passwords synchronized by scripts/db_setup.py
     telemetry_writer_password: str = Field(default="telemetry_writer")
     telemetry_ro_password: str = Field(default="telemetry_ro")
     copilot_app_password: str = Field(default="copilot_app")
+    demo_ops_password: str = Field(default="demo_ops")
 
     # Testing & data-clock controls
     test_db_name: str = Field(default="fleet_copilot_test")
@@ -71,15 +75,31 @@ class Settings(BaseSettings):
     log_format: str = Field(default="json")
     log_level: str = Field(default="INFO")
 
-    # Demo API / UI auth & budgets
+    # Demo API / UI auth, mode & budgets
+    app_env: str = Field(default="dev")
+    demo_mode: bool = Field(default=True)
     session_signing_key: SecretStr | None = Field(default=None)
-    demo_access_codes: str = Field(default="demo-code:rev_01")
+    demo_access_codes: str = Field(default="")
     demo_admin_token: SecretStr | None = Field(default=None)
-    demo_spend_cap_usd: float = Field(default=3.0)
-    demo_turns_per_access_code: int = Field(default=25)
-    rate_limit_turns_per_hour: int = Field(default=20)
+    demo_spend_cap_usd: float = Field(default=2.00)
+    demo_turns_per_code: int = Field(
+        default=25,
+        validation_alias=AliasChoices("DEMO_TURNS_PER_CODE", "DEMO_TURNS_PER_ACCESS_CODE"),
+    )
+    demo_turns_per_hour: int = Field(
+        default=20,
+        validation_alias=AliasChoices("DEMO_TURNS_PER_HOUR", "RATE_LIMIT_TURNS_PER_HOUR"),
+    )
     daily_token_budget: int = Field(default=2_000_000)
     turn_retention_days: int = Field(default=7)
+
+    @property
+    def demo_turns_per_access_code(self) -> int:
+        return self.demo_turns_per_code
+
+    @property
+    def rate_limit_turns_per_hour(self) -> int:
+        return self.demo_turns_per_hour
 
     @field_validator("fleet_as_of", mode="before")
     @classmethod
@@ -114,6 +134,7 @@ def test_database_overrides(settings: Settings, name: str | None = None) -> dict
         ),
         "TELEMETRY_RO_DATABASE_URL": with_database(settings.telemetry_ro_database_url, dbname),
         "COPILOT_DATABASE_URL": with_database(settings.copilot_database_url, dbname),
+        "DEMO_OPS_DATABASE_URL": with_database(settings.demo_ops_database_url, dbname),
     }
 
 
