@@ -9,7 +9,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from fleet_copilot.domain.models import DeviceState, PolicyValue, TenantContext
-from fleet_copilot.interfaces.ui.humanize import humanize_policy
+from fleet_copilot.presentation.humanize import humanize_policy
 from fleet_copilot.repositories.telemetry import TelemetryRepository
 from fleet_copilot.services.fleet import get_fleet_overview
 from fleet_copilot.services.policy import PolicyService

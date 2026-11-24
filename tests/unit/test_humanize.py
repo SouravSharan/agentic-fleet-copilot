@@ -1,11 +1,11 @@
-"""Unit tests for pure plain-English UI/briefing humanizer (`interfaces/ui/humanize.py`)."""
+"""Unit tests for pure plain-English UI/briefing humanizer (`presentation/humanize.py`)."""
 
 from __future__ import annotations
 
 import re
 from pathlib import Path
 
-from fleet_copilot.interfaces.ui.humanize import (
+from fleet_copilot.presentation.humanize import (
     SEEDED_POLICY_KEYS,
     humanize_actor_label,
     humanize_audit_event,
