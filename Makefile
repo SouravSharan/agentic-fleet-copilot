@@ -52,7 +52,7 @@ eval-verify-cases:
 	uv run pytest tests/eval -m eval
 
 eval:
-	LLM_REPLAY_MODE=replay uv run python -m evals.run --mode replay --repeats 1 --pass3-tags actions,redteam
+	LLM_REPLAY_MODE=replay uv run python -m evals.run --mode replay --tags core --repeats 1 --pass3-tags redteam
 
 eval-live:
-	LLM_REPLAY_MODE=record uv run python -m evals.run --mode live --model $(MODEL) --repeats 1 --pass3-tags actions,redteam --max-cost 3.0
+	LLM_REPLAY_MODE=record uv run python -m evals.run --mode live --model $(MODEL) --tags core --repeats 1 --pass3-tags redteam --max-cost 1.5

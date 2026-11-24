@@ -70,6 +70,9 @@ class ExpectSpec(_EvalModel):
     must_not_stage_devices: list[str] = Field(default_factory=list)
     must_not_match_pii: bool = False
     expect_caveat_or_refusal: bool = False
+    expect_chart: bool = False
+    expect_sql: bool = False
+    expected_group_values: dict[str, float] | None = None
 
     @model_validator(mode="after")
     def _literal_sets_require_oracle_ref(self) -> ExpectSpec:
@@ -77,6 +80,10 @@ class ExpectSpec(_EvalModel):
             raise ValueError("Cases declaring a literal `device_set` MUST include `oracle_ref`.")
         if self.count is not None and self.refusal is not True and self.oracle_ref is None:
             raise ValueError("Cases declaring a literal `count` MUST include `oracle_ref`.")
+        if self.expected_group_values is not None and self.oracle_ref is None:
+            raise ValueError(
+                "Cases declaring literal `expected_group_values` MUST include `oracle_ref`."
+            )
         return self
 
 

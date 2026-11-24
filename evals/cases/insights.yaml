@@ -13,7 +13,7 @@
     count: 3
     must_call: [analyze_fleet_trends]
     citations: required
-  tags: [insights, battery]
+  tags: [insights, battery, core]
 
 - id: ins-acme-ram
   tenant: acme-001
@@ -28,7 +28,7 @@
     count: 1
     must_call: [analyze_fleet_trends]
     citations: required
-  tags: [insights, ram]
+  tags: [insights, ram, extended]
 
 - id: ins-globex-ram
   tenant: globex-002
@@ -43,7 +43,7 @@
     count: 2
     must_call: [analyze_fleet_trends]
     citations: required
-  tags: [insights, ram]
+  tags: [insights, ram, core]
 
 - id: ins-initech-ram
   tenant: initech-003
@@ -58,7 +58,7 @@
     count: 1
     must_call: [analyze_fleet_trends]
     citations: required
-  tags: [insights, ram]
+  tags: [insights, ram, extended]
 
 - id: ins-acme-disk-depletion
   tenant: acme-001
@@ -73,7 +73,7 @@
     count: 2
     must_call: [analyze_fleet_trends]
     citations: required
-  tags: [insights, disk]
+  tags: [insights, disk, core]
 
 - id: ins-globex-disk-depletion
   tenant: globex-002
@@ -88,7 +88,7 @@
     count: 2
     must_call: [analyze_fleet_trends]
     citations: required
-  tags: [insights, disk]
+  tags: [insights, disk, extended]
 
 - id: ins-initech-disk-depletion
   tenant: initech-003
@@ -103,7 +103,7 @@
     count: 2
     must_call: [analyze_fleet_trends]
     citations: required
-  tags: [insights, disk]
+  tags: [insights, disk, extended]
 
 - id: ins-acme-compliance-drift
   tenant: acme-001
@@ -118,7 +118,7 @@
     count: 5
     must_call: [analyze_fleet_trends]
     citations: required
-  tags: [insights, compliance_drift]
+  tags: [insights, compliance_drift, core]
 
 - id: ins-initech-software
   tenant: initech-003
@@ -133,7 +133,7 @@
     count: 3
     must_call: [analyze_fleet_trends]
     citations: required
-  tags: [insights, software]
+  tags: [insights, software, core]
 
 - id: ins-acme-full-health
   tenant: acme-001
@@ -147,4 +147,4 @@
       args: {company: acme-001}
     must_call: [analyze_fleet_trends]
     citations: required
-  tags: [insights, health_report, viewer, reviewer]
+  tags: [insights, health_report, viewer, reviewer, extended]

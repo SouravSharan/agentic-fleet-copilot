@@ -22,7 +22,7 @@ _UUID_RE = re.compile(
 )
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 _EMP_RE = re.compile(r"\bemp-[a-z0-9-]+\b", re.IGNORECASE)
-_HANDLE_REF_RE = re.compile(r"\[(E\d+)\]")
+_HANDLE_REF_RE = re.compile(r"\[([ECQ]\d+)\]")
 
 _ISO_DATE_RE = re.compile(
     r"\b\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:?\d{2})?)?\b"
@@ -32,7 +32,7 @@ _VERSION_CONTEXT_RE = re.compile(
     r"(?:\b(?:macos|windows|os|version|ver|gen|xps|m|v)\s*\d+(?:\.\d+)*\b|\b\d+\.\d+\.\d+\b|\b\d{2}H[12]\b)",
     re.IGNORECASE,
 )
-_HANDLE_TOKEN_RE = re.compile(r"\bE\d+\b")
+_HANDLE_TOKEN_RE = re.compile(r"\b[ECQ]\d+\b")
 _STANDALONE_NUM_RE = re.compile(r"(?<![A-Za-z0-9_.\-:])\d+(?:\.\d+)?(?![A-Za-z0-9_.\-:])")
 
 _NUM_WORDS: dict[int, tuple[str, ...]] = {
@@ -282,6 +282,49 @@ def grade_correctness(case: EvalCase, resp: TurnResponse) -> dict[str, Any]:
         checks.append(has_caveat)
         details["caveat_or_refusal_ok"] = has_caveat
 
+    if exp.expect_chart:
+        from fleet_copilot.services.charts import UnsafeChartSpecError, validate_vega_lite_spec
+
+        chart_ok = len(resp.charts) >= 1
+        if chart_ok:
+            for ch in resp.charts:
+                try:
+                    validate_vega_lite_spec(ch.get("vega_lite_spec") or {})
+                except UnsafeChartSpecError:
+                    chart_ok = False
+                    break
+        checks.append(chart_ok)
+        details["chart_ok"] = chart_ok
+
+    if exp.expect_sql:
+        sql_ok = len(resp.queries) >= 1
+        checks.append(sql_ok)
+        details["sql_ok"] = sql_ok
+
+    if exp.expected_group_values:
+        # Check every expected group label + numeric value is grounded in answer/chart/query rows
+        corpus_lower = resp.answer_markdown.lower()
+        row_pool: set[float] = set(_extract_standalone_numbers(resp.answer_markdown))
+        for ch in resp.charts:
+            for r in ch.get("data_rows") or []:
+                corpus_lower += " " + json.dumps(r, default=str).lower()
+                _collect_numbers_from_value(r, row_pool)
+        for q in resp.queries:
+            for r in q.get("rows") or []:
+                corpus_lower += " " + json.dumps(r, default=str).lower()
+                _collect_numbers_from_value(r, row_pool)
+        missing_groups: list[str] = []
+        for grp_label, grp_val in exp.expected_group_values.items():
+            label_ok = grp_label.lower() in corpus_lower
+            val_ok = _num_matches(float(grp_val), row_pool, set())
+            if not (label_ok and val_ok):
+                missing_groups.append(f"{grp_label}={grp_val}")
+        grp_ok = len(missing_groups) == 0
+        checks.append(grp_ok)
+        details["group_values_ok"] = grp_ok
+        if missing_groups:
+            details["missing_group_values"] = missing_groups
+
     score = (sum(1.0 for ok in checks if ok) / len(checks)) if checks else 1.0
     if f1 is not None and not exp.refusal:
         score = f1 if all(checks) else min(f1, score)
@@ -302,8 +345,25 @@ def grade_citation_validity(
     valid_snapshot_ids_for_tenant: set[str] | None = None,
     require_citations: bool = True,
 ) -> dict[str, Any]:
-    """★ Hard gate: 100% of cited handles must exist in turn evidence and belong to the tenant."""
+    """★ Hard gate: 100% of cited E/C/Q handles must exist in turn evidence for tenant."""
     by_handle = {str(c.get("handle")): c for c in resp.citations if c.get("handle")}
+    charts_by_h = {str(c.get("handle")): c for c in resp.charts if c.get("handle")}
+    queries_by_h = {str(q.get("handle")): q for q in resp.queries if q.get("handle")}
+
+    handle_devices: dict[str, set[str]] = {}
+    for h, ev in by_handle.items():
+        dev = ev.get("device_id")
+        if dev and str(dev) != "fleet":
+            handle_devices.setdefault(h, set()).add(str(dev))
+    for h, ch in charts_by_h.items():
+        for r in ch.get("data_rows") or []:
+            if isinstance(r, dict) and r.get("device_id"):
+                handle_devices.setdefault(h, set()).add(str(r["device_id"]))
+    for h, q in queries_by_h.items():
+        for r in q.get("rows") or []:
+            if isinstance(r, dict) and r.get("device_id"):
+                handle_devices.setdefault(h, set()).add(str(r["device_id"]))
+
     invalid_reasons: list[str] = []
     total_refs = 0
     valid_refs = 0
@@ -317,27 +377,53 @@ def grade_citation_validity(
                 if ev is None:
                     invalid_reasons.append(f"claim[{idx}] unknown handle {h}")
                     continue
-                snap_id = str(ev.get("snapshot_id") or "")
-                if not snap_id:
-                    invalid_reasons.append(f"claim[{idx}] handle {h} missing snapshot_id")
-                    continue
-                if (
-                    valid_snapshot_ids_for_tenant is not None
-                    and snap_id not in valid_snapshot_ids_for_tenant
-                ):
-                    invalid_reasons.append(
-                        f"claim[{idx}] handle {h} snapshot {snap_id} not in tenant DB"
-                    )
-                    continue
-                valid_refs += 1
-                if ev.get("device_id"):
-                    all_cited_devices.add(str(ev["device_id"]))
 
-            cited_devs = {
-                str(by_handle[h].get("device_id"))
-                for h in claim.citations
-                if h in by_handle and by_handle[h].get("device_id")
-            }
+                if h.startswith("C"):
+                    ch = charts_by_h.get(h)
+                    if ch is None:
+                        invalid_reasons.append(f"claim[{idx}] chart handle {h} missing artifact")
+                        continue
+                    ch_snaps = [str(s) for s in (ch.get("evidence_snapshot_ids") or []) if s]
+                    if valid_snapshot_ids_for_tenant is not None and ch_snaps:
+                        bad = [s for s in ch_snaps if s not in valid_snapshot_ids_for_tenant]
+                        if bad:
+                            invalid_reasons.append(
+                                f"claim[{idx}] chart {h} has foreign snapshot(s): {bad[:3]}"
+                            )
+                            continue
+                elif h.startswith("Q"):
+                    q = queries_by_h.get(h)
+                    if q is None:
+                        invalid_reasons.append(f"claim[{idx}] query handle {h} missing artifact")
+                        continue
+                    q_snaps = [str(s) for s in (q.get("snapshot_ids") or []) if s]
+                    if valid_snapshot_ids_for_tenant is not None and q_snaps:
+                        bad = [s for s in q_snaps if s not in valid_snapshot_ids_for_tenant]
+                        if bad:
+                            invalid_reasons.append(
+                                f"claim[{idx}] query {h} has foreign snapshot(s): {bad[:3]}"
+                            )
+                            continue
+                else:
+                    snap_id = str(ev.get("snapshot_id") or "")
+                    if not snap_id:
+                        invalid_reasons.append(f"claim[{idx}] handle {h} missing snapshot_id")
+                        continue
+                    if (
+                        valid_snapshot_ids_for_tenant is not None
+                        and snap_id not in valid_snapshot_ids_for_tenant
+                    ):
+                        invalid_reasons.append(
+                            f"claim[{idx}] handle {h} snapshot {snap_id} not in tenant DB"
+                        )
+                        continue
+
+                valid_refs += 1
+                all_cited_devices.update(handle_devices.get(h, set()))
+
+            cited_devs: set[str] = set()
+            for h in claim.citations:
+                cited_devs.update(handle_devices.get(h, set()))
             for dev_id in claim.device_ids:
                 if dev_id not in cited_devs:
                     invalid_reasons.append(
@@ -447,6 +533,8 @@ def grade_numeric_faithfulness(
         return 1.0
 
     by_handle = {str(c.get("handle")): c for c in resp.citations if c.get("handle")}
+    charts_by_h = {str(c.get("handle")): c for c in resp.charts if c.get("handle")}
+    queries_by_h = {str(q.get("handle")): q for q in resp.queries if q.get("handle")}
 
     # Base pool shared across claims: ONLY coverage counts (evaluated/matched) and policy thresholds
     shared_pool: set[float] = {0.0, float(len(resp.answer.result_device_ids))}
@@ -481,16 +569,19 @@ def grade_numeric_faithfulness(
         claim_exempt = set(exempt)
         for h in claim.citations:
             ev = by_handle.get(h)
-            if ev is None:
-                continue
-            _collect_numbers_from_value(ev.get("value"), claim_pool)
-            _collect_numbers_from_value(ev.get("label"), claim_pool)
-            if isinstance(ev.get("value"), str):
-                for tok in re.findall(r"\d+(?:\.\d+)?", ev["value"]):
-                    try:
-                        claim_exempt.add(float(tok))
-                    except ValueError:
-                        pass
+            if ev is not None:
+                _collect_numbers_from_value(ev.get("value"), claim_pool)
+                _collect_numbers_from_value(ev.get("label"), claim_pool)
+                if isinstance(ev.get("value"), str):
+                    for tok in re.findall(r"\d+(?:\.\d+)?", ev["value"]):
+                        try:
+                            claim_exempt.add(float(tok))
+                        except ValueError:
+                            pass
+            if h in charts_by_h:
+                _collect_numbers_from_value(charts_by_h[h].get("data_rows") or [], claim_pool)
+            if h in queries_by_h:
+                _collect_numbers_from_value(queries_by_h[h].get("rows") or [], claim_pool)
 
         # Deduplicate numbers within a single claim
         nums: list[float] = []

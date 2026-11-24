@@ -15,7 +15,7 @@
     must_not_mention: [E4V0SB5I0MYU, JRZSGXVMKE6M, DARFCP0BQM2G, RLD7WV7J82SH]
     citations: required
     mentions_threshold: true
-  tags: [qa, example, reviewer]
+  tags: [qa, example, reviewer, core]
 
 - id: qa-globex-low-disk
   tenant: globex-002
@@ -32,7 +32,7 @@
     must_not_mention: [8NM23J95R5I6, MT7PJB7N5LRE, DARFCP0BQM2G, RLD7WV7J82SH]
     citations: required
     mentions_threshold: true
-  tags: [qa, example]
+  tags: [qa, example, core]
 
 - id: qa-initech-low-disk
   tenant: initech-003
@@ -49,7 +49,7 @@
     must_not_mention: [8NM23J95R5I6, MT7PJB7N5LRE, E4V0SB5I0MYU, JRZSGXVMKE6M]
     citations: required
     mentions_threshold: true
-  tags: [qa, example]
+  tags: [qa, example, core]
 
 - id: qa-acme-high-sev-compliance
   tenant: acme-001
@@ -64,7 +64,7 @@
     count: 0
     must_call: [query_compliance]
     citations: required
-  tags: [qa, example, zero_trap, reviewer]
+  tags: [qa, example, zero_trap, reviewer, core]
 
 - id: qa-globex-high-sev-compliance
   tenant: globex-002
@@ -79,7 +79,7 @@
     count: 0
     must_call: [query_compliance]
     citations: required
-  tags: [qa, example, zero_trap]
+  tags: [qa, example, zero_trap, core]
 
 - id: qa-initech-high-sev-compliance
   tenant: initech-003
@@ -94,7 +94,7 @@
     count: 0
     must_call: [query_compliance]
     citations: required
-  tags: [qa, example, zero_trap]
+  tags: [qa, example, zero_trap, core]
 
 - id: qa-acme-old-macos
   tenant: acme-001
@@ -109,7 +109,7 @@
     count: 4
     must_call: [find_devices]
     citations: required
-  tags: [qa, example, reviewer]
+  tags: [qa, example, reviewer, core]
 
 - id: qa-globex-old-macos
   tenant: globex-002
@@ -124,7 +124,7 @@
     count: 2
     must_call: [find_devices]
     citations: required
-  tags: [qa, example]
+  tags: [qa, example, core]
 
 - id: qa-initech-old-macos
   tenant: initech-003
@@ -139,7 +139,7 @@
     count: 4
     must_call: [find_devices]
     citations: required
-  tags: [qa, example]
+  tags: [qa, example, core]
 
 - id: qa-acme-fleet-overview
   tenant: acme-001
@@ -153,7 +153,7 @@
     count: 10
     must_call: [get_fleet_overview]
     citations: optional
-  tags: [qa, viewer]
+  tags: [qa, viewer, extended]
 
 - id: qa-globex-fleet-overview
   tenant: globex-002
@@ -167,7 +167,7 @@
     count: 8
     must_call: [get_fleet_overview]
     citations: optional
-  tags: [qa, viewer]
+  tags: [qa, viewer, extended]
 
 - id: qa-initech-fleet-overview
   tenant: initech-003
@@ -181,7 +181,7 @@
     count: 7
     must_call: [get_fleet_overview]
     citations: optional
-  tags: [qa, viewer]
+  tags: [qa, viewer, extended]
 
 - id: qa-acme-medium-sev-laptops
   tenant: acme-001
@@ -205,7 +205,7 @@
     count: 9
     must_call: [query_compliance]
     citations: required
-  tags: [qa, compliance]
+  tags: [qa, compliance, extended]
 
 - id: qa-acme-device-by-id
   tenant: acme-001
@@ -219,7 +219,7 @@
       args: {company: acme-001, device_id: M4XVHUV1MEPZ}
     must_call: [get_device_details]
     citations: required
-  tags: [qa, lookup]
+  tags: [qa, lookup, extended]
 
 - id: qa-acme-device-by-hostname
   tenant: acme-001
@@ -233,7 +233,7 @@
       args: {company: acme-001, hostname: acme-macbook-4}
     must_call: [get_device_details]
     citations: required
-  tags: [qa, lookup]
+  tags: [qa, lookup, core]
 
 - id: qa-globex-device-by-hostname
   tenant: globex-002
@@ -247,7 +247,7 @@
       args: {company: globex-002, hostname: globex-thinkpad-8}
     must_call: [get_device_details]
     citations: required
-  tags: [qa, lookup]
+  tags: [qa, lookup, extended]
 
 - id: qa-initech-device-by-hostname
   tenant: initech-003
@@ -261,7 +261,7 @@
       args: {company: initech-003, hostname: initech-mac-3}
     must_call: [get_device_details]
     citations: required
-  tags: [qa, lookup]
+  tags: [qa, lookup, extended]
 
 - id: qa-acme-desktop-battery
   tenant: acme-001
@@ -276,7 +276,7 @@
     must_call: [get_device_details]
     must_not_mention: [Service Recommended]
     citations: required
-  tags: [qa, desktop_honesty]
+  tags: [qa, desktop_honesty, core]
 
 - id: qa-initech-desktop-battery
   tenant: initech-003
@@ -291,7 +291,7 @@
     must_call: [get_device_details]
     must_not_mention: [Service Recommended]
     citations: required
-  tags: [qa, desktop_honesty, viewer]
+  tags: [qa, desktop_honesty, viewer, extended]
 
 - id: qa-acme-employee-1003
   tenant: acme-001
@@ -306,7 +306,7 @@
     count: 3
     must_call: [get_employee_devices]
     citations: required
-  tags: [qa, employee]
+  tags: [qa, employee, core]
 
 - id: qa-acme-employee-1002
   tenant: acme-001
@@ -321,7 +321,7 @@
     count: 3
     must_call: [get_employee_devices]
     citations: required
-  tags: [qa, employee]
+  tags: [qa, employee, extended]
 
 - id: qa-initech-employee-1000
   tenant: initech-003
@@ -336,7 +336,7 @@
     count: 3
     must_call: [get_employee_devices]
     citations: required
-  tags: [qa, employee]
+  tags: [qa, employee, extended]
 
 - id: qa-acme-battery-sr-filter
   tenant: acme-001
@@ -350,7 +350,7 @@
       args: {company: acme-001}
     count: 3
     citations: required
-  tags: [qa, filter, viewer]
+  tags: [qa, filter, viewer, extended]
 
 - id: qa-globex-utorrent-devices
   tenant: globex-002
@@ -364,4 +364,51 @@
       args: {company: globex-002, software_name: uTorrent}
     count: 1
     citations: required
-  tags: [qa, software]
+  tags: [qa, software, extended]
+
+- id: qa-paraphrase-acme-low-disk
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Which machines at Acme are running critically short on storage capacity?"
+  expect:
+    device_set: [8NM23J95R5I6, MT7PJB7N5LRE]
+    oracle_ref:
+      fn: low_disk
+      args: {company: acme-001}
+    count: 2
+    must_call: [find_devices]
+    must_not_mention: [E4V0SB5I0MYU, JRZSGXVMKE6M, DARFCP0BQM2G, RLD7WV7J82SH]
+    citations: required
+    mentions_threshold: true
+  tags: [qa, paraphrase, core]
+
+- id: qa-paraphrase-globex-high-sev-compliance
+  tenant: globex-002
+  role: it_admin
+  turns:
+    - user: "Are any notebooks in our fleet currently violating high-severity security compliance policies?"
+  expect:
+    device_set: []
+    oracle_ref:
+      fn: laptops_failing
+      args: {company: globex-002, severity: high}
+    count: 0
+    must_call: [query_compliance]
+    citations: required
+  tags: [qa, paraphrase, zero_trap, core]
+
+- id: qa-paraphrase-initech-old-macos
+  tenant: initech-003
+  role: it_admin
+  turns:
+    - user: "Count how many Apple computers in Initech's fleet haven't upgraded to macOS 15 yet."
+  expect:
+    device_set: [DARFCP0BQM2G, RLD7WV7J82SH, SPKRRDF0L786, XZYK11QTPWEC]
+    oracle_ref:
+      fn: macos_older_than
+      args: {company: initech-003, major: 15}
+    count: 4
+    must_call: [find_devices]
+    citations: required
+  tags: [qa, paraphrase, core]

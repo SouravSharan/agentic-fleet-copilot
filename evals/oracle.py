@@ -396,8 +396,40 @@ def all_trend_devices(company: str) -> set[str]:
     )
 
 
+def avg_battery_cycles_by_model(company: str) -> dict[str, float]:
+    """Return `{model_name: round(avg_cycle_count, 2)}` across battery-present devices."""
+    grouped: dict[str, list[int]] = defaultdict(list)
+    for snap in latest_by_device(company).values():
+        bat = snap.get("battery") or {}
+        if bat.get("battery_present") and bat.get("cycle_count") is not None:
+            model = str((snap.get("device_identity") or {}).get("model_name") or "unknown")
+            grouped[model].append(int(bat["cycle_count"]))
+    return {m: round(sum(v) / len(v), 2) for m, v in sorted(grouped.items())}
+
+
+def devices_per_employee(company: str) -> dict[str, int]:
+    """Return `{employee_id: device_count}` for `company`."""
+    counts: Counter[str] = Counter()
+    for snap in latest_by_device(company).values():
+        counts[str(snap["employee_id"])] += 1
+    return dict(sorted(counts.items()))
+
+
+def low_disk_by_model(company: str, model_substr: str, threshold: float = 15.0) -> set[str]:
+    """Return low-disk device IDs in `company` whose model_name contains `model_substr`."""
+    needle = model_substr.strip().lower()
+    latest = latest_by_device(company)
+    out: set[str] = set()
+    for dev_id in low_disk(company, threshold=threshold):
+        model = str((latest[dev_id].get("device_identity") or {}).get("model_name") or "").lower()
+        if needle in model:
+            out.add(dev_id)
+    return out
+
+
 _ORACLE_FUNCTIONS: dict[str, Any] = {
     "low_disk": low_disk,
+    "low_disk_by_model": low_disk_by_model,
     "laptops_failing": laptops_failing,
     "macos_older_than": macos_older_than,
     "macos_laptops_older_than": macos_laptops_older_than,
@@ -407,6 +439,8 @@ _ORACLE_FUNCTIONS: dict[str, Any] = {
     "screen_lock_drift": screen_lock_drift,
     "non_baseline_software": non_baseline_software,
     "employee_devices": employee_devices,
+    "devices_per_employee": devices_per_employee,
+    "avg_battery_cycles_by_model": avg_battery_cycles_by_model,
     "overview": overview,
     "total_devices": total_devices,
     "device_exists": device_exists,

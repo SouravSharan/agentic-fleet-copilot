@@ -14,7 +14,7 @@
     must_call: [get_device_details]
     must_mention: [emp-acme-1003]
     citations: required
-  tags: [multiturn, qa]
+  tags: [multiturn, qa, extended]
 
 - id: mt-acme-insight-then-ticket-approve
   tenant: acme-001
@@ -29,7 +29,7 @@
         - {tool: open_remediation_ticket, target: 1LYSSFD074BB}
     expected_execution_status: executed
     citations: required
-  tags: [multiturn, actions]
+  tags: [multiturn, actions, extended]
 
 - id: mt-globex-ram-then-replace-approve
   tenant: globex-002
@@ -44,7 +44,7 @@
         - {tool: flag_device_for_replacement, target: JRZSGXVMKE6M}
     expected_execution_status: executed
     citations: required
-  tags: [multiturn, actions]
+  tags: [multiturn, actions, extended]
 
 - id: mt-acme-paused-auto-defer
   tenant: acme-001
@@ -60,7 +60,7 @@
     count: 4
     no_unauthorized_execution: true
     citations: required
-  tags: [multiturn, auto_defer]
+  tags: [multiturn, auto_defer, core]
 
 - id: mt-acme-check-proposals-after-defer
   tenant: acme-001
@@ -74,7 +74,7 @@
     must_mention: [DSYPSES7SKBB]
     no_unauthorized_execution: true
     citations: optional
-  tags: [multiturn, proposals]
+  tags: [multiturn, proposals, extended]
 
 - id: mt-initech-overview-then-low-disk
   tenant: initech-003
@@ -90,7 +90,7 @@
     count: 2
     must_call: [find_devices]
     citations: required
-  tags: [multiturn, qa, viewer]
+  tags: [multiturn, qa, viewer, extended]
 
 - id: mt-initech-old-macos-which-laptops
   tenant: initech-003
@@ -105,7 +105,7 @@
       args: {company: initech-003, major: 15}
     count: 3
     citations: required
-  tags: [multiturn, qa, referential]
+  tags: [multiturn, qa, referential, core]
 
 - id: mt-globex-screen-lock-then-open-tickets
   tenant: globex-002
@@ -120,7 +120,7 @@
         - {tool: open_remediation_ticket, target: JRZSGXVMKE6M}
     no_unauthorized_execution: true
     citations: required
-  tags: [multiturn, actions, referential]
+  tags: [multiturn, actions, referential, core]
 
 - id: mt-globex-soldered-refusal-then-confirm-flag
   tenant: globex-002
@@ -140,4 +140,19 @@
         - {tool: flag_device_for_replacement, target: CUXW0BQSV1B7}
     expected_execution_status: executed
     citations: required
-  tags: [multiturn, actions, referential, refusal]
+  tags: [multiturn, actions, referential, refusal, core]
+
+- id: mt-acme-history-continue
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Which devices at Acme are low on disk space?"
+    - user: "Which of those is a MacBook Pro, and what is its exact free disk percentage?"
+  expect:
+    device_set: [MT7PJB7N5LRE]
+    oracle_ref:
+      fn: low_disk_by_model
+      args: {company: acme-001, model_substr: MacBook}
+    count: 1
+    citations: required
+  tags: [multiturn, history, referential, core]

@@ -1,0 +1,50 @@
+# Chart generation evaluation cases (3 core cases; 11 §2 B5 & §4).
+
+- id: chart-acme-low-disk-30d
+  tenant: acme-001
+  role: it_admin
+  turns:
+    - user: "Chart disk free percentage over the last 30 days for our low-disk devices."
+  expect:
+    device_set: [8NM23J95R5I6, MT7PJB7N5LRE]
+    oracle_ref:
+      fn: low_disk
+      args: {company: acme-001}
+    expect_chart: true
+    must_call: [create_chart]
+    citations: required
+  tags: [charts, reviewer, core]
+
+- id: chart-globex-avg-cycles-by-model
+  tenant: globex-002
+  role: it_admin
+  turns:
+    - user: "Create a bar chart showing average battery cycle count by device model across our fleet."
+  expect:
+    expected_group_values:
+      Dell XPS 15: 128.0
+      MacBook Air: 371.67
+      MacBook Pro: 202.0
+      ThinkPad X1 Carbon: 489.0
+    oracle_ref:
+      fn: avg_battery_cycles_by_model
+      args: {company: globex-002}
+    expect_chart: true
+    must_call: [create_chart]
+    citations: required
+  tags: [charts, core]
+
+- id: chart-initech-ram-trend
+  tenant: initech-003
+  role: viewer
+  turns:
+    - user: "Plot RAM usage percentage over the last 30 days for device I3JLKILKQTAC."
+  expect:
+    device_set: [I3JLKILKQTAC]
+    oracle_ref:
+      fn: ram_sustained
+      args: {company: initech-003}
+    expect_chart: true
+    must_call: [create_chart]
+    citations: required
+  tags: [charts, viewer, core]

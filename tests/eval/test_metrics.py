@@ -453,3 +453,114 @@ def test_citation_validity_trajectory_budget_privacy_and_ci_gates() -> None:
         )["passed"]
         is False
     )
+
+
+def test_grade_chart_and_sql_handles_and_group_values() -> None:
+    """B5: Graders accept C<n>/Q<n> handles, validate chart specs, and check group aggregates."""
+    from fleet_copilot.services.charts import VEGA_LITE_V5_SCHEMA
+
+    sql_case = EvalCase(
+        id="sql-test",
+        tenant="acme-001",
+        role="viewer",
+        turns=[TurnSpec(user="Average cycles by model?")],
+        expect=ExpectSpec(
+            expect_sql=True,
+            expected_group_values={"Dell XPS 15": 948.0, "MacBook Pro": 559.2},
+            oracle_ref=OracleRef(fn="avg_battery_cycles_by_model", args={"company": "acme-001"}),
+            must_call=["run_readonly_sql"],
+        ),
+        tags=["sql", "core"],
+    )
+    sql_resp = TurnResponse(
+        thread_id="acme-001:t1",
+        turn_id="turn_1",
+        trace_id="trace_1",
+        status="completed",
+        answer_markdown="Dell XPS 15 averages 948.0 cycles and MacBook Pro averages 559.2 [Q1].",
+        answer=Answer(
+            summary="Dell XPS 15 averages 948.0 cycles and MacBook Pro averages 559.2.",
+            claims=[
+                Claim(
+                    text="Dell XPS 15: 948.0 cycles; MacBook Pro: 559.2 cycles [Q1].",
+                    citations=["Q1"],
+                    numbers=[948.0, 559.2],
+                )
+            ],
+        ),
+        citations=[
+            {
+                "handle": "Q1",
+                "snapshot_id": "query_abc123",
+                "device_id": "fleet",
+                "label": "SQL query",
+            }
+        ],
+        queries=[
+            {
+                "handle": "Q1",
+                "sql": (
+                    "SELECT model_name, AVG(battery_cycle_count) "
+                    "FROM telemetry.v_latest_device_state GROUP BY model_name LIMIT 200"
+                ),
+                "rows": [
+                    {"model_name": "Dell XPS 15", "avg_cycles": 948.0},
+                    {"model_name": "MacBook Pro", "avg_cycles": 559.2},
+                ],
+                "snapshot_ids": [],
+            }
+        ],
+        tool_trace=[{"tool_name": "run_readonly_sql", "evaluated": 2, "matched": 2}],
+    )
+    assert grade_correctness(sql_case, sql_resp)["passed"] is True
+    assert grade_citation_validity(sql_resp, valid_snapshot_ids_for_tenant=set())["passed"] is True
+    assert grade_numeric_faithfulness(sql_resp) == 1.0
+
+    chart_case = EvalCase(
+        id="chart-test",
+        tenant="acme-001",
+        role="viewer",
+        turns=[TurnSpec(user="Chart low disk")],
+        expect=ExpectSpec(expect_chart=True, must_call=["create_chart"]),
+        tags=["charts", "core"],
+    )
+    chart_resp = TurnResponse(
+        thread_id="acme-001:t2",
+        turn_id="turn_2",
+        trace_id="trace_2",
+        status="completed",
+        answer_markdown="Generated chart [C1] showing MT7PJB7N5LRE at 2.0%.",
+        answer=Answer(
+            summary="Generated chart showing MT7PJB7N5LRE at 2.0%.",
+            result_device_ids=["MT7PJB7N5LRE"],
+            claims=[
+                Claim(
+                    text="MT7PJB7N5LRE is at 2.0% free disk [C1].",
+                    citations=["C1"],
+                    device_ids=["MT7PJB7N5LRE"],
+                    numbers=[2.0],
+                )
+            ],
+        ),
+        citations=[{"handle": "C1", "snapshot_id": "snap_1", "device_id": "fleet"}],
+        charts=[
+            {
+                "handle": "C1",
+                "title": "Low Disk",
+                "vega_lite_spec": {
+                    "$schema": VEGA_LITE_V5_SCHEMA,
+                    "data": {"values": [{"device_id": "MT7PJB7N5LRE", "value": 2.0}]},
+                    "mark": "line",
+                },
+                "data_rows": [{"device_id": "MT7PJB7N5LRE", "value": 2.0}],
+                "evidence_snapshot_ids": ["snap_1"],
+            }
+        ],
+        tool_trace=[{"tool_name": "create_chart", "evaluated": 1, "matched": 1}],
+    )
+    assert grade_correctness(chart_case, chart_resp)["passed"] is True
+    assert (
+        grade_citation_validity(chart_resp, valid_snapshot_ids_for_tenant={"snap_1"})["passed"]
+        is True
+    )
+    assert grade_numeric_faithfulness(chart_resp) == 1.0

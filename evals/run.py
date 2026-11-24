@@ -65,9 +65,11 @@ def _configure_test_db_env(
     os.environ["LLM_REPLAY_MODE"] = "replay" if mode == "replay" else "record"
     if cassette_dir is not None:
         os.environ["LLM_CASSETTE_DIR"] = str(cassette_dir)
-    if not os.environ.get("PSEUDONYM_KEY"):
+    if base.pseudonym_key is None and not os.environ.get("PSEUDONYM_KEY"):
         os.environ["PSEUDONYM_KEY"] = "0123456789abcdef" * 4
-    if not os.environ.get("LANGGRAPH_AES_KEY"):
+    if base.tenant_lock_key is None and not os.environ.get("TENANT_LOCK_KEY"):
+        os.environ["TENANT_LOCK_KEY"] = "fedcba9876543210" * 4
+    if base.langgraph_aes_key is None and not os.environ.get("LANGGRAPH_AES_KEY"):
         os.environ["LANGGRAPH_AES_KEY"] = "0123456789abcdef" * 2
     get_settings.cache_clear()
     return get_settings()
@@ -80,6 +82,7 @@ def _reset_copilot_state(admin_dsn: str) -> None:
             cur.execute(
                 """
                 TRUNCATE TABLE
+                    copilot.charts,
                     copilot.turns,
                     copilot.threads,
                     copilot.action_proposals,
@@ -332,6 +335,15 @@ def run_eval_suite(
 
                     latency_ms = int((time.monotonic() - t0) * 1000)
                     final_resp = all_turns[-1]
+
+                    # B5: Persist each case's TurnResponse JSON for the Examples gallery (rep 1)
+                    if rep == 1 and out_prefix is not None:
+                        runs_dir = out_prefix.parent / "runs"
+                        runs_dir.mkdir(parents=True, exist_ok=True)
+                        (runs_dir / f"{case.id}.json").write_text(
+                            final_resp.model_dump_json(indent=2),
+                            encoding="utf-8",
+                        )
 
                     valid_snaps = (
                         _fetch_tenant_snapshot_ids(db, case.tenant)

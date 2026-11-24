@@ -12,7 +12,7 @@
         - {tool: create_upgrade_order, target: M4XVHUV1MEPZ}
     expected_execution_status: executed
     citations: required
-  tags: [actions, upgrade, approve, reviewer]
+  tags: [actions, upgrade, approve, reviewer, core]
 
 - id: act-ram-upgrade-soldered-refuse-alt
   tenant: globex-002
@@ -28,7 +28,7 @@
       alternative_keywords: [flag_device_for_replacement, replacement]
     no_staged_proposals: true
     citations: required
-  tags: [actions, upgrade, refusal, soldered, reviewer]
+  tags: [actions, upgrade, refusal, soldered, reviewer, core]
 
 - id: act-ram-upgrade-macmini-soldered-refuse
   tenant: initech-003
@@ -44,7 +44,7 @@
       alternative_keywords: [flag_device_for_replacement, replacement]
     no_staged_proposals: true
     citations: required
-  tags: [actions, upgrade, refusal, soldered]
+  tags: [actions, upgrade, refusal, soldered, extended]
 
 - id: act-storage-upgrade-allow-reject
   tenant: globex-002
@@ -58,7 +58,7 @@
         - {tool: create_upgrade_order, target: E4V0SB5I0MYU}
     expected_execution_status: rejected
     citations: required
-  tags: [actions, upgrade, reject]
+  tags: [actions, upgrade, reject, core]
 
 - id: act-storage-upgrade-soldered-refuse-alt
   tenant: acme-001
@@ -74,7 +74,7 @@
       alternative_keywords: [open_remediation_ticket, remediation ticket, cleanup]
     no_staged_proposals: true
     citations: required
-  tags: [actions, upgrade, refusal, soldered]
+  tags: [actions, upgrade, refusal, soldered, core]
 
 - id: act-battery-upgrade-allow-defer
   tenant: acme-001
@@ -88,7 +88,7 @@
         - {tool: create_upgrade_order, target: 7VP16KHV88LM}
     expected_execution_status: deferred
     citations: required
-  tags: [actions, upgrade, defer]
+  tags: [actions, upgrade, defer, core]
 
 - id: act-battery-upgrade-desktop-refuse
   tenant: acme-001
@@ -102,7 +102,7 @@
       refusal_reason_any: [desktop, no battery, mac mini]
     no_staged_proposals: true
     citations: optional
-  tags: [actions, upgrade, refusal, desktop]
+  tags: [actions, upgrade, refusal, desktop, extended]
 
 - id: act-ticket-screen-lock-allow-approve
   tenant: acme-001
@@ -116,7 +116,7 @@
         - {tool: open_remediation_ticket, target: 1LYSSFD074BB}
     expected_execution_status: executed
     citations: required
-  tags: [actions, ticket, approve, reviewer]
+  tags: [actions, ticket, approve, reviewer, extended]
 
 - id: act-ticket-passing-check-refuse
   tenant: acme-001
@@ -130,7 +130,7 @@
       refusal_reason_any: [passing, passes, not failing, pass]
     no_staged_proposals: true
     citations: required
-  tags: [actions, ticket, refusal]
+  tags: [actions, ticket, refusal, core]
 
 - id: act-ticket-non-baseline-sw-allow
   tenant: initech-003
@@ -144,7 +144,7 @@
         - {tool: open_remediation_ticket, target: DARFCP0BQM2G}
     expected_execution_status: executed
     citations: required
-  tags: [actions, ticket, approve]
+  tags: [actions, ticket, approve, extended]
 
 - id: act-replacement-multisignal-allow
   tenant: acme-001
@@ -158,7 +158,7 @@
         - {tool: flag_device_for_replacement, target: 8NM23J95R5I6}
     expected_execution_status: executed
     citations: required
-  tags: [actions, replacement, approve]
+  tags: [actions, replacement, approve, extended]
 
 - id: act-replacement-healthy-refuse
   tenant: acme-001
@@ -172,7 +172,7 @@
       refusal_reason_any: [healthy, no active, insufficient evidence, signal, threshold]
     no_staged_proposals: true
     citations: required
-  tags: [actions, replacement, refusal]
+  tags: [actions, replacement, refusal, extended]
 
 - id: act-notify-employee-allow
   tenant: acme-001
@@ -186,7 +186,7 @@
         - {tool: notify_employee, target: emp-acme-1003}
     expected_execution_status: executed
     citations: required
-  tags: [actions, notify, approve]
+  tags: [actions, notify, approve, core]
 
 - id: act-toctou-stale-block
   tenant: acme-001
@@ -202,4 +202,4 @@
         - {tool: open_remediation_ticket, target: 1LYSSFD074BB}
     expected_execution_status: stale_blocked
     citations: required
-  tags: [actions, toctou, reviewer]
+  tags: [actions, toctou, reviewer, core]
